@@ -1,0 +1,420 @@
+{
+ "_note": "Aion2Dps heal-family table, compiled for this project by reviewing the English skill names in i18n/skills/en.json and cross-checking the heal lists of other GPL-3.0 AION 2 meters. 'families' match any 8-digit player skill whose base id (id - id % 10000) equals baseId; 'exact' entries match one id only (heal variants inside damage families, NPC heals, consumables). Deliberately excluded as damage or ambiguous: Lifestealing Blade 11340000, Absorb Essence 15760000, Vitality Evaporation 15800000, Defiance (all classes), Focused Block, Heal Block 17760000, Healing Enhancement 17740000 (passive), Enhance Health 12710000 (passive). Names are for reference only; code reads the ids.",
+ "families": [
+  {
+   "baseId": 10000000,
+   "name": "HP Absorption effect",
+   "class": "Common",
+   "kind": "hp-absorption"
+  },
+  {
+   "baseId": 11120000,
+   "name": "Blood Absorption",
+   "class": "Gladiator",
+   "kind": "self-heal"
+  },
+  {
+   "baseId": 11730000,
+   "name": "Blood Absorption",
+   "class": "Gladiator",
+   "kind": "self-heal"
+  },
+  {
+   "baseId": 11380000,
+   "name": "Tenaciousness",
+   "class": "Gladiator",
+   "kind": "support/shield"
+  },
+  {
+   "baseId": 11720000,
+   "name": "Protection Armor",
+   "class": "Gladiator",
+   "kind": "support/shield"
+  },
+  {
+   "baseId": 12230000,
+   "name": "Noble Armor",
+   "class": "Templar",
+   "kind": "support/shield"
+  },
+  {
+   "baseId": 12250000,
+   "name": "Comrade in Arms",
+   "class": "Templar",
+   "kind": "support/shield"
+  },
+  {
+   "baseId": 12720000,
+   "name": "Warding Shield",
+   "class": "Templar",
+   "kind": "support/shield"
+  },
+  {
+   "baseId": 13710000,
+   "name": "Heightened Sixth Sense",
+   "class": "Assassin",
+   "kind": "support/shield"
+  },
+  {
+   "baseId": 13790000,
+   "name": "Revitalization Contract",
+   "class": "Assassin",
+   "kind": "heal"
+  },
+  {
+   "baseId": 14710000,
+   "name": "Vigilant Eye",
+   "class": "Ranger",
+   "kind": "support/shield"
+  },
+  {
+   "baseId": 14790000,
+   "name": "Revitalization Contract",
+   "class": "Ranger",
+   "kind": "heal"
+  },
+  {
+   "baseId": 15160000,
+   "name": "Steel Barrier",
+   "class": "Sorcerer",
+   "kind": "support/shield"
+  },
+  {
+   "baseId": 15790000,
+   "name": "Revitalization Contract",
+   "class": "Sorcerer",
+   "kind": "heal"
+  },
+  {
+   "baseId": 16190000,
+   "name": "Enhance: Spirit's Benediction",
+   "class": "Elementalist",
+   "kind": "heal"
+  },
+  {
+   "baseId": 16750000,
+   "name": "Spirit Revitalization",
+   "class": "Elementalist",
+   "kind": "heal"
+  },
+  {
+   "baseId": 16770000,
+   "name": "Spirit Communion",
+   "class": "Elementalist",
+   "kind": "heal"
+  },
+  {
+   "baseId": 16790000,
+   "name": "Revitalization Contract",
+   "class": "Elementalist",
+   "kind": "heal"
+  },
+  {
+   "baseId": 17090000,
+   "name": "Light of Regeneration",
+   "class": "Cleric",
+   "kind": "heal"
+  },
+  {
+   "baseId": 17100000,
+   "name": "Healing Light",
+   "class": "Cleric",
+   "kind": "heal"
+  },
+  {
+   "baseId": 17120000,
+   "name": "Radiant Recovery",
+   "class": "Cleric",
+   "kind": "heal"
+  },
+  {
+   "baseId": 17160000,
+   "name": "Benevolence",
+   "class": "Cleric",
+   "kind": "heal"
+  },
+  {
+   "baseId": 17270000,
+   "name": "Salvation",
+   "class": "Cleric",
+   "kind": "heal"
+  },
+  {
+   "baseId": 17290000,
+   "name": "Absolution",
+   "class": "Cleric",
+   "kind": "heal"
+  },
+  {
+   "baseId": 17320000,
+   "name": "Blessing of Regeneration",
+   "class": "Cleric",
+   "kind": "hot"
+  },
+  {
+   "baseId": 17390000,
+   "name": "Summon Resurrection",
+   "class": "Cleric",
+   "kind": "resurrect"
+  },
+  {
+   "baseId": 17410000,
+   "name": "Light of Protection",
+   "class": "Cleric",
+   "kind": "shield"
+  },
+  {
+   "baseId": 17710000,
+   "name": "Warm Benediction",
+   "class": "Cleric",
+   "kind": "heal"
+  },
+  {
+   "baseId": 17720000,
+   "name": "Empyrean Lords' Benediction",
+   "class": "Cleric",
+   "kind": "heal"
+  },
+  {
+   "baseId": 17730000,
+   "name": "Empyrean Lord's Grace",
+   "class": "Cleric",
+   "kind": "heal"
+  },
+  {
+   "baseId": 17800000,
+   "name": "Radiant Benediction",
+   "class": "Cleric",
+   "kind": "heal"
+  },
+  {
+   "baseId": 18120000,
+   "name": "Recuperation",
+   "class": "Chanter",
+   "kind": "heal"
+  },
+  {
+   "baseId": 18160000,
+   "name": "Sprint Mantra",
+   "class": "Chanter",
+   "kind": "support/shield"
+  },
+  {
+   "baseId": 18170000,
+   "name": "Healing Touch",
+   "class": "Chanter",
+   "kind": "heal"
+  },
+  {
+   "baseId": 18420000,
+   "name": "Guardian Blessing",
+   "class": "Chanter",
+   "kind": "support/shield"
+  },
+  {
+   "baseId": 18440000,
+   "name": "Barrier Spell",
+   "class": "Chanter",
+   "kind": "support/shield"
+  },
+  {
+   "baseId": 18710000,
+   "name": "Blessing of Life",
+   "class": "Chanter",
+   "kind": "heal"
+  },
+  {
+   "baseId": 18720000,
+   "name": "Crossguard",
+   "class": "Chanter",
+   "kind": "support/shield"
+  },
+  {
+   "baseId": 19710000,
+   "name": "Hold the Line",
+   "class": "Brawler",
+   "kind": "support/shield"
+  },
+  {
+   "baseId": 19790000,
+   "name": "Revitalization Contract",
+   "class": "Brawler",
+   "kind": "heal"
+  }
+ ],
+ "exact": [
+  {
+   "id": 17400027,
+   "name": "Earth's Blessing",
+   "note": "heal variant inside the Earth Punishment (damage) family"
+  },
+  {
+   "id": 1000790,
+   "name": "Instant Heal"
+  },
+  {
+   "id": 1010000,
+   "name": "Restore HP"
+  },
+  {
+   "id": 1215920,
+   "name": "Instant Heal"
+  },
+  {
+   "id": 1216080,
+   "name": "Instant Heal"
+  },
+  {
+   "id": 1216135,
+   "name": "Instant Heal"
+  },
+  {
+   "id": 1216330,
+   "name": "Restore HP"
+  },
+  {
+   "id": 1216620,
+   "name": "Restore HP"
+  },
+  {
+   "id": 1217320,
+   "name": "Nature's Recovery"
+  },
+  {
+   "id": 1217370,
+   "name": "Healing Spell"
+  },
+  {
+   "id": 1217460,
+   "name": "Instant Heal"
+  },
+  {
+   "id": 1217980,
+   "name": "Restore HP"
+  },
+  {
+   "id": 1220110,
+   "name": "Restoration"
+  },
+  {
+   "id": 1220140,
+   "name": "Heal Allies"
+  },
+  {
+   "id": 1220430,
+   "name": "Instant Heal"
+  },
+  {
+   "id": 1220570,
+   "name": "Restore HP"
+  },
+  {
+   "id": 1220690,
+   "name": "Heal"
+  },
+  {
+   "id": 1221490,
+   "name": "Instant Heal"
+  },
+  {
+   "id": 1221760,
+   "name": "Instant Heal"
+  },
+  {
+   "id": 1222670,
+   "name": "Instant Heal"
+  },
+  {
+   "id": 1222790,
+   "name": "Restore HP"
+  },
+  {
+   "id": 1223520,
+   "name": "AoE Heal"
+  },
+  {
+   "id": 1223750,
+   "name": "Heal Wounds"
+  },
+  {
+   "id": 1224410,
+   "name": "AoE Heal"
+  },
+  {
+   "id": 1224730,
+   "name": "Healing Water"
+  },
+  {
+   "id": 1225210,
+   "name": "Heal"
+  },
+  {
+   "id": 1225330,
+   "name": "Restore HP"
+  },
+  {
+   "id": 1225370,
+   "name": "Heal"
+  },
+  {
+   "id": 1226010,
+   "name": "Instant Heal"
+  },
+  {
+   "id": 1500290,
+   "name": "Nature's Recovery"
+  },
+  {
+   "id": 1601837,
+   "name": "Heal"
+  },
+  {
+   "id": 1910071,
+   "name": "Restore HP"
+  },
+  {
+   "id": 2010101,
+   "name": "Life Serum"
+  },
+  {
+   "id": 2010102,
+   "name": "Superior Life Serum"
+  },
+  {
+   "id": 2010105,
+   "name": "Wind Breeze Special Life Serum"
+  },
+  {
+   "id": 2011101,
+   "name": "Life Potion"
+  },
+  {
+   "id": 2011102,
+   "name": "Superior Life Potion"
+  },
+  {
+   "id": 2011103,
+   "name": "Life Elixir"
+  },
+  {
+   "id": 2011104,
+   "name": "Superior Life Elixir"
+  },
+  {
+   "id": 2011501,
+   "name": "Recovery Serum"
+  },
+  {
+   "id": 2011502,
+   "name": "Superior Recovery Serum"
+  },
+  {
+   "id": 2020101,
+   "name": "Healing Potion"
+  },
+  {
+   "id": 2020102,
+   "name": "Superior Healing Potion"
+  }
+ ]
+}

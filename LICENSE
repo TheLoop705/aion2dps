@@ -1,0 +1,16 @@
+# License
+
+Aion2Dps — a passive DPS meter for AION 2.
+
+Copyright (C) 2026 the Aion2Dps author.
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
+License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later
+version. This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See <https://www.gnu.org/licenses/gpl-3.0.html>.
+
+GPL-3.0-or-later applies because the bundled game-data tables in `data/` come from GPL-3.0 projects
+(see `data/NOTICE.txt`). The source code was written from scratch from this project's protocol notes.
+
+AION 2 and all game data, names and strings are © NCSOFT Corporation. This project is not affiliated with NCSOFT or
+with AionFlex.

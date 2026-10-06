@@ -1,0 +1,318 @@
+{
+ "profile": {
+  "characterId": "FAKEcharIdKRAbCdEf_-0123456789xyzXYZ00=",
+  "characterLevel": 45,
+  "characterName": "테스터",
+  "className": "마도성",
+  "combatPower": 292421,
+  "gender": 2,
+  "genderName": "여성",
+  "pcId": 26,
+  "profileImage": "https://profileimg.plaync.com/game_profile_images/aion2/images?gameServerKey=1015&charKey=200000000000000000",
+  "raceId": 1,
+  "raceName": "천족",
+  "regionName": "",
+  "serverId": 1015,
+  "serverName": "카사카",
+  "titleGrade": "Rare",
+  "titleId": 12010025,
+  "titleName": "겨울잠을 자는"
+ },
+ "stat": {
+  "statList": [
+   {
+    "name": "위력",
+    "statSecondList": [
+     "공격력 증가 +4.1%"
+    ],
+    "type": "STR",
+    "value": 41
+   },
+   {
+    "name": "민첩",
+    "statSecondList": [
+     "회피 증가 +6.5%",
+     "막기 증가 +6.5%",
+     "치명타 저항 증가 +6.5%"
+    ],
+    "type": "DEX",
+    "value": 65
+   },
+   {
+    "name": "지식",
+    "statSecondList": [
+     "상태이상 적중 +10.6%"
+    ],
+    "type": "INT",
+    "value": 106
+   },
+   {
+    "name": "체력",
+    "statSecondList": [
+     "생명력 증가 +4.6%"
+    ],
+    "type": "CON",
+    "value": 46
+   },
+   {
+    "name": "정확",
+    "statSecondList": [
+     "명중 증가 +4.8%",
+     "치명타 증가 +4.8%"
+    ],
+    "type": "AGI",
+    "value": 48
+   },
+   {
+    "name": "의지",
+    "statSecondList": [
+     "상태이상 저항 +9.4%"
+    ],
+    "type": "WIS",
+    "value": 94
+   },
+   {
+    "name": "정의[네자칸]",
+    "statSecondList": [
+     "방어력 증가 +13%",
+     "완벽 +13%"
+    ],
+    "type": "Justice",
+    "value": 65
+   },
+   {
+    "name": "자유[바이젤]",
+    "statSecondList": [
+     "명중 증가 +8.4%",
+     "회피 증가 +8.4%"
+    ],
+    "type": "Freedom",
+    "value": 42
+   },
+   {
+    "name": "환상[카이시넬]",
+    "statSecondList": [
+     "재시전 시간 -8%",
+     "철벽 관통 +8%"
+    ],
+    "type": "Illusion",
+    "value": 40
+   },
+   {
+    "name": "생명[유스티엘]",
+    "statSecondList": [
+     "생명력 증가 +15%",
+     "재생 +15%"
+    ],
+    "type": "Life",
+    "value": 75
+   },
+   {
+    "name": "시간[시엘]",
+    "statSecondList": [
+     "전투 속도 +22%",
+     "강타 저항 +22%"
+    ],
+    "type": "Time",
+    "value": 110
+   },
+   {
+    "name": "파괴[지켈]",
+    "statSecondList": [
+     "공격력 증가 +20.8%",
+     "완벽 저항 +20.8%"
+    ],
+    "type": "Destruction",
+    "value": 104
+   },
+   {
+    "name": "죽음[트리니엘]",
+    "statSecondList": [
+     "치명타 증가 +15.4%",
+     "재생 관통 +15.4%"
+    ],
+    "type": "Death",
+    "value": 77
+   },
+   {
+    "name": "지혜[루미엘]",
+    "statSecondList": [
+     "정신력 소모량 -16%",
+     "강타 +16%"
+    ],
+    "type": "Wisdom",
+    "value": 80
+   },
+   {
+    "name": "운명[마르쿠탄]",
+    "statSecondList": [
+     "정신력 증가 +12.6%",
+     "철벽 +12.6%"
+    ],
+    "type": "Destiny",
+    "value": 63
+   },
+   {
+    "name": "공간[이스라펠]",
+    "statSecondList": [
+     "이동 속도 +12.4%",
+     "막기 증가 +12.4%"
+    ],
+    "type": "Space",
+    "value": 62
+   },
+   {
+    "name": "아이템레벨",
+    "statSecondList": null,
+    "type": "ItemLevel",
+    "value": 3136
+   }
+  ]
+ },
+ "title": {
+  "ownedCount": 249,
+  "titleList": [
+   {
+    "equipCategory": "Attack",
+    "equipStatList": [
+     {
+      "desc": "PVE 피해 증폭 +5.5%"
+     },
+     {
+      "desc": "추가 공격력 +30"
+     },
+     {
+      "desc": "치명타 +80"
+     }
+    ],
+    "grade": "Unique",
+    "id": 13010021,
+    "name": "종족의 굴레를 벗다",
+    "ownedCount": 85,
+    "ownedPercent": 58,
+    "statList": [
+     {
+      "desc": "PVE 피해 증폭 +1%"
+     }
+    ],
+    "totalCount": 146
+   },
+   {
+    "equipCategory": "Etc",
+    "equipStatList": [
+     {
+      "desc": "전투 속도 +5%"
+     },
+     {
+      "desc": "생명력 자연 회복 +40"
+     },
+     {
+      "desc": "재시전 시간 감소 +5%"
+     }
+    ],
+    "grade": "Unique",
+    "id": 13050009,
+    "name": "아이고, 입을 옷이 없네",
+    "ownedCount": 83,
+    "ownedPercent": 58,
+    "statList": [
+     {
+      "desc": "생명력 +50"
+     }
+    ],
+    "totalCount": 142
+   },
+   {
+    "equipCategory": "Defense",
+    "equipStatList": null,
+    "grade": null,
+    "id": null,
+    "name": null,
+    "ownedCount": 81,
+    "ownedPercent": 57,
+    "statList": null,
+    "totalCount": 143
+   }
+  ],
+  "totalCount": 431
+ },
+ "ranking": {
+  "rankingList": null
+ },
+ "daevanion": {
+  "boardList": [
+   {
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_Weapon_Sword_1H.png",
+    "id": 61,
+    "name": "네자칸",
+    "open": 0,
+    "openNodeCount": 0,
+    "openPercent": 0,
+    "totalNodeCount": 152
+   },
+   {
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_Weapon_Mace.png",
+    "id": 62,
+    "name": "지켈",
+    "open": 0,
+    "openNodeCount": 0,
+    "openPercent": 0,
+    "totalNodeCount": 152
+   },
+   {
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_Weapon_Sword_1H.png",
+    "id": 63,
+    "name": "바이젤",
+    "open": 0,
+    "openNodeCount": 0,
+    "openPercent": 0,
+    "totalNodeCount": 152
+   },
+   {
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_Weapon_Mace.png",
+    "id": 64,
+    "name": "트리니엘",
+    "open": 0,
+    "openNodeCount": 0,
+    "openPercent": 0,
+    "totalNodeCount": 152
+   },
+   {
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_Weapon_Sword_1H.png",
+    "id": 65,
+    "name": "아리엘",
+    "open": 1,
+    "openNodeCount": 126,
+    "openPercent": 83,
+    "totalNodeCount": 152
+   },
+   {
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_Weapon_Mace.png",
+    "id": 66,
+    "name": "아스펠",
+    "open": 1,
+    "openNodeCount": 36,
+    "openPercent": 24,
+    "totalNodeCount": 152
+   },
+   {
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_Weapon_Sword_1H.png",
+    "id": 67,
+    "name": "마르쿠탄",
+    "open": 1,
+    "openNodeCount": 150,
+    "openPercent": 99,
+    "totalNodeCount": 152
+   },
+   {
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_Weapon_Mace.png",
+    "id": 68,
+    "name": "유스티엘",
+    "open": 0,
+    "openNodeCount": 0,
+    "openPercent": 0,
+    "totalNodeCount": 152
+   }
+  ]
+ }
+}

@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>Aion2Dps.Cli</RootNamespace>
+    <AssemblyName>aion2dps-cli</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Aion2Dps.Contracts\Aion2Dps.Contracts.csproj" />
+    <ProjectReference Include="..\Aion2Dps.Protocol\Aion2Dps.Protocol.csproj" />
+    <ProjectReference Include="..\Aion2Dps.GameData\Aion2Dps.GameData.csproj" />
+    <ProjectReference Include="..\Aion2Dps.Combat\Aion2Dps.Combat.csproj" />
+    <ProjectReference Include="..\Aion2Dps.Capture\Aion2Dps.Capture.csproj" />
+    <ProjectReference Include="..\Aion2Dps.Storage\Aion2Dps.Storage.csproj" />
+    <ProjectReference Include="..\Aion2Dps.Simulator\Aion2Dps.Simulator.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\data\**\*" LinkBase="data" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

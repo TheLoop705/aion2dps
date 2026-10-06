@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Aion2Dps.EndToEnd.Tests</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Aion2Dps.Contracts\Aion2Dps.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Aion2Dps.Protocol\Aion2Dps.Protocol.csproj" />
+    <ProjectReference Include="..\..\src\Aion2Dps.GameData\Aion2Dps.GameData.csproj" />
+    <ProjectReference Include="..\..\src\Aion2Dps.Combat\Aion2Dps.Combat.csproj" />
+    <ProjectReference Include="..\..\src\Aion2Dps.Capture\Aion2Dps.Capture.csproj" />
+    <ProjectReference Include="..\..\src\Aion2Dps.Storage\Aion2Dps.Storage.csproj" />
+    <ProjectReference Include="..\..\src\Aion2Dps.Simulator\Aion2Dps.Simulator.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\data\**\*" LinkBase="data" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

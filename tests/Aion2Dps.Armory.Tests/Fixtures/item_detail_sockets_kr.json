@@ -1,0 +1,133 @@
+{
+ "id": 110530086,
+ "name": "고뇌하는 바카르마의 율법서",
+ "grade": "Unique",
+ "gradeName": "유일",
+ "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_WP_MB_0106_T06.png",
+ "level": 92,
+ "levelValue": 15,
+ "enchantLevel": 15,
+ "storable": true,
+ "tradable": false,
+ "tradablePersonal": false,
+ "enchantable": true,
+ "decomposable": true,
+ "maxEnchantLevel": 15,
+ "maxExceedEnchantLevel": 5,
+ "raceName": "전체",
+ "classNames": [
+  "마도성"
+ ],
+ "categoryName": "법서",
+ "type": "Equip",
+ "equipLevel": 45,
+ "magicStoneSlotCount": 4,
+ "godStoneSlotCount": 1,
+ "costumes": [
+  "허무의 심연 (법서)"
+ ],
+ "subStatCount": 4,
+ "subSkillCountMax": 4,
+ "subStatRandom": true,
+ "mainStats": [
+  {
+   "id": "WeaponFixingDamage",
+   "name": "공격력",
+   "minValue": "419",
+   "value": "465",
+   "extra": "225",
+   "exceed": false
+  },
+  {
+   "id": "WeaponAccuracy",
+   "name": "명중",
+   "value": "100",
+   "extra": "0",
+   "exceed": false
+  },
+  {
+   "id": "Critical",
+   "name": "치명타",
+   "value": "100",
+   "extra": "0",
+   "exceed": false
+  }
+ ],
+ "soulBindRate": "100",
+ "subStats": [
+  {
+   "id": "AmplifyWeaponDamage",
+   "name": "무기 피해 증폭",
+   "value": "13.4%"
+  },
+  {
+   "id": "Critical",
+   "name": "치명타",
+   "value": "42"
+  },
+  {
+   "id": "WeaponFixingDamage",
+   "name": "공격력",
+   "value": "36"
+  },
+  {
+   "id": "CombatSpeed",
+   "name": "전투 속도",
+   "value": "12.4%"
+  },
+  {
+   "id": "AdditionalHitRate",
+   "name": "다단 히트 적중",
+   "value": "8.8%"
+  }
+ ],
+ "magicStoneStat": [
+  {
+   "id": "AmplifyAllDamage",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_Item_Usable_Enchant_MagicStone_A_c_003.png",
+   "value": "+100",
+   "name": "피해 증폭",
+   "grade": "Unique",
+   "slotPos": 0
+  },
+  {
+   "id": "ArmorDefense",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_Item_Usable_Enchant_MagicStone_A_c_003.png",
+   "value": "+50",
+   "name": "방어력",
+   "grade": "Legend",
+   "slotPos": 1
+  },
+  {
+   "id": "Evasion",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_Item_Usable_Enchant_MagicStone_A_c_003.png",
+   "value": "+7",
+   "name": "추가 회피",
+   "grade": "Rare",
+   "slotPos": 2
+  },
+  {
+   "id": "CriticalResist",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_Item_Usable_Enchant_MagicStone_A_c_003.png",
+   "value": "+7",
+   "name": "치명타 저항",
+   "grade": "Rare",
+   "slotPos": 3
+  }
+ ],
+ "godStoneStat": [
+  {
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_Item_Usable_Godstone_WP_r_011.png",
+   "name": "신석: 트라우프니르의 용기",
+   "desc": "공격 시, 1% 확률로 단일 대상에게 불 속성 대미지 10000 부여\n효과 발동 쿨타임 : 1초\n동일한 신석을 여러 개 착용 시 한 개의 효과만 적용됩니다.",
+   "grade": "Legend",
+   "slotPos": 0
+  }
+ ],
+ "sources": [
+  "성역",
+  "보상 상자",
+  "원정"
+ ],
+ "favorite": false
+}

@@ -1,0 +1,6 @@
+{
+  "_note": "Field boss lists (opcode 01 91) by map id: 'block' = NPC code / 1000 shared by the map's field bosses (slot = map x 100 + place in code order). Verified against the in-game list. Maps not listed are learned at runtime from the first boss seen there.",
+  "maps": {
+    "1110": { "block": 2400, "en": "Altgard", "ru": "Альтгард" }
+  }
+}

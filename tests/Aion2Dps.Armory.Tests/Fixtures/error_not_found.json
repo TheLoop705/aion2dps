@@ -1,0 +1,9 @@
+{
+ "detail": "Resource not found",
+ "instance": "/api/character/info",
+ "status": 404,
+ "title": "Not Found",
+ "type": "https://www.plaync.com/error/resource.not_found",
+ "code": "resource.not_found",
+ "timestamp": "2026-10-07T03:54:38.996865202+09:00"
+}

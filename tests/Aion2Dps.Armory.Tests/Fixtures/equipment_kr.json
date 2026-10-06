@@ -1,0 +1,774 @@
+{
+ "equipment": {
+  "equipmentList": [
+   {
+    "enchantLevel": 15,
+    "exceedLevel": 5,
+    "grade": "Unique",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_WP_MB_0106_T06.png",
+    "id": 110530086,
+    "name": "고뇌하는 바카르마의 율법서",
+    "slotPos": 1,
+    "slotPosName": "MainHand"
+   },
+   {
+    "enchantLevel": 15,
+    "exceedLevel": 4,
+    "grade": "Unique",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_Weapon_Guarder_U_007.png",
+    "id": 115030084,
+    "name": "두르바티의 가더",
+    "slotPos": 2,
+    "slotPosName": "SubHand"
+   },
+   {
+    "enchantLevel": 14,
+    "exceedLevel": 0,
+    "grade": "Epic",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_GM_0050_T05_Torso.png",
+    "id": 210120011,
+    "name": "고대 정령의 흉갑",
+    "slotPos": 5,
+    "slotPosName": "Torso"
+   },
+   {
+    "enchantLevel": 12,
+    "exceedLevel": 0,
+    "grade": "Unique",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_Equip_AR_L_Hugo_01_Pants.png",
+    "id": 210230093,
+    "name": "두르바티의 각반",
+    "slotPos": 6,
+    "slotPosName": "Pants"
+   },
+   {
+    "enchantLevel": 13,
+    "exceedLevel": 0,
+    "grade": "Unique",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_Equip_AR_L_Hugo_01_Helmet.png",
+    "id": 210330093,
+    "name": "두르바티의 투구",
+    "slotPos": 3,
+    "slotPosName": "Helmet"
+   },
+   {
+    "enchantLevel": 12,
+    "exceedLevel": 0,
+    "grade": "Unique",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_Equip_AR_L_Hugo_01_Shoulder.png",
+    "id": 210430093,
+    "name": "두르바티의 견갑",
+    "slotPos": 4,
+    "slotPosName": "Shoulder"
+   },
+   {
+    "enchantLevel": 13,
+    "exceedLevel": 0,
+    "grade": "Unique",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_Equip_AR_L_Hugo_01_Gloves.png",
+    "id": 210530093,
+    "name": "두르바티의 장갑",
+    "slotPos": 7,
+    "slotPosName": "Gloves"
+   },
+   {
+    "enchantLevel": 13,
+    "exceedLevel": 0,
+    "grade": "Unique",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_Equip_AR_L_Hugo_01_Boots.png",
+    "id": 210630093,
+    "name": "두르바티의 장화",
+    "slotPos": 8,
+    "slotPosName": "Boots"
+   },
+   {
+    "enchantLevel": 12,
+    "exceedLevel": 0,
+    "grade": "Unique",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_Equip_AR_L_Hugo_01_Cape.png",
+    "id": 210730093,
+    "name": "두르바티의 망토",
+    "slotPos": 19,
+    "slotPosName": "Cape"
+   },
+   {
+    "enchantLevel": 10,
+    "exceedLevel": 0,
+    "grade": "Unique",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_Acc_Belt_C_022.png",
+    "id": 215230001,
+    "name": "고결의 허리띠",
+    "slotPos": 17,
+    "slotPosName": "Belt"
+   },
+   {
+    "enchantLevel": 15,
+    "exceedLevel": 2,
+    "grade": "Unique",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_ACC_NL_Sun_09.png",
+    "id": 310130094,
+    "name": "고뇌하는 바카르마의 목걸이",
+    "slotPos": 10,
+    "slotPosName": "Necklace"
+   },
+   {
+    "enchantLevel": 13,
+    "exceedLevel": 0,
+    "grade": "Unique",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_ACC_ER_Sun_09.png",
+    "id": 310230097,
+    "name": "고뇌하는 바카르마의 귀걸이",
+    "slotPos": 12,
+    "slotPosName": "Earring2"
+   },
+   {
+    "enchantLevel": 13,
+    "exceedLevel": 0,
+    "grade": "Unique",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_ACC_ER_Sun_09.png",
+    "id": 310230097,
+    "name": "고뇌하는 바카르마의 귀걸이",
+    "slotPos": 11,
+    "slotPosName": "Earring1"
+   },
+   {
+    "enchantLevel": 14,
+    "exceedLevel": 0,
+    "grade": "Epic",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_ACC_Ring_0088.png",
+    "id": 310320013,
+    "name": "고대 정령의 반지",
+    "slotPos": 14,
+    "slotPosName": "Ring2"
+   },
+   {
+    "enchantLevel": 13,
+    "exceedLevel": 0,
+    "grade": "Unique",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_ACC_Ring_Sun_09.png",
+    "id": 310330097,
+    "name": "고뇌하는 바카르마의 반지",
+    "slotPos": 13,
+    "slotPosName": "Ring1"
+   },
+   {
+    "enchantLevel": 13,
+    "exceedLevel": 0,
+    "grade": "Unique",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_Acc_Bracelet_R_027.png",
+    "id": 310430046,
+    "name": "각성의 팔찌",
+    "slotPos": 15,
+    "slotPosName": "Bracelet1"
+   },
+   {
+    "enchantLevel": 12,
+    "exceedLevel": 0,
+    "grade": "Legend",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_ACC_Bracelet_0071.png",
+    "id": 310440017,
+    "name": "순례자의 팔찌",
+    "slotPos": 16,
+    "slotPosName": "Bracelet2"
+   },
+   {
+    "enchantLevel": 6,
+    "exceedLevel": 0,
+    "grade": "Special",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_Acc_Rune_R_002.png",
+    "id": 310900001,
+    "name": "격돌의 룬",
+    "slotPos": 23,
+    "slotPosName": "Rune1"
+   },
+   {
+    "enchantLevel": 5,
+    "exceedLevel": 0,
+    "grade": "Special",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_Acc_Rune_R_002.png",
+    "id": 310900001,
+    "name": "격돌의 룬",
+    "slotPos": 24,
+    "slotPosName": "Rune2"
+   },
+   {
+    "enchantLevel": 10,
+    "exceedLevel": 0,
+    "grade": "Unique",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_Item_Craft_Conversion_Crystal_L_lv5_01.png",
+    "id": 311030001,
+    "name": "계시의 아뮬렛",
+    "slotPos": 22,
+    "slotPosName": "Amulet"
+   },
+   {
+    "enchantLevel": 5,
+    "exceedLevel": 0,
+    "grade": "Unique",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_Arcana_Card_Grail_u_PveSet2.png",
+    "id": 810130001,
+    "name": "활력의 성배",
+    "slotPos": 41,
+    "slotPosName": "Arcana1"
+   },
+   {
+    "enchantLevel": 5,
+    "exceedLevel": 0,
+    "grade": "Unique",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_Arcana_Card_Parchment_u_PveSet2.png",
+    "id": 810230001,
+    "name": "활력의 양피지",
+    "slotPos": 42,
+    "slotPosName": "Arcana2"
+   },
+   {
+    "enchantLevel": 5,
+    "exceedLevel": 0,
+    "grade": "Unique",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_Arcana_Card_Compass_u_DefenceSet1.png",
+    "id": 810330004,
+    "name": "순수의 나침반",
+    "slotPos": 43,
+    "slotPosName": "Arcana3"
+   },
+   {
+    "enchantLevel": 5,
+    "exceedLevel": 0,
+    "grade": "Unique",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_Arcana_Card_Bell_u_DefenceSet1.png",
+    "id": 810430004,
+    "name": "순수의 종",
+    "slotPos": 44,
+    "slotPosName": "Arcana4"
+   },
+   {
+    "enchantLevel": 5,
+    "exceedLevel": 0,
+    "grade": "Unique",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_Arcana_Card_Mirror_u_DefenceSet1.png",
+    "id": 810530004,
+    "name": "순수의 거울",
+    "slotPos": 45,
+    "slotPosName": "Arcana5"
+   },
+   {
+    "enchantLevel": 4,
+    "exceedLevel": 0,
+    "grade": "Unique",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_Arcana_Card_Libra_u_DefenceSet1.png",
+    "id": 810630004,
+    "name": "순수의 천칭",
+    "slotPos": 46,
+    "slotPosName": "Arcana6"
+   }
+  ],
+  "skinList": [
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Special",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_GF_Pajama_01_Pants.png",
+    "id": 40082102,
+    "name": "굿나잇 베어 파자마 (각반)",
+    "slotPos": 4,
+    "slotPosName": "Pants"
+   },
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Unique",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_ACC_ER_0066.png",
+    "id": 50066101,
+    "name": "별의 눈물 (귀걸이)",
+    "slotPos": 21,
+    "slotPosName": "EarringR"
+   },
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Rare",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_GM_0156_T02_Shoulder.png",
+    "id": 30156104,
+    "name": "모래 언덕 공방 (견갑)",
+    "slotPos": 2,
+    "slotPosName": "Shoulder"
+   },
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Special",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_GF_Pajama_01_Gloves.png",
+    "id": 40082105,
+    "name": "굿나잇 베어 파자마 (장갑)",
+    "slotPos": 5,
+    "slotPosName": "Gloves"
+   },
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Special",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_DECO_SDW_Pajama_02.png",
+    "id": 70006203,
+    "name": "애착 곰돌이 (어깨)",
+    "slotPos": 25,
+    "slotPosName": "ShoulderWear"
+   },
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Unique",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_ACC_ER_0086.png",
+    "id": 50086101,
+    "name": "장미의 약속 (귀걸이)",
+    "slotPos": 20,
+    "slotPosName": "EarringL"
+   },
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Unique",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_Equip_AR_L_0020_T05_Cape.png",
+    "id": 30020107,
+    "name": "운명의 날개 (망토)",
+    "slotPos": 7,
+    "slotPosName": "Cape"
+   },
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Special",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_WP_MB_Pajama_01.png",
+    "id": 20018105,
+    "name": "트윙클 리틀 테디베어 (법서)",
+    "slotPos": 17,
+    "slotPosName": "MagicBook"
+   },
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Special",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_GF_Hanbok_02_Boots.png",
+    "id": 40077106,
+    "name": "달 그림자 한복 (장화)",
+    "slotPos": 6,
+    "slotPosName": "Boots"
+   },
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Special",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_DECO_MW_0004.png",
+    "id": 70004102,
+    "name": "스트리트 버블껌 (얼굴)",
+    "slotPos": 24,
+    "slotPosName": "MouthWear"
+   },
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Unique",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_ACC_NL_0032.png",
+    "id": 50032103,
+    "name": "은빛의 날개 (목걸이)",
+    "slotPos": 22,
+    "slotPosName": "Necklace"
+   },
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Legend",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_AR_Part_GM_BakarmaS2_01.png",
+    "id": 80051101,
+    "name": "공허의 은빛 뿔 (투구)",
+    "slotPos": 1,
+    "slotPosName": "Helmet"
+   },
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Special",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_GF_Sailor_01_Torso.png",
+    "id": 40084101,
+    "name": "매지컬 하트 슈트 (흉갑)",
+    "slotPos": 3,
+    "slotPosName": "Torso"
+   }
+  ]
+ },
+ "petwing": {
+  "pet": {
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_Vehicle_Portrait_Rabbit_01.png",
+   "id": 1240,
+   "level": 5,
+   "name": "하얀 토끼"
+  },
+  "wing": {
+   "enchantLevel": 0,
+   "grade": "Unique",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_WingA_011.png",
+   "id": 30101100,
+   "name": "공허의 탈리스라 날개"
+  },
+  "wingSkin": {
+   "enchantLevel": 0,
+   "grade": "Legend",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_WingC_003.png",
+   "id": 30300300,
+   "name": "정복자의 날개"
+  }
+ },
+ "skill": {
+  "skillList": [
+   {
+    "acquired": 1,
+    "category": "Active",
+    "equip": 1,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_020.png",
+    "id": 15210000,
+    "name": "불꽃 화살",
+    "needLevel": 1,
+    "skillLevel": 14
+   },
+   {
+    "acquired": 1,
+    "category": "Active",
+    "equip": 1,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_009.png",
+    "id": 15090000,
+    "name": "얼음 사슬",
+    "needLevel": 1,
+    "skillLevel": 11
+   },
+   {
+    "acquired": 1,
+    "category": "Active",
+    "equip": 1,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_004.png",
+    "id": 15040000,
+    "name": "불꽃 작살",
+    "needLevel": 1,
+    "skillLevel": 13
+   },
+   {
+    "acquired": 1,
+    "category": "Active",
+    "equip": 1,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_025.png",
+    "id": 15280000,
+    "name": "혹한의 바람",
+    "needLevel": 3,
+    "skillLevel": 13
+   },
+   {
+    "acquired": 1,
+    "category": "Active",
+    "equip": 1,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_005.png",
+    "id": 15050000,
+    "name": "불꽃 폭발",
+    "needLevel": 4,
+    "skillLevel": 17
+   },
+   {
+    "acquired": 1,
+    "category": "Active",
+    "equip": 1,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_001.png",
+    "id": 15010000,
+    "name": "화염 난사",
+    "needLevel": 5,
+    "skillLevel": 14
+   },
+   {
+    "acquired": 1,
+    "category": "Active",
+    "equip": 1,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_015.png",
+    "id": 15150000,
+    "name": "빙결",
+    "needLevel": 7,
+    "skillLevel": 10
+   },
+   {
+    "acquired": 1,
+    "category": "Active",
+    "equip": 1,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_011.png",
+    "id": 15110000,
+    "name": "겨울의 속박",
+    "needLevel": 8,
+    "skillLevel": 13
+   },
+   {
+    "acquired": 1,
+    "category": "Active",
+    "equip": 1,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_022.png",
+    "id": 15220000,
+    "name": "빙결 폭발",
+    "needLevel": 10,
+    "skillLevel": 12
+   },
+   {
+    "acquired": 1,
+    "category": "Active",
+    "equip": 1,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_028.png",
+    "id": 15310000,
+    "name": "집중의 기원",
+    "needLevel": 12,
+    "skillLevel": 14
+   },
+   {
+    "acquired": 1,
+    "category": "Active",
+    "equip": 1,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_006.png",
+    "id": 15060000,
+    "name": "지옥의 화염",
+    "needLevel": 14,
+    "skillLevel": 10
+   },
+   {
+    "acquired": 1,
+    "category": "Active",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_CO_SKILL_002.png",
+    "id": 15240000,
+    "name": "충격 해제",
+    "needLevel": 16,
+    "skillLevel": 8
+   },
+   {
+    "acquired": 1,
+    "category": "Passive",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_Passive_002.png",
+    "id": 15710000,
+    "name": "불의 표식",
+    "needLevel": 1,
+    "skillLevel": 16
+   },
+   {
+    "acquired": 1,
+    "category": "Passive",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_Passive_006.png",
+    "id": 15720000,
+    "name": "대지의 로브",
+    "needLevel": 6,
+    "skillLevel": 4
+   },
+   {
+    "acquired": 1,
+    "category": "Passive",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_Passive_003.png",
+    "id": 15730000,
+    "name": "냉기 소환",
+    "needLevel": 9,
+    "skillLevel": 11
+   },
+   {
+    "acquired": 1,
+    "category": "Passive",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_Passive_004.png",
+    "id": 15740000,
+    "name": "불꽃의 로브",
+    "needLevel": 11,
+    "skillLevel": 14
+   },
+   {
+    "acquired": 1,
+    "category": "Passive",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_Passive_001.png",
+    "id": 15760000,
+    "name": "정기 흡수",
+    "needLevel": 13,
+    "skillLevel": 10
+   },
+   {
+    "acquired": 1,
+    "category": "Passive",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_038.png",
+    "id": 15770000,
+    "name": "저항의 은혜",
+    "needLevel": 15,
+    "skillLevel": 3
+   },
+   {
+    "acquired": 1,
+    "category": "Passive",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_Passive_005.png",
+    "id": 15750000,
+    "name": "냉기의 로브",
+    "needLevel": 17,
+    "skillLevel": 5
+   },
+   {
+    "acquired": 1,
+    "category": "Passive",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_Passive_007.png",
+    "id": 15780000,
+    "name": "강화의 은혜",
+    "needLevel": 21,
+    "skillLevel": 14
+   },
+   {
+    "acquired": 1,
+    "category": "Passive",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_AS_SKILL_Passive_009.png",
+    "id": 15790000,
+    "name": "회생의 계약",
+    "needLevel": 23,
+    "skillLevel": 3
+   },
+   {
+    "acquired": 1,
+    "category": "Passive",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_Passive_008.png",
+    "id": 15800000,
+    "name": "생기 증발",
+    "needLevel": 25,
+    "skillLevel": 16
+   },
+   {
+    "acquired": 1,
+    "category": "Dp",
+    "equip": 1,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_036.png",
+    "id": 15360000,
+    "name": "신성 폭발",
+    "needLevel": 22,
+    "skillLevel": 1
+   },
+   {
+    "acquired": 1,
+    "category": "Dp",
+    "equip": 1,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_016.png",
+    "id": 15160000,
+    "name": "강철 보호막",
+    "needLevel": 22,
+    "skillLevel": 5
+   },
+   {
+    "acquired": 1,
+    "category": "Dp",
+    "equip": 1,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_040.png",
+    "id": 15400000,
+    "name": "원소 강화",
+    "needLevel": 22,
+    "skillLevel": 20
+   },
+   {
+    "acquired": 0,
+    "category": "Dp",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_014.png",
+    "id": 15140000,
+    "name": "저주: 나무",
+    "needLevel": 22,
+    "skillLevel": 0
+   },
+   {
+    "acquired": 0,
+    "category": "Dp",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_021.png",
+    "id": 15230000,
+    "name": "빙설의 갑주",
+    "needLevel": 22,
+    "skillLevel": 0
+   },
+   {
+    "acquired": 0,
+    "category": "Dp",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_013.png",
+    "id": 15130000,
+    "name": "영혼 동결",
+    "needLevel": 22,
+    "skillLevel": 0
+   },
+   {
+    "acquired": 0,
+    "category": "Dp",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_019.png",
+    "id": 15200000,
+    "name": "냉기 폭풍",
+    "needLevel": 22,
+    "skillLevel": 0
+   },
+   {
+    "acquired": 1,
+    "category": "Dp",
+    "equip": 1,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_039.png",
+    "id": 15390000,
+    "name": "불의 장벽",
+    "needLevel": 22,
+    "skillLevel": 6
+   },
+   {
+    "acquired": 0,
+    "category": "Dp",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_027.png",
+    "id": 15300000,
+    "name": "루미엘의 공간",
+    "needLevel": 22,
+    "skillLevel": 0
+   },
+   {
+    "acquired": 1,
+    "category": "Dp",
+    "equip": 1,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_032.png",
+    "id": 15320000,
+    "name": "지연 폭발",
+    "needLevel": 22,
+    "skillLevel": 20
+   },
+   {
+    "acquired": 0,
+    "category": "Dp",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_012.png",
+    "id": 15120000,
+    "name": "빙하 강타",
+    "needLevel": 22,
+    "skillLevel": 0
+   },
+   {
+    "acquired": 0,
+    "category": "Dp",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_CO_SKILL_003.png",
+    "id": 15700000,
+    "name": "강습 폭격",
+    "needLevel": 22,
+    "skillLevel": 0
+   },
+   {
+    "acquired": 0,
+    "category": "Dp",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_041.png",
+    "id": 15410000,
+    "name": "동면",
+    "needLevel": 22,
+    "skillLevel": 0
+   }
+  ]
+ }
+}

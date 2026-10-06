@@ -1,0 +1,811 @@
+<UserControl x:Class="Aion2Dps.Armory.CharacterLookupView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:Aion2Dps.Contracts;assembly=Aion2Dps.Contracts"
+             xmlns:ui="clr-namespace:Aion2Dps.Armory.Ui"
+             x:Name="Root"
+             FontFamily="{DynamicResource {x:Static c:ThemeKeys.FontFamily}}"
+             FontSize="{DynamicResource {x:Static c:ThemeKeys.FontSize}}"
+             Foreground="{DynamicResource {x:Static c:ThemeKeys.Text}}"
+             Background="{DynamicResource {x:Static c:ThemeKeys.WindowBackground}}"
+             d:DesignWidth="1180" d:DesignHeight="780"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d">
+    <UserControl.Resources>
+        <ui:BoolToVisibilityConverter x:Key="Vis" />
+        <ui:BoolToVisibilityConverter x:Key="InvVis" Invert="True" />
+
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource {x:Static c:ThemeKeys.Surface}}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource {x:Static c:ThemeKeys.Border}}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{DynamicResource {x:Static c:ThemeKeys.CornerRadius}}" />
+            <Setter Property="Padding" Value="12,10" />
+            <Setter Property="Margin" Value="0,0,0,10" />
+        </Style>
+
+        <Style x:Key="Header" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+            <Setter Property="Foreground" Value="{DynamicResource {x:Static c:ThemeKeys.Text}}" />
+        </Style>
+
+        <Style x:Key="Muted" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource {x:Static c:ThemeKeys.TextMuted}}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+
+        <Style x:Key="Number" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource {x:Static c:ThemeKeys.MonoFontFamily}}" />
+            <Setter Property="Foreground" Value="{DynamicResource {x:Static c:ThemeKeys.Text}}" />
+        </Style>
+
+        <Style x:Key="ErrorBanner" TargetType="Border">
+            <Setter Property="BorderBrush" Value="{DynamicResource {x:Static c:ThemeKeys.Negative}}" />
+            <Setter Property="BorderThickness" Value="3,1,1,1" />
+            <Setter Property="Background" Value="{DynamicResource {x:Static c:ThemeKeys.SurfaceAlt}}" />
+            <Setter Property="CornerRadius" Value="{DynamicResource {x:Static c:ThemeKeys.CornerRadius}}" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+        </Style>
+
+        <Style x:Key="AccentButton" TargetType="Button">
+            <Setter Property="Foreground" Value="{DynamicResource {x:Static c:ThemeKeys.AccentText}}" />
+            <Setter Property="Background" Value="{DynamicResource {x:Static c:ThemeKeys.Accent}}" />
+            <Setter Property="Padding" Value="14,5" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}"
+                                CornerRadius="{DynamicResource {x:Static c:ThemeKeys.CornerRadius}}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.5" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.88" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="FlatButton" TargetType="Button">
+            <Setter Property="Foreground" Value="{DynamicResource {x:Static c:ThemeKeys.Text}}" />
+            <Setter Property="Background" Value="{DynamicResource {x:Static c:ThemeKeys.SurfaceAlt}}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource {x:Static c:ThemeKeys.Border}}" />
+            <Setter Property="Padding" Value="10,4" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="1" Padding="{TemplateBinding Padding}"
+                                CornerRadius="{DynamicResource {x:Static c:ThemeKeys.CornerRadius}}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource {x:Static c:ThemeKeys.Accent}}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.5" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ResultItem" TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="8,6" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Bd" Background="Transparent" BorderThickness="3,0,0,0" BorderBrush="Transparent"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource {x:Static c:ThemeKeys.SurfaceAlt}}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource {x:Static c:ThemeKeys.SurfaceAlt}}" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource {x:Static c:ThemeKeys.Accent}}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Spinner: rotating arc, visible while loading. -->
+        <Style x:Key="Spinner" TargetType="Path">
+            <Setter Property="Width" Value="18" />
+            <Setter Property="Height" Value="18" />
+            <Setter Property="Stretch" Value="Uniform" />
+            <Setter Property="Stroke" Value="{DynamicResource {x:Static c:ThemeKeys.Accent}}" />
+            <Setter Property="StrokeThickness" Value="2.5" />
+            <Setter Property="StrokeStartLineCap" Value="Round" />
+            <Setter Property="StrokeEndLineCap" Value="Round" />
+            <Setter Property="Data" Value="M 10,1 A 9,9 0 1 1 1,10" />
+            <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
+            <Setter Property="RenderTransform">
+                <Setter.Value>
+                    <RotateTransform />
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <EventTrigger RoutedEvent="Loaded">
+                    <BeginStoryboard>
+                        <Storyboard RepeatBehavior="Forever">
+                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
+                                             From="0" To="360" Duration="0:0:0.9" />
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- One equipment slot. -->
+        <DataTemplate x:Key="SlotTemplate" DataType="{x:Type ui:ItemSlotVm}">
+            <Button Command="{Binding DataContext.OpenItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                    Cursor="Hand" Margin="0,0,0,4" ToolTip="{Binding ToolTipText}" HorizontalContentAlignment="Stretch">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{DynamicResource {x:Static c:ThemeKeys.SurfaceAlt}}"
+                                BorderBrush="{Binding GradeBrush}" BorderThickness="3,0,0,0" Padding="6,4"
+                                CornerRadius="{DynamicResource {x:Static c:ThemeKeys.BarCornerRadius}}">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource {x:Static c:ThemeKeys.BarTrack}}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Button.Template>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="34" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Border Width="30" Height="30" HorizontalAlignment="Left" BorderBrush="{Binding GradeBrush}" BorderThickness="1"
+                            Background="{DynamicResource {x:Static c:ThemeKeys.BarTrack}}" CornerRadius="3">
+                        <Grid>
+                            <TextBlock Text="{Binding Initial}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Foreground="{Binding GradeBrush}" FontWeight="Bold" />
+                            <Image Source="{Binding Icon}" Stretch="Uniform" />
+                        </Grid>
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="4,0,4,0">
+                        <TextBlock Text="{Binding SlotLabel}" Style="{StaticResource Muted}" FontSize="10" />
+                        <TextBlock Text="{Binding Name}" Foreground="{Binding GradeBrush}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right">
+                        <TextBlock Text="{Binding EnchantText}" Style="{StaticResource Number}" FontWeight="Bold" HorizontalAlignment="Right"
+                                   Foreground="{DynamicResource {x:Static c:ThemeKeys.Accent}}" />
+                        <TextBlock Text="{Binding ExceedText}" FontSize="10" HorizontalAlignment="Right"
+                                   Foreground="{DynamicResource {x:Static c:ThemeKeys.Crit}}"
+                                   Visibility="{Binding ExceedText, Converter={StaticResource Vis}}" />
+                    </StackPanel>
+                </Grid>
+            </Button>
+        </DataTemplate>
+
+        <DataTemplate x:Key="StatTile" DataType="{x:Type ui:StatVm}">
+            <Border Background="{DynamicResource {x:Static c:ThemeKeys.SurfaceAlt}}" Margin="0,0,6,6" Padding="8,5"
+                    CornerRadius="{DynamicResource {x:Static c:ThemeKeys.BarCornerRadius}}" ToolTip="{Binding ToolTipText}">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding Value}" Style="{StaticResource Number}" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding Name}" Foreground="{DynamicResource {x:Static c:ThemeKeys.TextMuted}}" TextTrimming="CharacterEllipsis" />
+                </DockPanel>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate x:Key="StatLine" DataType="{x:Type ui:ItemStatLineVm}">
+            <DockPanel Margin="0,1">
+                <TextBlock DockPanel.Dock="Right" Text="{Binding Extra}" Margin="6,0,0,0" Style="{StaticResource Number}"
+                           Foreground="{DynamicResource {x:Static c:ThemeKeys.Positive}}" />
+                <TextBlock DockPanel.Dock="Right" Text="{Binding Value}" Style="{StaticResource Number}" />
+                <TextBlock Text="{Binding Name}" Foreground="{DynamicResource {x:Static c:ThemeKeys.TextMuted}}" TextTrimming="CharacterEllipsis" />
+            </DockPanel>
+        </DataTemplate>
+
+        <DataTemplate x:Key="StoneLine" DataType="{x:Type ui:ItemStatLineVm}">
+            <DockPanel Margin="0,1">
+                <Ellipse Width="8" Height="8" Fill="{Binding Brush}" Margin="0,0,6,0" VerticalAlignment="Center" />
+                <TextBlock DockPanel.Dock="Right" Text="{Binding Value}" Style="{StaticResource Number}" />
+                <TextBlock Text="{Binding Name}" Foreground="{Binding Brush}" TextTrimming="CharacterEllipsis" />
+            </DockPanel>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- ─────────── search bar ─────────── -->
+        <Border Style="{StaticResource Card}" Padding="10,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="230" />
+                    <ColumnDefinition Width="200" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Region" Style="{StaticResource Muted}" Margin="0,0,0,2" />
+                    <ComboBox x:Name="RegionBox" ItemsSource="{Binding Regions}" SelectedItem="{Binding SelectedRegion}"
+                              DisplayMemberPath="Name" Margin="0,0,8,0" />
+                </StackPanel>
+                <StackPanel Grid.Column="1">
+                    <DockPanel Margin="0,0,0,2">
+                        <Path DockPanel.Dock="Right" Style="{StaticResource Spinner}" Width="10" Height="10" Margin="0,0,8,0"
+                              Visibility="{Binding IsLoadingServers, Converter={StaticResource Vis}}" />
+                        <TextBlock Text="Server" Style="{StaticResource Muted}" />
+                    </DockPanel>
+                    <ComboBox ItemsSource="{Binding Servers}" SelectedItem="{Binding SelectedServer}" DisplayMemberPath="Name"
+                              Margin="0,0,8,0" />
+                </StackPanel>
+                <StackPanel Grid.Column="2">
+                    <TextBlock Text="Character name" Style="{StaticResource Muted}" Margin="0,0,0,2" />
+                    <TextBox x:Name="NameBox" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Padding="4,3"
+                             Background="{DynamicResource {x:Static c:ThemeKeys.SurfaceAlt}}"
+                             Foreground="{DynamicResource {x:Static c:ThemeKeys.Text}}"
+                             CaretBrush="{DynamicResource {x:Static c:ThemeKeys.Text}}"
+                             BorderBrush="{DynamicResource {x:Static c:ThemeKeys.Border}}">
+                        <TextBox.InputBindings>
+                            <KeyBinding Key="Enter" Command="{Binding SearchCommand}" />
+                        </TextBox.InputBindings>
+                    </TextBox>
+                </StackPanel>
+                <Button Grid.Column="3" Content="Search" Style="{StaticResource AccentButton}" Command="{Binding SearchCommand}"
+                        VerticalAlignment="Bottom" Margin="8,0,0,0" MinWidth="80" Height="26" />
+                <TextBlock Grid.Column="4" Text="{Binding ServerError}" Foreground="{DynamicResource {x:Static c:ThemeKeys.Warning}}"
+                           VerticalAlignment="Bottom" Margin="10,0,0,4" MaxWidth="220" TextWrapping="Wrap" FontSize="11"
+                           Visibility="{Binding ServerError, Converter={StaticResource Vis}}" />
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="270" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- ─────────── results ─────────── -->
+            <Border Style="{StaticResource Card}" Margin="0,0,10,0" Padding="0,8">
+                <DockPanel>
+                    <DockPanel DockPanel.Dock="Top" Margin="12,0,12,6">
+                        <Path DockPanel.Dock="Right" Style="{StaticResource Spinner}" Width="12" Height="12"
+                              Visibility="{Binding IsSearching, Converter={StaticResource Vis}}" />
+                        <TextBlock Text="Results" Style="{StaticResource Header}" Margin="0" />
+                    </DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="{Binding SearchStatus}" Style="{StaticResource Muted}" Margin="12,0,12,6"
+                               TextWrapping="Wrap" Visibility="{Binding SearchStatus, Converter={StaticResource Vis}}" />
+                    <Border DockPanel.Dock="Top" Style="{StaticResource ErrorBanner}" Margin="10,0,10,6"
+                            Visibility="{Binding SearchError, Converter={StaticResource Vis}}">
+                        <TextBlock Text="{Binding SearchError}" TextWrapping="Wrap" />
+                    </Border>
+                    <Button DockPanel.Dock="Bottom" Content="Load more" Style="{StaticResource FlatButton}" Margin="10,6,10,0"
+                            Command="{Binding LoadMoreCommand}"
+                            Visibility="{Binding HasMoreResults, Converter={StaticResource Vis}}" />
+                    <ListBox ItemsSource="{Binding SearchResults}" SelectedItem="{Binding SelectedResult}" Background="Transparent"
+                             BorderThickness="0" ItemContainerStyle="{StaticResource ResultItem}"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             Foreground="{DynamicResource {x:Static c:ThemeKeys.Text}}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate DataType="{x:Type ui:SearchResultVm}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="36" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid Width="30" Height="30" HorizontalAlignment="Left">
+                                        <Ellipse Fill="{DynamicResource {x:Static c:ThemeKeys.BarTrack}}" />
+                                        <TextBlock Text="{Binding Initial}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                   FontWeight="Bold" ui:ArmoryUi.ClassForeground="{Binding Class}" />
+                                        <Ellipse>
+                                            <Ellipse.Fill>
+                                                <ImageBrush ImageSource="{Binding Image}" Stretch="UniformToFill" />
+                                            </Ellipse.Fill>
+                                        </Ellipse>
+                                    </Grid>
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding ClassLevel}" FontSize="11" ui:ArmoryUi.ClassForeground="{Binding Class}" />
+                                        <TextBlock Text="{Binding ServerText}" Style="{StaticResource Muted}" />
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+
+            <!-- ─────────── profile ─────────── -->
+            <Grid Grid.Column="1">
+                <!-- placeholder -->
+                <Border Style="{StaticResource Card}" Visibility="{Binding ShowPlaceholder, Converter={StaticResource Vis}}">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="420">
+                        <TextBlock Text="Character lookup" Style="{StaticResource Header}" HorizontalAlignment="Center" FontSize="18" />
+                        <TextBlock TextWrapping="Wrap" TextAlignment="Center" Foreground="{DynamicResource {x:Static c:ThemeKeys.TextMuted}}"
+                                   Text="Pick a region, type a character name and press Search. Gear, stats, titles, daevanion, pet and wings come from the official AION 2 character info site." />
+                    </StackPanel>
+                </Border>
+
+                <!-- loading -->
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+                            Visibility="{Binding IsLoadingProfile, Converter={StaticResource Vis}}">
+                    <Path Style="{StaticResource Spinner}" Width="32" Height="32" />
+                    <TextBlock Text="Loading character…" Margin="0,8,0,0" Foreground="{DynamicResource {x:Static c:ThemeKeys.TextMuted}}" />
+                </StackPanel>
+
+                <!-- error -->
+                <Border Style="{StaticResource ErrorBanner}" VerticalAlignment="Top"
+                        Visibility="{Binding ProfileError, Converter={StaticResource Vis}}">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="Retry" Style="{StaticResource FlatButton}" Command="{Binding RetryProfileCommand}" />
+                        <TextBlock Text="{Binding ProfileError}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0" />
+                    </DockPanel>
+                </Border>
+
+                <ScrollViewer x:Name="ProfileScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                              DataContext="{Binding Profile}"
+                              Visibility="{Binding Converter={StaticResource Vis}}">
+                    <StackPanel Margin="0,0,4,0">
+                        <!-- header -->
+                        <Border Style="{StaticResource Card}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid Width="56" Height="56" Margin="0,0,12,0" VerticalAlignment="Top">
+                                    <Ellipse Fill="{DynamicResource {x:Static c:ThemeKeys.BarTrack}}" />
+                                    <TextBlock Text="{Binding Initial}" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center"
+                                               VerticalAlignment="Center" ui:ArmoryUi.ClassForeground="{Binding Class}" />
+                                    <Ellipse>
+                                        <Ellipse.Fill>
+                                            <ImageBrush ImageSource="{Binding ProfileImage}" Stretch="UniformToFill" />
+                                        </Ellipse.Fill>
+                                    </Ellipse>
+                                </Grid>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Name}" FontSize="22" FontWeight="Bold" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Subtitle}" FontSize="13" ui:ArmoryUi.ClassForeground="{Binding Class}" Margin="0,1,0,0" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                                        <TextBlock Text="{Binding RegionText}" Style="{StaticResource Muted}" />
+                                        <TextBlock Text="{Binding TitleText}" Foreground="{Binding TitleBrush}" FontSize="11" Margin="12,0,0,0" />
+                                        <TextBlock Text="{Binding LegionText}" Style="{StaticResource Muted}" Margin="12,0,0,0"
+                                                   Visibility="{Binding LegionText, Converter={StaticResource Vis}}" />
+                                    </StackPanel>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Border Background="{DynamicResource {x:Static c:ThemeKeys.SurfaceAlt}}" Padding="14,6" Margin="0,0,8,0"
+                                            CornerRadius="{DynamicResource {x:Static c:ThemeKeys.CornerRadius}}" ToolTip="{Binding CombatPowerExact}">
+                                        <StackPanel>
+                                            <TextBlock Text="COMBAT POWER" Style="{StaticResource Muted}" FontSize="10" />
+                                            <TextBlock Text="{Binding CombatPowerText}" Style="{StaticResource Number}" FontSize="20" FontWeight="Bold"
+                                                       Foreground="{DynamicResource {x:Static c:ThemeKeys.Accent}}" />
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Background="{DynamicResource {x:Static c:ThemeKeys.SurfaceAlt}}" Padding="14,6" Margin="0,0,8,0"
+                                            CornerRadius="{DynamicResource {x:Static c:ThemeKeys.CornerRadius}}" ToolTip="Item level (gear score)">
+                                        <StackPanel>
+                                            <TextBlock Text="ITEM LEVEL" Style="{StaticResource Muted}" FontSize="10" />
+                                            <TextBlock Text="{Binding ItemLevelText}" Style="{StaticResource Number}" FontSize="20" FontWeight="Bold" />
+                                        </StackPanel>
+                                    </Border>
+                                    <Button Content="Official site" Style="{StaticResource FlatButton}" VerticalAlignment="Center"
+                                            Command="{Binding DataContext.OpenOnSiteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            ToolTip="Open this character on the official AION 2 site in your browser" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- equipment + stats -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="3*" />
+                                <ColumnDefinition Width="2*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,10,0">
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <DockPanel>
+                                            <Path DockPanel.Dock="Right" Style="{StaticResource Spinner}" Width="12" Height="12"
+                                                  Visibility="{Binding IsLoadingEquipment, Converter={StaticResource Vis}}" />
+                                            <TextBlock Text="Equipment" Style="{StaticResource Header}" />
+                                        </DockPanel>
+                                        <TextBlock Text="{Binding EquipmentError}" Foreground="{DynamicResource {x:Static c:ThemeKeys.Negative}}" TextWrapping="Wrap"
+                                                   Visibility="{Binding EquipmentError, Converter={StaticResource Vis}}" Margin="0,0,0,6" />
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="8" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <ItemsControl ItemsSource="{Binding WeaponsAndArmor}" ItemTemplate="{StaticResource SlotTemplate}" />
+                                            <ItemsControl Grid.Column="2" ItemsSource="{Binding Accessories}" ItemTemplate="{StaticResource SlotTemplate}" />
+                                        </Grid>
+                                        <TextBlock Text="Arcana &amp; runes" Style="{StaticResource Muted}" Margin="0,6,0,4"
+                                                   Visibility="{Binding ArcanaAndRunes, Converter={StaticResource Vis}}" />
+                                        <ItemsControl ItemsSource="{Binding ArcanaAndRunes}" ItemTemplate="{StaticResource SlotTemplate}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <UniformGrid Columns="2" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemContainerStyle>
+                                                <Style TargetType="ContentPresenter">
+                                                    <Setter Property="Margin" Value="0,0,6,0" />
+                                                </Style>
+                                            </ItemsControl.ItemContainerStyle>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                                    <Border Style="{StaticResource Card}" Visibility="{Binding Companions, Converter={StaticResource Vis}}">
+                                        <StackPanel>
+                                            <TextBlock Text="Pet &amp; wings" Style="{StaticResource Header}" />
+                                            <ItemsControl ItemsSource="{Binding Companions}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate DataType="{x:Type ui:CompanionVm}">
+                                                        <DockPanel Margin="0,0,0,6">
+                                                            <Border Width="30" Height="30" Margin="0,0,8,0" CornerRadius="3"
+                                                                    Background="{DynamicResource {x:Static c:ThemeKeys.BarTrack}}">
+                                                                <Image Source="{Binding Icon}" Stretch="Uniform" />
+                                                            </Border>
+                                                            <StackPanel VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding Kind}" Style="{StaticResource Muted}" FontSize="10" />
+                                                                <TextBlock TextTrimming="CharacterEllipsis">
+                                                                    <Run Text="{Binding Name, Mode=OneWay}" FontWeight="SemiBold" />
+                                                                    <Run Text="  " />
+                                                                    <Run Text="{Binding Detail, Mode=OneWay}" Foreground="{DynamicResource {x:Static c:ThemeKeys.TextMuted}}" />
+                                                                </TextBlock>
+                                                            </StackPanel>
+                                                        </DockPanel>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </Border>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1">
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock Text="Core stats" Style="{StaticResource Header}" />
+                                        <ItemsControl ItemsSource="{Binding CoreStats}" ItemTemplate="{StaticResource StatTile}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <UniformGrid Columns="2" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                        </ItemsControl>
+                                        <TextBlock Text="Pantheon stats" Style="{StaticResource Header}" Margin="0,6,0,8"
+                                                   Visibility="{Binding PantheonStats, Converter={StaticResource Vis}}" />
+                                        <ItemsControl ItemsSource="{Binding PantheonStats}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type ui:StatVm}">
+                                                    <Grid Margin="0,0,0,5" ToolTip="{Binding ToolTipText}">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <StackPanel>
+                                                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                                            <TextBlock Text="{Binding EffectsText}" Style="{StaticResource Muted}" TextWrapping="Wrap" />
+                                                        </StackPanel>
+                                                        <TextBlock Grid.Column="1" Text="{Binding Value}" Style="{StaticResource Number}" FontWeight="SemiBold"
+                                                                   VerticalAlignment="Top" Margin="8,0,0,0" />
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <ItemsControl ItemsSource="{Binding OtherStats}" ItemTemplate="{StaticResource StatTile}" />
+                                        <TextBlock Text="Combat stats (attack, HP, accuracy …) are not published by the official site."
+                                                   Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                                    </StackPanel>
+                                </Border>
+
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- daevanion -->
+                        <Border Style="{StaticResource Card}" Visibility="{Binding Boards, Converter={StaticResource Vis}}">
+                            <StackPanel>
+                                <DockPanel>
+                                    <Path DockPanel.Dock="Right" Style="{StaticResource Spinner}" Width="12" Height="12"
+                                          Visibility="{Binding IsLoadingBoard, Converter={StaticResource Vis}}" />
+                                    <TextBlock Text="Daevanion" Style="{StaticResource Header}" />
+                                </DockPanel>
+                                <ItemsControl ItemsSource="{Binding Boards}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <UniformGrid Columns="5" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type ui:BoardVm}">
+                                            <Button Command="{Binding DataContext.SelectBoardCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                                                    Margin="0,0,6,6" Cursor="Hand">
+                                                <Button.Template>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border x:Name="Bd" Background="{DynamicResource {x:Static c:ThemeKeys.SurfaceAlt}}" Padding="8,5"
+                                                                BorderThickness="0,0,0,2" BorderBrush="Transparent"
+                                                                CornerRadius="{DynamicResource {x:Static c:ThemeKeys.BarCornerRadius}}">
+                                                            <ContentPresenter />
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource {x:Static c:ThemeKeys.Accent}}" />
+                                                            </DataTrigger>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource {x:Static c:ThemeKeys.BarTrack}}" />
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Button.Template>
+                                                <StackPanel>
+                                                    <DockPanel>
+                                                        <TextBlock DockPanel.Dock="Right" Text="{Binding Progress}" Style="{StaticResource Number}" FontSize="11"
+                                                                   Foreground="{DynamicResource {x:Static c:ThemeKeys.TextMuted}}" />
+                                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
+                                                                   Foreground="{DynamicResource {x:Static c:ThemeKeys.Text}}" />
+                                                    </DockPanel>
+                                                    <ProgressBar Value="{Binding Percent, Mode=OneWay}" Maximum="100" Height="4" Margin="0,4,0,0" BorderThickness="0"
+                                                                 Background="{DynamicResource {x:Static c:ThemeKeys.BarTrack}}"
+                                                                 Foreground="{DynamicResource {x:Static c:ThemeKeys.BarFill}}" />
+                                                </StackPanel>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Text="{Binding BoardError}" Foreground="{DynamicResource {x:Static c:ThemeKeys.Negative}}" TextWrapping="Wrap"
+                                           Visibility="{Binding BoardError, Converter={StaticResource Vis}}" Margin="0,4,0,0" />
+                                <Grid Margin="0,6,0,0" Visibility="{Binding BoardNodes, Converter={StaticResource Vis}}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <ItemsControl ItemsSource="{Binding BoardNodes}" Width="{Binding BoardWidth}" Height="{Binding BoardHeight}"
+                                                  VerticalAlignment="Top" Margin="0,0,14,0">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <Canvas />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemContainerStyle>
+                                            <Style TargetType="ContentPresenter">
+                                                <Setter Property="Canvas.Left" Value="{Binding X}" />
+                                                <Setter Property="Canvas.Top" Value="{Binding Y}" />
+                                            </Style>
+                                        </ItemsControl.ItemContainerStyle>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type ui:NodeVm}">
+                                                <Rectangle Width="{Binding Size}" Height="{Binding Size}" RadiusX="2" RadiusY="2" ToolTip="{Binding ToolTipText}">
+                                                    <Rectangle.Style>
+                                                        <Style TargetType="Rectangle">
+                                                            <Setter Property="Fill" Value="{DynamicResource {x:Static c:ThemeKeys.BarTrack}}" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding State}" Value="Start">
+                                                                    <Setter Property="Fill" Value="{DynamicResource {x:Static c:ThemeKeys.Positive}}" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding State}" Value="OpenStat">
+                                                                    <Setter Property="Fill" Value="{DynamicResource {x:Static c:ThemeKeys.Accent}}" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding State}" Value="OpenSkill">
+                                                                    <Setter Property="Fill" Value="{DynamicResource {x:Static c:ThemeKeys.Crit}}" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding State}" Value="ClosedSkill">
+                                                                    <Setter Property="Stroke" Value="{DynamicResource {x:Static c:ThemeKeys.Crit}}" />
+                                                                    <Setter Property="StrokeThickness" Value="1" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Rectangle.Style>
+                                                </Rectangle>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <StackPanel Grid.Column="1" Margin="0,0,10,0">
+                                        <TextBlock Text="Opened stat effects" Style="{StaticResource Muted}" Margin="0,0,0,4" />
+                                        <ItemsControl ItemsSource="{Binding BoardStatEffects}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,0,0,2" />
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="Opened skill effects" Style="{StaticResource Muted}" Margin="0,0,0,4" />
+                                        <ItemsControl ItemsSource="{Binding BoardSkillEffects}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,0,0,2"
+                                                               Foreground="{DynamicResource {x:Static c:ThemeKeys.Crit}}" />
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- titles + skills -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Style="{StaticResource Card}" Margin="0,0,10,10">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding TitlesHeader}" Style="{StaticResource Header}" />
+                                    <ItemsControl ItemsSource="{Binding Titles}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type ui:TitleVm}">
+                                                <Border Background="{DynamicResource {x:Static c:ThemeKeys.SurfaceAlt}}" Padding="8,5" Margin="0,0,0,5"
+                                                        BorderBrush="{Binding GradeBrush}" BorderThickness="3,0,0,0"
+                                                        CornerRadius="{DynamicResource {x:Static c:ThemeKeys.BarCornerRadius}}">
+                                                    <StackPanel>
+                                                        <DockPanel>
+                                                            <TextBlock DockPanel.Dock="Right" Text="{Binding Category}" Style="{StaticResource Muted}" />
+                                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="{Binding GradeBrush}" />
+                                                        </DockPanel>
+                                                        <TextBlock Text="{Binding EquipText}" FontSize="11" TextWrapping="Wrap"
+                                                                   Visibility="{Binding EquipText, Converter={StaticResource Vis}}" />
+                                                        <TextBlock Text="{Binding OwnedText}" Style="{StaticResource Muted}" TextWrapping="Wrap"
+                                                                   Visibility="{Binding OwnedText, Converter={StaticResource Vis}}" />
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <TextBlock Text="Rankings" Style="{StaticResource Muted}" Margin="0,6,0,2"
+                                               Visibility="{Binding Rankings, Converter={StaticResource Vis}}" />
+                                    <ItemsControl ItemsSource="{Binding Rankings}" />
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Column="1" Style="{StaticResource Card}" Visibility="{Binding SkillGroups, Converter={StaticResource Vis}}">
+                                <StackPanel>
+                                    <TextBlock Text="Skills" Style="{StaticResource Header}" />
+                                    <ItemsControl ItemsSource="{Binding SkillGroups}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type ui:SkillGroupVm}">
+                                                <StackPanel Margin="0,0,0,6">
+                                                    <TextBlock Text="{Binding Header}" Style="{StaticResource Muted}" Margin="0,0,0,3" />
+                                                    <ItemsControl ItemsSource="{Binding Skills}">
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <UniformGrid Columns="2" />
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate DataType="{x:Type ui:SkillVm}">
+                                                                <DockPanel Margin="0,0,8,2">
+                                                                    <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,4,0" />
+                                                                    <TextBlock DockPanel.Dock="Right" Text="{Binding LevelText}" Style="{StaticResource Number}"
+                                                                               Foreground="{DynamicResource {x:Static c:ThemeKeys.Accent}}" />
+                                                                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                                                </DockPanel>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ─────────── item detail panel (in-control overlay, no popup window) ─────────── -->
+                <Border Width="340" HorizontalAlignment="Right" VerticalAlignment="Stretch" Margin="0,0,0,10"
+                        Background="{DynamicResource {x:Static c:ThemeKeys.Surface}}"
+                        BorderBrush="{Binding SelectedItem.GradeBrush}" BorderThickness="1,3,1,1"
+                        CornerRadius="{DynamicResource {x:Static c:ThemeKeys.CornerRadius}}"
+                        Visibility="{Binding IsItemPanelOpen, Converter={StaticResource Vis}}">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="16" ShadowDepth="0" Opacity="0.45" />
+                    </Border.Effect>
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top" Margin="12,8,8,4">
+                            <Button DockPanel.Dock="Right" Content="Close" Style="{StaticResource FlatButton}" Command="{Binding CloseItemCommand}"
+                                    VerticalAlignment="Top" Padding="8,2" />
+                            <TextBlock Text="{Binding SelectedItem.SlotLabel}" Style="{StaticResource Muted}" VerticalAlignment="Center" />
+                        </DockPanel>
+                        <StackPanel DockPanel.Dock="Top" HorizontalAlignment="Center" Margin="0,30,0,0"
+                                    Visibility="{Binding IsLoadingItem, Converter={StaticResource Vis}}">
+                            <Path Style="{StaticResource Spinner}" Width="24" Height="24" />
+                            <TextBlock Text="Loading item…" Margin="0,6,0,0" Foreground="{DynamicResource {x:Static c:ThemeKeys.TextMuted}}" />
+                        </StackPanel>
+                        <Border DockPanel.Dock="Top" Style="{StaticResource ErrorBanner}" Margin="12,4"
+                                Visibility="{Binding ItemError, Converter={StaticResource Vis}}">
+                            <TextBlock Text="{Binding ItemError}" TextWrapping="Wrap" />
+                        </Border>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" DataContext="{Binding ItemDetail}"
+                                      Visibility="{Binding Converter={StaticResource Vis}}">
+                            <StackPanel Margin="12,0,12,12">
+                                <DockPanel>
+                                    <Border Width="44" Height="44" Margin="0,0,10,0" BorderBrush="{Binding GradeBrush}" BorderThickness="1"
+                                            CornerRadius="4" Background="{DynamicResource {x:Static c:ThemeKeys.BarTrack}}">
+                                        <Image Source="{Binding Icon}" Stretch="Uniform" />
+                                    </Border>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Name}" Foreground="{Binding GradeBrush}" FontSize="15" FontWeight="Bold" TextWrapping="Wrap" />
+                                        <TextBlock Text="{Binding Subtitle}" Style="{StaticResource Muted}" />
+                                    </StackPanel>
+                                </DockPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,2">
+                                    <TextBlock Text="{Binding EnchantText}" Style="{StaticResource Number}" FontWeight="Bold" FontSize="14"
+                                               Foreground="{DynamicResource {x:Static c:ThemeKeys.Accent}}" />
+                                    <TextBlock Text="{Binding ExceedText}" Margin="12,0,0,0" VerticalAlignment="Center"
+                                               Foreground="{DynamicResource {x:Static c:ThemeKeys.Crit}}" />
+                                </StackPanel>
+                                <TextBlock Text="{Binding Requirements}" Style="{StaticResource Muted}" TextWrapping="Wrap" />
+
+                                <TextBlock Text="Main stats" Style="{StaticResource Header}" Margin="0,10,0,4"
+                                           Visibility="{Binding MainStats, Converter={StaticResource Vis}}" />
+                                <ItemsControl ItemsSource="{Binding MainStats}" ItemTemplate="{StaticResource StatLine}" />
+
+                                <TextBlock Text="{Binding SubStatsHeader}" Style="{StaticResource Header}" Margin="0,10,0,4"
+                                           Visibility="{Binding SubStats, Converter={StaticResource Vis}}" />
+                                <ItemsControl ItemsSource="{Binding SubStats}" ItemTemplate="{StaticResource StatLine}" />
+
+                                <TextBlock Text="{Binding ManastoneHeader}" Style="{StaticResource Header}" Margin="0,10,0,4"
+                                           Visibility="{Binding HasSockets, Converter={StaticResource Vis}}" />
+                                <ItemsControl ItemsSource="{Binding Manastones}" ItemTemplate="{StaticResource StoneLine}" />
+
+                                <TextBlock Text="{Binding GodstoneHeader}" Style="{StaticResource Header}" Margin="0,10,0,4"
+                                           Visibility="{Binding HasGodstoneSlot, Converter={StaticResource Vis}}" />
+                                <ItemsControl ItemsSource="{Binding Godstones}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type ui:GodstoneVm}">
+                                            <StackPanel Margin="0,0,0,4">
+                                                <TextBlock Text="{Binding Name}" Foreground="{Binding Brush}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                                <TextBlock Text="{Binding Description}" Style="{StaticResource Muted}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <TextBlock Text="Set bonus" Style="{StaticResource Header}" Margin="0,10,0,4"
+                                           Visibility="{Binding SetText, Converter={StaticResource Vis}}" />
+                                <TextBlock Text="{Binding SetText}" TextWrapping="Wrap" Visibility="{Binding SetText, Converter={StaticResource Vis}}" />
+
+                                <TextBlock Text="Appearance" Style="{StaticResource Muted}" Margin="0,10,0,0"
+                                           Visibility="{Binding Costumes, Converter={StaticResource Vis}}" />
+                                <TextBlock Text="{Binding Costumes}" TextWrapping="Wrap" Visibility="{Binding Costumes, Converter={StaticResource Vis}}" />
+                                <TextBlock Text="Obtained from" Style="{StaticResource Muted}" Margin="0,6,0,0"
+                                           Visibility="{Binding Sources, Converter={StaticResource Vis}}" />
+                                <TextBlock Text="{Binding Sources}" TextWrapping="Wrap" Visibility="{Binding Sources, Converter={StaticResource Vis}}" />
+                            </StackPanel>
+                        </ScrollViewer>
+                    </DockPanel>
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>

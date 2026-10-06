@@ -1,0 +1,624 @@
+{
+ "equipment": {
+  "equipmentList": [
+   {
+    "enchantLevel": 7,
+    "exceedLevel": 0,
+    "grade": "Unique",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_WP_MB_0078_T05.png",
+    "id": 110530047,
+    "name": "Spiritforged Spellbook",
+    "slotPos": 1,
+    "slotPosName": "MainHand"
+   },
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Legend",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_Weapon_Guarder_C_028.png",
+    "id": 115040031,
+    "name": "Pilgrim Guard",
+    "slotPos": 2,
+    "slotPosName": "SubHand"
+   },
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Legend",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_Equip_AR_L_0029_T04_Torso.png",
+    "id": 210140024,
+    "name": "Judicator Breastplate",
+    "slotPos": 5,
+    "slotPosName": "Torso"
+   },
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Legend",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_GM_0019_T04_Pants.png",
+    "id": 210240031,
+    "name": "Pilgrim Greaves",
+    "slotPos": 6,
+    "slotPosName": "Pants"
+   },
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Legend",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_GM_0019_T04_Helmet.png",
+    "id": 210340031,
+    "name": "Pilgrim Helm",
+    "slotPos": 3,
+    "slotPosName": "Helmet"
+   },
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Legend",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_GM_0019_T04_Shoulder.png",
+    "id": 210440031,
+    "name": "Pilgrim Pauldrons",
+    "slotPos": 4,
+    "slotPosName": "Shoulder"
+   },
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Legend",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_GM_0019_T04_Gloves.png",
+    "id": 210540031,
+    "name": "Pilgrim Gloves",
+    "slotPos": 7,
+    "slotPosName": "Gloves"
+   },
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Legend",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_GM_0019_T04_Boots.png",
+    "id": 210640031,
+    "name": "Pilgrim Boots",
+    "slotPos": 8,
+    "slotPosName": "Boots"
+   },
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Legend",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_GM_0019_T04_Cape.png",
+    "id": 210740031,
+    "name": "Pilgrim Cloak",
+    "slotPos": 19,
+    "slotPosName": "Cape"
+   },
+   {
+    "enchantLevel": 4,
+    "exceedLevel": 0,
+    "grade": "Rare",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_Acc_Belt_C_018.png",
+    "id": 215250001,
+    "name": "Noble Belt",
+    "slotPos": 17,
+    "slotPosName": "Belt"
+   },
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Legend",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_ACC_NL_0017.png",
+    "id": 310140030,
+    "name": "Drifter Necklace",
+    "slotPos": 10,
+    "slotPosName": "Necklace"
+   },
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Legend",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_ACC_ER_0017.png",
+    "id": 310240030,
+    "name": "Drifter Earrings",
+    "slotPos": 12,
+    "slotPosName": "Earring2"
+   },
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Rare",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_ACC_ER_0030.png",
+    "id": 310250030,
+    "name": "Wind Breeze Earrings",
+    "slotPos": 11,
+    "slotPosName": "Earring1"
+   },
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Legend",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_ACC_Ring_0071.png",
+    "id": 310340031,
+    "name": "Pilgrim Ring",
+    "slotPos": 13,
+    "slotPosName": "Ring1"
+   },
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Rare",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_ACC_Ring_0030.png",
+    "id": 310350030,
+    "name": "Wind Breeze Ring",
+    "slotPos": 14,
+    "slotPosName": "Ring2"
+   },
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Legend",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_ACC_Bracelet_0017.png",
+    "id": 310440015,
+    "name": "Drifter Bracelet",
+    "slotPos": 15,
+    "slotPosName": "Bracelet1"
+   },
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Rare",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_ACC_Bracelet_0030.png",
+    "id": 310450017,
+    "name": "Wind Breeze Bracelet",
+    "slotPos": 16,
+    "slotPosName": "Bracelet2"
+   },
+   {
+    "enchantLevel": 2,
+    "exceedLevel": 0,
+    "grade": "Legend",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_Item_Craft_Conversion_Crystal_L_lv4_01.png",
+    "id": 311040001,
+    "name": "Revelation Amulet",
+    "slotPos": 22,
+    "slotPosName": "Amulet"
+   }
+  ],
+  "skinList": [
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Common",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_GM_0063_T03_Gloves.png",
+    "id": 30063105,
+    "name": "Light of Genesis (Gloves)",
+    "slotPos": 5,
+    "slotPosName": "Gloves"
+   },
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Common",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_GM_0099_T03_Cape.png",
+    "id": 30099107,
+    "name": "Senior Inquirer (Cloak)",
+    "slotPos": 7,
+    "slotPosName": "Cape"
+   },
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Rare",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_GM_0033_T04_Boots.png",
+    "id": 30033106,
+    "name": "Silver Executioner (Boots)",
+    "slotPos": 6,
+    "slotPosName": "Boots"
+   },
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Common",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_GM_0038_T05_Helmet.png",
+    "id": 30038103,
+    "name": "Direction Setter (Helm)",
+    "slotPos": 1,
+    "slotPosName": "Helmet"
+   },
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Common",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_GM_0038_T05_Pants.png",
+    "id": 30038102,
+    "name": "Direction Setter (Greaves)",
+    "slotPos": 4,
+    "slotPosName": "Pants"
+   },
+   {
+    "enchantLevel": 0,
+    "exceedLevel": 0,
+    "grade": "Legend",
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_GM_0040_T04_Torso.png",
+    "id": 30040101,
+    "name": "Steel Endurance (Breastplate)",
+    "slotPos": 3,
+    "slotPosName": "Torso"
+   }
+  ]
+ },
+ "petwing": {
+  "pet": {
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_Vehicle_Portrait_Specter_01.png",
+   "id": 1216,
+   "level": 2,
+   "name": "Dark Spirit"
+  },
+  "wing": {
+   "enchantLevel": 0,
+   "grade": "Legend",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_WingB_007C.png",
+   "id": 30200703,
+   "name": "Superior Daeva Wings"
+  },
+  "wingSkin": {
+   "enchantLevel": null,
+   "grade": null,
+   "icon": null,
+   "id": null,
+   "name": null
+  }
+ },
+ "skill": {
+  "skillList": [
+   {
+    "acquired": 1,
+    "category": "Active",
+    "equip": 1,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_020.png",
+    "id": 15210000,
+    "name": "Flame Arrow",
+    "needLevel": 1,
+    "skillLevel": 11
+   },
+   {
+    "acquired": 1,
+    "category": "Active",
+    "equip": 1,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_009.png",
+    "id": 15090000,
+    "name": "Ice Chain",
+    "needLevel": 1,
+    "skillLevel": 11
+   },
+   {
+    "acquired": 1,
+    "category": "Active",
+    "equip": 1,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_004.png",
+    "id": 15040000,
+    "name": "Firestorm",
+    "needLevel": 1,
+    "skillLevel": 6
+   },
+   {
+    "acquired": 1,
+    "category": "Active",
+    "equip": 1,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_025.png",
+    "id": 15280000,
+    "name": "Bittercold Wind",
+    "needLevel": 3,
+    "skillLevel": 6
+   },
+   {
+    "acquired": 1,
+    "category": "Active",
+    "equip": 1,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_005.png",
+    "id": 15050000,
+    "name": "Blaze",
+    "needLevel": 4,
+    "skillLevel": 6
+   },
+   {
+    "acquired": 1,
+    "category": "Active",
+    "equip": 1,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_001.png",
+    "id": 15010000,
+    "name": "Flame Scattershot",
+    "needLevel": 5,
+    "skillLevel": 7
+   },
+   {
+    "acquired": 1,
+    "category": "Active",
+    "equip": 1,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_015.png",
+    "id": 15150000,
+    "name": "Frost",
+    "needLevel": 7,
+    "skillLevel": 1
+   },
+   {
+    "acquired": 1,
+    "category": "Active",
+    "equip": 1,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_011.png",
+    "id": 15110000,
+    "name": "Winter's Shackles",
+    "needLevel": 8,
+    "skillLevel": 10
+   },
+   {
+    "acquired": 1,
+    "category": "Active",
+    "equip": 1,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_022.png",
+    "id": 15220000,
+    "name": "Frost Burst",
+    "needLevel": 10,
+    "skillLevel": 2
+   },
+   {
+    "acquired": 1,
+    "category": "Active",
+    "equip": 1,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_028.png",
+    "id": 15310000,
+    "name": "Wish of Concentration",
+    "needLevel": 12,
+    "skillLevel": 7
+   },
+   {
+    "acquired": 1,
+    "category": "Active",
+    "equip": 1,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_006.png",
+    "id": 15060000,
+    "name": "Hellfire",
+    "needLevel": 14,
+    "skillLevel": 12
+   },
+   {
+    "acquired": 1,
+    "category": "Active",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_CO_SKILL_002.png",
+    "id": 15240000,
+    "name": "Defiance",
+    "needLevel": 16,
+    "skillLevel": 3
+   },
+   {
+    "acquired": 1,
+    "category": "Passive",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_Passive_002.png",
+    "id": 15710000,
+    "name": "Fire Mark",
+    "needLevel": 1,
+    "skillLevel": 11
+   },
+   {
+    "acquired": 1,
+    "category": "Passive",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_Passive_006.png",
+    "id": 15720000,
+    "name": "Robe of Earth",
+    "needLevel": 6,
+    "skillLevel": 9
+   },
+   {
+    "acquired": 1,
+    "category": "Passive",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_Passive_003.png",
+    "id": 15730000,
+    "name": "Cold Snap",
+    "needLevel": 9,
+    "skillLevel": 6
+   },
+   {
+    "acquired": 1,
+    "category": "Passive",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_Passive_004.png",
+    "id": 15740000,
+    "name": "Robe of Flame",
+    "needLevel": 11,
+    "skillLevel": 10
+   },
+   {
+    "acquired": 1,
+    "category": "Passive",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_Passive_001.png",
+    "id": 15760000,
+    "name": "Absorb Essence",
+    "needLevel": 13,
+    "skillLevel": 5
+   },
+   {
+    "acquired": 1,
+    "category": "Passive",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_038.png",
+    "id": 15770000,
+    "name": "Grace of Resistance",
+    "needLevel": 15,
+    "skillLevel": 3
+   },
+   {
+    "acquired": 1,
+    "category": "Passive",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_Passive_005.png",
+    "id": 15750000,
+    "name": "Robe of Cold",
+    "needLevel": 17,
+    "skillLevel": 3
+   },
+   {
+    "acquired": 1,
+    "category": "Passive",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_Passive_007.png",
+    "id": 15780000,
+    "name": "Grace of Enhancement",
+    "needLevel": 21,
+    "skillLevel": 8
+   },
+   {
+    "acquired": 1,
+    "category": "Passive",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_AS_SKILL_Passive_009.png",
+    "id": 15790000,
+    "name": "Revitalization Contract",
+    "needLevel": 23,
+    "skillLevel": 6
+   },
+   {
+    "acquired": 1,
+    "category": "Passive",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_Passive_008.png",
+    "id": 15800000,
+    "name": "Vitality Evaporation",
+    "needLevel": 25,
+    "skillLevel": 7
+   },
+   {
+    "acquired": 1,
+    "category": "Dp",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_036.png",
+    "id": 15360000,
+    "name": "Divine Burst",
+    "needLevel": 22,
+    "skillLevel": 1
+   },
+   {
+    "acquired": 0,
+    "category": "Dp",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_016.png",
+    "id": 15160000,
+    "name": "Steel Barrier",
+    "needLevel": 22,
+    "skillLevel": 0
+   },
+   {
+    "acquired": 0,
+    "category": "Dp",
+    "equip": 1,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_040.png",
+    "id": 15400000,
+    "name": "Element Enhancement",
+    "needLevel": 22,
+    "skillLevel": 0
+   },
+   {
+    "acquired": 0,
+    "category": "Dp",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_014.png",
+    "id": 15140000,
+    "name": "Curse: Tree",
+    "needLevel": 22,
+    "skillLevel": 0
+   },
+   {
+    "acquired": 0,
+    "category": "Dp",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_021.png",
+    "id": 15230000,
+    "name": "Arctic Armor",
+    "needLevel": 22,
+    "skillLevel": 0
+   },
+   {
+    "acquired": 0,
+    "category": "Dp",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_013.png",
+    "id": 15130000,
+    "name": "Soul Freeze",
+    "needLevel": 22,
+    "skillLevel": 0
+   },
+   {
+    "acquired": 0,
+    "category": "Dp",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_019.png",
+    "id": 15200000,
+    "name": "Cold Storm",
+    "needLevel": 22,
+    "skillLevel": 0
+   },
+   {
+    "acquired": 0,
+    "category": "Dp",
+    "equip": 1,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_039.png",
+    "id": 15390000,
+    "name": "Fire Wall",
+    "needLevel": 22,
+    "skillLevel": 0
+   },
+   {
+    "acquired": 0,
+    "category": "Dp",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_027.png",
+    "id": 15300000,
+    "name": "Lumiel's Space",
+    "needLevel": 22,
+    "skillLevel": 0
+   },
+   {
+    "acquired": 0,
+    "category": "Dp",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_032.png",
+    "id": 15320000,
+    "name": "Delayed Explosion",
+    "needLevel": 22,
+    "skillLevel": 0
+   },
+   {
+    "acquired": 0,
+    "category": "Dp",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_012.png",
+    "id": 15120000,
+    "name": "Glacial Smite",
+    "needLevel": 22,
+    "skillLevel": 0
+   },
+   {
+    "acquired": 0,
+    "category": "Dp",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_CO_SKILL_003.png",
+    "id": 15700000,
+    "name": "Assault Bombardment",
+    "needLevel": 22,
+    "skillLevel": 0
+   },
+   {
+    "acquired": 0,
+    "category": "Dp",
+    "equip": 0,
+    "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/ICON_SO_SKILL_041.png",
+    "id": 15410000,
+    "name": "Hibernation",
+    "needLevel": 22,
+    "skillLevel": 0
+   }
+  ]
+ }
+}

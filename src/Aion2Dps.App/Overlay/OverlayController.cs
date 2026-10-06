@@ -1,0 +1,308 @@
+using Aion2Dps.App.Formatting;
+using Aion2Dps.App.Infrastructure;
+using Aion2Dps.App.Integration;
+using Aion2Dps.App.Settings;
+
+namespace Aion2Dps.App.Overlay;
+
+/// <summary>
+/// Drives the overlay: refreshes it ~4×/s from <see cref="ICombatEngine.GetSnapshot"/>, routes its buttons to the
+/// engine/settings, runs the training countdown, ctrl+click compare and the copy-to-chat action.
+/// </summary>
+public sealed class OverlayController : IDisposable
+{
+    private readonly AppServices _services;
+    private readonly SettingsStore _settings;
+    private readonly Action<string?> _openDashboard;
+    private readonly DispatcherTimer _timer;
+    private OverlayWindow? _window;
+    private DateTime? _trainingEndsUtc;
+    private TimeSpan _trainingLength;
+    private string? _flash;
+    private DateTime _flashUntil;
+    private uint? _pinned;
+    private CaptureStatus _capture;
+    private readonly HashSet<Guid> _toasted = new();
+
+    public OverlayController(AppServices services, SettingsStore settings, Action<string?> openDashboard)
+    {
+        _services = services;
+        _settings = settings;
+        _openDashboard = openDashboard;
+        _capture = services.Capture.Status;
+        services.Capture.StatusChanged += s => _capture = s;
+        _timer = new DispatcherTimer(DispatcherPriority.Render) { Interval = TimeSpan.FromMilliseconds(250) };
+        _timer.Tick += (_, _) => Refresh();
+        settings.Changed += _ => { if (_window is not null) { ApplyLockState(); Refresh(); } };
+    }
+
+    public bool IsVisible => _window?.IsVisible == true;
+
+    /// <summary>Raised when the overlay is shown/hidden (tray text) or locked/unlocked.</summary>
+    public event Action? StateChanged;
+
+    /// <summary>Raised when a training run ends (length) so the host can check that it produced a record.</summary>
+    public event Action<TimeSpan>? TrainingFinished;
+
+    public OverlayView? View => _window?.View;
+
+    public void Show()
+    {
+        if (_window is null)
+        {
+            _window = new OverlayWindow(_settings.Current.Overlay);
+            Wire(_window.View);
+            _window.BoundsChanged += SaveBounds;
+            _window.SourceInitialized += (_, _) => ApplyLockState();
+        }
+        Refresh();
+        _window.Show();
+        _timer.Start();
+        if (!_settings.Current.Overlay.Visible)
+        {
+            _settings.Current.Overlay.Visible = true;
+            _settings.NotifyChanged();
+        }
+        StateChanged?.Invoke();
+    }
+
+    public void Hide()
+    {
+        _window?.Hide();
+        _timer.Stop();
+        _settings.Current.Overlay.Visible = false;
+        _settings.NotifyChanged();
+        StateChanged?.Invoke();
+    }
+
+    public void Toggle()
+    {
+        if (IsVisible) Hide(); else Show();
+    }
+
+    private void Wire(OverlayView v)
+    {
+        v.ResetRequested += Reset;
+        v.CopyRequested += () => CopySummary();
+        v.SettingsRequested += () => _openDashboard("Settings");
+        v.HideRequested += Hide;
+        v.LockToggled += () =>
+        {
+            var o = _settings.Current.Overlay;
+            o.Locked = !o.Locked;
+            if (!o.Locked) o.ClickThrough = false;
+            _settings.NotifyChanged();
+            ApplyLockState();
+            StateChanged?.Invoke();
+        };
+        v.CycleModeRequested += () =>
+        {
+            var next = _services.Engine.Mode switch
+            {
+                MeterMode.BossOnly => MeterMode.AllTargets,
+                MeterMode.AllTargets => MeterMode.Pvp,
+                _ => MeterMode.BossOnly,
+            };
+            _services.Engine.Mode = next;
+            Refresh();
+        };
+        v.CycleRowSizeRequested += () =>
+        {
+            var o = _settings.Current.Overlay;
+            o.RowSize = o.RowSize switch { RowSize.Normal => RowSize.Compact, RowSize.Compact => RowSize.Micro, _ => RowSize.Normal };
+            _settings.NotifyChanged();
+        };
+        v.CycleViewRequested += () =>
+        {
+            var o = _settings.Current.Overlay;
+            o.View = o.View switch { MeterView.Dps => MeterView.Total, MeterView.Total => MeterView.Taken, MeterView.Taken => MeterView.Heal, _ => MeterView.Dps };
+            _settings.NotifyChanged();
+        };
+        v.CyclePvpSortRequested += () =>
+        {
+            var o = _settings.Current.Overlay;
+            o.PvpSort = o.PvpSort == PvpSort.Threat ? PvpSort.Damage : PvpSort.Threat;
+            _settings.NotifyChanged();
+        };
+        v.CycleTargetRequested += dir => { _services.Engine.CycleTarget(dir); Refresh(); };
+        v.TrainingRequested += StartTraining;
+        v.TrainingCancelRequested += StopTraining;
+        v.OpacityChanged += value =>
+        {
+            _settings.Current.Overlay.BackgroundOpacity = Math.Round(value, 2);
+            _settings.NotifyChanged();
+        };
+        v.RowClicked += OnRowClicked;
+        v.PartyFilterToggled += TogglePartyOnly;
+    }
+
+    /// <summary>Flips "party members only" (overlay chip, tray menu, Ctrl+Alt+P), persists it and applies it to the engine.</summary>
+    public void TogglePartyOnly()
+    {
+        var g = _settings.Current.General;
+        g.PartyOnly = !g.PartyOnly;
+        _services.Engine.Options.PartyOnly = g.PartyOnly;
+        _settings.NotifyChanged();
+        Refresh();
+        Flash(g.PartyOnly ? "Party members only" : "Showing everyone");
+        StateChanged?.Invoke();
+    }
+
+    public void ToggleLockAndClickThrough()
+    {
+        var o = _settings.Current.Overlay;
+        bool enable = !(o.Locked && o.ClickThrough);
+        o.Locked = enable;
+        o.ClickThrough = enable;
+        _settings.NotifyChanged();
+        ApplyLockState();
+        Flash(enable ? "Locked · click-through on" : "Unlocked");
+        StateChanged?.Invoke();
+    }
+
+    private void ApplyLockState()
+    {
+        var o = _settings.Current.Overlay;
+        _window?.SetLockState(o.Locked, o.ClickThrough);
+    }
+
+    private void SaveBounds()
+    {
+        if (_window is null) return;
+        var o = _settings.Current.Overlay;
+        o.Left = Math.Round(_window.Left);
+        o.Top = Math.Round(_window.Top);
+        o.Width = Math.Round(_window.Width);
+        _settings.NotifyChanged();
+    }
+
+    public void Reset()
+    {
+        _services.Engine.Reset();
+        _pinned = null;
+        Flash("Meter reset");
+        Refresh();
+    }
+
+    public void StartTraining(TimeSpan length)
+    {
+        _services.Engine.StartTraining(length);
+        _trainingLength = length;
+        _trainingEndsUtc = DateTime.UtcNow + length;
+        _settings.Current.Overlay.TrainingSeconds = (int)length.TotalSeconds;
+        _settings.NotifyChanged();
+        Flash($"Training {Fmt.Duration(length)} started");
+        Refresh();
+    }
+
+    private void StopTraining()
+    {
+        _trainingEndsUtc = null;
+        _services.Engine.Reset();
+        _services.Engine.Mode = _settings.Current.Overlay.DefaultMode;
+        Flash("Training stopped");
+        Refresh();
+    }
+
+    /// <summary>Copies the chat summary line to the clipboard. Returns the line (null when nothing to copy).</summary>
+    public string? CopySummary()
+    {
+        var snap = _services.Engine.GetSnapshot(_services.Now());
+        var line = ChatSummary.FromSnapshot(snap);
+        if (line is null)
+        {
+            Flash("Nothing to copy yet");
+            return null;
+        }
+        try
+        {
+            Clipboard.SetDataObject(line, true);
+            Flash("Summary copied — paste in chat");
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warn("Overlay", $"Clipboard busy: {ex.Message}");
+            Flash("Clipboard busy, try again");
+        }
+        return line;
+    }
+
+    private void OnRowClicked(PlayerRow row, bool ctrl)
+    {
+        var record = _services.Engine.GetCurrentEncounter();
+        if (record is null) return;
+        if (ctrl)
+        {
+            if (_pinned is null || _pinned == row.EntityId)
+            {
+                _pinned = _pinned == row.EntityId ? null : row.EntityId;
+                Flash(_pinned is null ? "Compare cleared" : $"{row.Name} pinned · ctrl+click another row");
+            }
+            else
+            {
+                AnalysisBridge.OpenCompare(record, _pinned.Value, row.EntityId, _services.GameData);
+                _pinned = null;
+            }
+            Refresh();
+            return;
+        }
+        AnalysisBridge.OpenBreakdown(record, row.EntityId, _services.GameData, _window);
+    }
+
+    public void Flash(string text, double seconds = 2.5)
+    {
+        _flash = text;
+        _flashUntil = DateTime.UtcNow.AddSeconds(seconds);
+        Refresh();
+    }
+
+    public void ShowToast(string title, string message)
+    {
+        if (_window is null) return;
+        _window.View.ShowToast(title, message);
+    }
+
+    /// <summary>Shows a toast at most once per encounter id (null key = always).</summary>
+    public void ShowToastOnce(Guid? key, string title, string message)
+    {
+        if (key is { } k && !_toasted.Add(k)) return;
+        ShowToast(title, message);
+    }
+
+    public void Refresh()
+    {
+        if (_window is null) return;
+        try
+        {
+            var now = DateTime.UtcNow;
+            if (_flash is not null && now > _flashUntil) _flash = null;
+            TimeSpan? remaining = null;
+            if (_trainingEndsUtc is { } end)
+            {
+                remaining = end - now;
+                if (remaining <= TimeSpan.Zero)
+                {
+                    _trainingEndsUtc = null;
+                    remaining = null;
+                    TrainingFinished?.Invoke(_trainingLength);
+                }
+            }
+            var snap = _services.Engine.GetSnapshot(_services.Now());
+            if (snap.PersonalBestMessage is { Length: > 0 } pb && snap.EncounterId is { } eid)
+                ShowToastOnce(eid, "New personal best!", pb);
+            var status = new OverlayStatus { Capture = _capture, TrainingRemaining = remaining, Flash = _flash, PinnedEntityId = _pinned };
+            _window.View.Update(snap, status, OverlayViewOptions.From(_settings.Current, AppPaths.Version));
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("Overlay", "Refresh failed", ex);
+        }
+    }
+
+    public void Dispose()
+    {
+        _timer.Stop();
+        _window?.Close();
+        _window = null;
+    }
+}

@@ -1,0 +1,170 @@
+using Aion2Dps.App.Controls;
+using Aion2Dps.App.Infrastructure;
+using Aion2Dps.App.Settings;
+
+namespace Aion2Dps.App.Dashboard;
+
+/// <summary>Language, network adapter, meter behaviour, idle timeouts, filters, hotkeys, folders and start-up options.</summary>
+public sealed class SettingsPage : DashboardPage
+{
+    private readonly StackPanel _hotkeys = new();
+
+    public SettingsPage(DashboardContext context) : base(context)
+    {
+        var root = new StackPanel();
+        root.Children.Add(Ui.PageTitle("Settings"));
+        root.Children.Add(Ui.PageSubtitle("Saved automatically to %APPDATA%\\Aion2Dps\\settings.json."));
+
+        var cols = new Grid();
+        cols.ColumnDefinitions.Add(new ColumnDefinition());
+        cols.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(14) });
+        cols.ColumnDefinitions.Add(new ColumnDefinition());
+        var left = new StackPanel();
+        var right = new StackPanel();
+        var g = context.Settings.Current.General;
+        var o = context.Settings.Current.Overlay;
+
+        // Game data & capture
+        var data = new StackPanel();
+        data.Children.Add(Ui.Field("Game data language", Ui.Combo(new[]
+        {
+            (GameLanguage.English, "English"), (GameLanguage.Korean, "한국어 (Korean)"),
+            (GameLanguage.ChineseSimplified, "简体中文 (Simplified Chinese)"), (GameLanguage.ChineseTraditional, "繁體中文 (Traditional Chinese)"),
+        }, g.Language, v => { g.Language = v; Save(); }, 260), "Names of skills, bosses, dungeons and classes."));
+        var adapters = new List<(string?, string)> { (null, "Automatic (follow the game connection)") };
+        try
+        {
+            adapters.AddRange(context.Services.Capture.GetAdapters().Select(a =>
+                ((string?)a.Name, $"{a.Description}{(a.IPv4Addresses.Count > 0 ? "  ·  " + string.Join(", ", a.IPv4Addresses) : "")}")));
+        }
+        catch (Exception ex) { AppLog.Warn("Settings", $"Adapter list failed: {ex.Message}"); }
+        var adapterCombo = Ui.Combo(adapters, g.AdapterOverride, v => { g.AdapterOverride = v; Save(); }, 360);
+        var adapterRow = new StackPanel();
+        adapterRow.Children.Add(adapterCombo);
+        var restart = Ui.Button("Apply (restart capture)", () => context.RestartCapture(), icon: Ui.IconReset);
+        restart.Margin = new Thickness(0, 8, 0, 0);
+        restart.HorizontalAlignment = HorizontalAlignment.Left;
+        adapterRow.Children.Add(restart);
+        data.Children.Add(Ui.Field("Network adapter", adapterRow, "Automatic works for most setups, including gaming VPN / ping-reducer adapters."));
+        left.Children.Add(Ui.Card("Game data & capture", data));
+
+        // Meter behaviour
+        var meter = new StackPanel();
+        var clock = new StackPanel();
+        var own = new RadioButton { Content = "Each player's own clock (late joiners not penalised)", GroupName = "clock", IsChecked = g.LivePlayerClock };
+        var shared = new RadioButton { Content = "Shared encounter clock", GroupName = "clock", IsChecked = !g.LivePlayerClock };
+        own.Checked += (_, _) => { g.LivePlayerClock = true; Save(); };
+        shared.Checked += (_, _) => { g.LivePlayerClock = false; Save(); };
+        clock.Children.Add(own);
+        clock.Children.Add(shared);
+        meter.Children.Add(Ui.Field("Live DPS clock", clock, "Saved fights always use the whole-fight clock so runs stay comparable."));
+        var barMode = new StackPanel();
+        var rel = new RadioButton { Content = "Relative to the top player", GroupName = "barmode", IsChecked = o.BarMode == BarMode.RelativeToTop };
+        var share = new RadioButton { Content = "Share of party damage", GroupName = "barmode", IsChecked = o.BarMode == BarMode.ShareOfParty };
+        rel.Checked += (_, _) => { o.BarMode = BarMode.RelativeToTop; Save(); };
+        share.Checked += (_, _) => { o.BarMode = BarMode.ShareOfParty; Save(); };
+        barMode.Children.Add(rel);
+        barMode.Children.Add(share);
+        meter.Children.Add(Ui.Field("Bar fill", barMode));
+        meter.Children.Add(Ui.Field("Default mode", Ui.Combo(new[] { (MeterMode.BossOnly, "Boss only"), (MeterMode.AllTargets, "All targets") }, o.DefaultMode,
+            v => { o.DefaultMode = v; context.Services.Engine.Mode = v; Save(); }, 200)));
+        meter.Children.Add(Ui.Field("Rows shown", SliderWithLabel(1, 24, o.MaxRows, 1, v => $"{v:0}", v => { o.MaxRows = (int)v; Save(); })));
+        meter.Children.Add(Ui.Check("Party members only: you + your party roster (solo: just you). Also on the overlay's PARTY chip and Ctrl+Alt+P", g.PartyOnly, v => { g.PartyOnly = v; Save(); }));
+        meter.Children.Add(Ui.Check("Save trash fights to history", g.SaveTrashFights, v => { g.SaveTrashFights = v; Save(); }));
+        left.Children.Add(Ui.Card("Meter", meter));
+
+        // Idle timeouts
+        var idle = new StackPanel();
+        idle.Children.Add(Ui.Field("End trash encounters after", SliderWithLabel(3, 60, g.IdleTimeoutSeconds, 1, v => $"{v:0} s without damage", v => { g.IdleTimeoutSeconds = v; Save(); })));
+        idle.Children.Add(Ui.Field("End boss encounters after", SliderWithLabel(5, 120, g.BossIdleTimeoutSeconds, 1, v => $"{v:0} s without damage", v => { g.BossIdleTimeoutSeconds = v; Save(); }),
+            "A boss returning to full HP always starts a new attempt (wipe)."));
+        left.Children.Add(Ui.Card("Idle timeouts", idle));
+
+        // Hotkeys
+        right.Children.Add(Ui.Card("Hotkeys", _hotkeys, "Global hotkeys. Some games swallow them while focused; the overlay buttons always work."));
+        right.Children.Add(Ui.Card("Hotkey options", Ui.Check("Enable global hotkeys (restart to apply)", g.EnableGlobalHotkeys, v => { g.EnableGlobalHotkeys = v; Save(); })));
+
+        // Folders
+        var folders = new StackPanel();
+        folders.Children.Add(FolderRow("Settings, logs & history", AppPaths.DataDirectory));
+        folders.Children.Add(FolderRow("Recordings", context.CaptureFolder));
+        right.Children.Add(Ui.Card("Data folders", folders));
+
+        // Start-up
+        var startup = new StackPanel();
+        startup.Children.Add(Ui.Check("Show the overlay on start", g.LaunchOverlayOnStart, v => { g.LaunchOverlayOnStart = v; Save(); }));
+        startup.Children.Add(Ui.Check("Open the dashboard on start", g.OpenDashboardOnStart, v => { g.OpenDashboardOnStart = v; Save(); }));
+        right.Children.Add(Ui.Card("Start-up", startup));
+
+        cols.Children.Add(left);
+        Grid.SetColumn(right, 2);
+        cols.Children.Add(right);
+        root.Children.Add(cols);
+        Content = root;
+    }
+
+    public override string Key => "Settings";
+    public override string Title => "Settings";
+    public override string Icon => Ui.IconSettings;
+
+    private void Save()
+    {
+        Context.ApplyServiceSettings();
+        Context.Settings.NotifyChanged();
+    }
+
+    public override void OnShown()
+    {
+        _hotkeys.Children.Clear();
+        foreach (var h in Context.Hotkeys())
+        {
+            var row = new Grid { Margin = new Thickness(0, 2, 0, 2) };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(96) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            var key = Ui.Pill(h.Display, AppThemeKeysSoft, ThemeKeys.Accent, 11);
+            key.HorizontalAlignment = HorizontalAlignment.Left;
+            row.Children.Add(key);
+            var desc = Ui.Text(h.Description, ThemeKeys.Text, 12.5);
+            Grid.SetColumn(desc, 1);
+            row.Children.Add(desc);
+            var state = Ui.Text(h.Registered ? "active" : "not registered", h.Registered ? ThemeKeys.Positive : ThemeKeys.TextMuted, 11);
+            state.ToolTip = h.Registered ? "Registered system-wide" : "Not registered (disabled, preview, or used by another application)";
+            Grid.SetColumn(state, 2);
+            row.Children.Add(state);
+            _hotkeys.Children.Add(row);
+        }
+    }
+
+    private const string AppThemeKeysSoft = Theming.AppThemeKeys.AccentSoft;
+
+    private static StackPanel SliderWithLabel(double min, double max, double value, double tick, Func<double, string> format, Action<double> changed)
+    {
+        var label = Ui.Text(format(value), ThemeKeys.TextMuted, 12);
+        var slider = Ui.Slider(min, max, value, v => { label.Text = format(v); changed(v); }, 220, tick);
+        var sp = new StackPanel { Orientation = Orientation.Horizontal };
+        sp.Children.Add(slider);
+        label.Margin = new Thickness(12, 0, 0, 0);
+        sp.Children.Add(label);
+        return sp;
+    }
+
+    private static Grid FolderRow(string label, string path)
+    {
+        var g = new Grid { Margin = new Thickness(0, 0, 0, 10) };
+        g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var sp = new StackPanel();
+        sp.Children.Add(Ui.Text(label, ThemeKeys.Text, 12.5, FontWeights.SemiBold));
+        var p = Ui.Text(path, ThemeKeys.TextMuted, 11.5, mono: true);
+        p.ToolTip = path;
+        sp.Children.Add(p);
+        g.Children.Add(sp);
+        var open = Ui.Button("Open", () => { Directory.CreateDirectory(path); Ui.OpenUrl(path); }, icon: Ui.IconFolder);
+        open.VerticalAlignment = VerticalAlignment.Center;
+        open.Margin = new Thickness(10, 0, 0, 0);
+        Grid.SetColumn(open, 1);
+        g.Children.Add(open);
+        return g;
+    }
+}

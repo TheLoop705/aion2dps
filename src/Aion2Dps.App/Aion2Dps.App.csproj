@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>Aion2Dps.App</RootNamespace>
+    <AssemblyName>Aion2Dps</AssemblyName>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aion2Dps.App.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Aion2Dps.Contracts\Aion2Dps.Contracts.csproj" />
+    <ProjectReference Include="..\Aion2Dps.Protocol\Aion2Dps.Protocol.csproj" />
+    <ProjectReference Include="..\Aion2Dps.GameData\Aion2Dps.GameData.csproj" />
+    <ProjectReference Include="..\Aion2Dps.Combat\Aion2Dps.Combat.csproj" />
+    <ProjectReference Include="..\Aion2Dps.Capture\Aion2Dps.Capture.csproj" />
+    <ProjectReference Include="..\Aion2Dps.Storage\Aion2Dps.Storage.csproj" />
+    <ProjectReference Include="..\Aion2Dps.Simulator\Aion2Dps.Simulator.csproj" />
+    <ProjectReference Include="..\Aion2Dps.Analysis\Aion2Dps.Analysis.csproj" />
+    <ProjectReference Include="..\Aion2Dps.Armory\Aion2Dps.Armory.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\data\**\*" LinkBase="data" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

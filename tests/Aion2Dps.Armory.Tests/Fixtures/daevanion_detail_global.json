@@ -1,0 +1,3100 @@
+{
+ "nodeList": [
+  {
+   "boardId": 61,
+   "col": 9,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610009,
+   "open": 0,
+   "row": 1,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 8,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610008,
+   "open": 0,
+   "row": 1,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 11,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610011,
+   "open": 0,
+   "row": 1,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 10,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610010,
+   "open": 0,
+   "row": 1,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 13,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610013,
+   "open": 0,
+   "row": 1,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 12,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610012,
+   "open": 0,
+   "row": 1,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 15,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610015,
+   "open": 0,
+   "row": 1,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 14,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610014,
+   "open": 0,
+   "row": 1,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 1,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610001,
+   "open": 0,
+   "row": 1,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 3,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610003,
+   "open": 0,
+   "row": 1,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 2,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610002,
+   "open": 0,
+   "row": 1,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 5,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610005,
+   "open": 0,
+   "row": 1,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 4,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610004,
+   "open": 0,
+   "row": 1,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 7,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610007,
+   "open": 0,
+   "row": 1,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 6,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610006,
+   "open": 0,
+   "row": 1,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 10,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610025,
+   "open": 0,
+   "row": 2,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 9,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610024,
+   "open": 0,
+   "row": 2,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 12,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610027,
+   "open": 0,
+   "row": 2,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 11,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610026,
+   "open": 0,
+   "row": 2,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 14,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610029,
+   "open": 0,
+   "row": 2,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 13,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610028,
+   "open": 0,
+   "row": 2,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 1,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610031,
+   "open": 0,
+   "row": 3,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 15,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610030,
+   "open": 0,
+   "row": 2,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 2,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610017,
+   "open": 0,
+   "row": 2,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 1,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610016,
+   "open": 0,
+   "row": 2,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 4,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610019,
+   "open": 0,
+   "row": 2,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 3,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610018,
+   "open": 0,
+   "row": 2,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 6,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610021,
+   "open": 0,
+   "row": 2,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 5,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610020,
+   "open": 0,
+   "row": 2,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 8,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610023,
+   "open": 0,
+   "row": 2,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 7,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610022,
+   "open": 0,
+   "row": 2,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 11,
+   "effectList": [
+    {
+     "desc": "Cold Snap +1"
+    }
+   ],
+   "grade": "Rare",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Rare_Sprite.png",
+   "name": "Skill Level Up - Cold Snap",
+   "nodeId": 610041,
+   "open": 0,
+   "row": 3,
+   "type": "SkillLevel"
+  },
+  {
+   "boardId": 61,
+   "col": 10,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610040,
+   "open": 0,
+   "row": 3,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 13,
+   "effectList": [
+    {
+     "desc": "Cooldown Reduction +1.5%"
+    }
+   ],
+   "grade": "Unique",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Unique_Sprite.png",
+   "name": "Cooldown Reduction",
+   "nodeId": 610043,
+   "open": 0,
+   "row": 3,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 12,
+   "effectList": [
+    {
+     "desc": "Critical Hit +5"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Critical Hit",
+   "nodeId": 610042,
+   "open": 0,
+   "row": 3,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 15,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610045,
+   "open": 0,
+   "row": 3,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 14,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610044,
+   "open": 0,
+   "row": 3,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 2,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610047,
+   "open": 0,
+   "row": 4,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 1,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610046,
+   "open": 0,
+   "row": 4,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 3,
+   "effectList": [
+    {
+     "desc": "Combat Speed +1.5%"
+    }
+   ],
+   "grade": "Unique",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Unique_Sprite.png",
+   "name": "Combat Speed",
+   "nodeId": 610033,
+   "open": 0,
+   "row": 3,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 2,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610032,
+   "open": 0,
+   "row": 3,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 5,
+   "effectList": [
+    {
+     "desc": "Critical Hit Resist +5"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Critical Hit Resist",
+   "nodeId": 610035,
+   "open": 0,
+   "row": 3,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 4,
+   "effectList": [
+    {
+     "desc": "Attack Bonus +3"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Attack",
+   "nodeId": 610034,
+   "open": 0,
+   "row": 3,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 7,
+   "effectList": [
+    {
+     "desc": "Robe of Earth +1"
+    }
+   ],
+   "grade": "Rare",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Rare_Sprite.png",
+   "name": "Skill Level Up - Earth Robe",
+   "nodeId": 610037,
+   "open": 0,
+   "row": 3,
+   "type": "SkillLevel"
+  },
+  {
+   "boardId": 61,
+   "col": 6,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610036,
+   "open": 0,
+   "row": 3,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 9,
+   "effectList": [
+    {
+     "desc": "Wish of Concentration +1"
+    }
+   ],
+   "grade": "Legend",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Legend_Sprite.png",
+   "name": "Skill Level Up - Wish of Concentration",
+   "nodeId": 610039,
+   "open": 1,
+   "row": 3,
+   "type": "SkillLevel"
+  },
+  {
+   "boardId": 61,
+   "col": 8,
+   "effectList": [
+    {
+     "desc": "Critical Hit Resist +5"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Critical Hit Resist",
+   "nodeId": 610038,
+   "open": 0,
+   "row": 3,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 12,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610057,
+   "open": 0,
+   "row": 4,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 11,
+   "effectList": [
+    {
+     "desc": "Critical Hit Resist +5"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Critical Hit Resist",
+   "nodeId": 610056,
+   "open": 0,
+   "row": 4,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 14,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610059,
+   "open": 0,
+   "row": 4,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 13,
+   "effectList": [
+    {
+     "desc": "MP +50"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Max MP",
+   "nodeId": 610058,
+   "open": 0,
+   "row": 4,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 1,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610061,
+   "open": 0,
+   "row": 5,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 15,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610060,
+   "open": 0,
+   "row": 4,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 3,
+   "effectList": [
+    {
+     "desc": "Fire Mark +1"
+    }
+   ],
+   "grade": "Rare",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Rare_Sprite.png",
+   "name": "Skill Level Up - Fire Mark",
+   "nodeId": 610063,
+   "open": 0,
+   "row": 5,
+   "type": "SkillLevel"
+  },
+  {
+   "boardId": 61,
+   "col": 2,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610062,
+   "open": 0,
+   "row": 5,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 4,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610049,
+   "open": 0,
+   "row": 4,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 3,
+   "effectList": [
+    {
+     "desc": "Critical Hit +5"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Critical Hit",
+   "nodeId": 610048,
+   "open": 0,
+   "row": 4,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 6,
+   "effectList": [
+    {
+     "desc": "MP +50"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Max MP",
+   "nodeId": 610051,
+   "open": 0,
+   "row": 4,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 5,
+   "effectList": [
+    {
+     "desc": "Blaze +1"
+    }
+   ],
+   "grade": "Legend",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Legend_Sprite.png",
+   "name": "Skill Level Up - Flame Explosion",
+   "nodeId": 610050,
+   "open": 0,
+   "row": 4,
+   "type": "SkillLevel"
+  },
+  {
+   "boardId": 61,
+   "col": 8,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610053,
+   "open": 0,
+   "row": 4,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 7,
+   "effectList": [
+    {
+     "desc": "Defense Bonus +30"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Defense",
+   "nodeId": 610052,
+   "open": 0,
+   "row": 4,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 10,
+   "effectList": [
+    {
+     "desc": "Defense Bonus +30"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Defense",
+   "nodeId": 610055,
+   "open": 0,
+   "row": 4,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 9,
+   "effectList": [
+    {
+     "desc": "MP +50"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Max MP",
+   "nodeId": 610054,
+   "open": 1,
+   "row": 4,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 13,
+   "effectList": [
+    {
+     "desc": "Robe of Flame +1"
+    }
+   ],
+   "grade": "Rare",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Rare_Sprite.png",
+   "name": "Skill Level Up - Flame Robe",
+   "nodeId": 610073,
+   "open": 0,
+   "row": 5,
+   "type": "SkillLevel"
+  },
+  {
+   "boardId": 61,
+   "col": 12,
+   "effectList": [
+    {
+     "desc": "HP +100"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Max HP",
+   "nodeId": 610072,
+   "open": 0,
+   "row": 5,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 15,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610075,
+   "open": 0,
+   "row": 5,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 14,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610074,
+   "open": 0,
+   "row": 5,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 2,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610077,
+   "open": 0,
+   "row": 6,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 1,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610076,
+   "open": 0,
+   "row": 6,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 4,
+   "effectList": [
+    {
+     "desc": "HP +100"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Max HP",
+   "nodeId": 610079,
+   "open": 1,
+   "row": 6,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 3,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610078,
+   "open": 0,
+   "row": 6,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 5,
+   "effectList": [
+    {
+     "desc": "HP +100"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Max HP",
+   "nodeId": 610065,
+   "open": 1,
+   "row": 5,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 4,
+   "effectList": [
+    {
+     "desc": "Defense Bonus +30"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Defense",
+   "nodeId": 610064,
+   "open": 1,
+   "row": 5,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 7,
+   "effectList": [
+    {
+     "desc": "Critical Hit +5"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Critical Hit",
+   "nodeId": 610067,
+   "open": 0,
+   "row": 5,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 6,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610066,
+   "open": 0,
+   "row": 5,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 9,
+   "effectList": [
+    {
+     "desc": "HP +100"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Max HP",
+   "nodeId": 610069,
+   "open": 1,
+   "row": 5,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 8,
+   "effectList": [
+    {
+     "desc": "Firestorm +1"
+    }
+   ],
+   "grade": "Legend",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Legend_Sprite.png",
+   "name": "Skill Level Up - Firestorm",
+   "nodeId": 610068,
+   "open": 0,
+   "row": 5,
+   "type": "SkillLevel"
+  },
+  {
+   "boardId": 61,
+   "col": 11,
+   "effectList": [
+    {
+     "desc": "Winter's Shackles +1"
+    }
+   ],
+   "grade": "Legend",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Legend_Sprite.png",
+   "name": "Skill Level Up - Winter's Shackles",
+   "nodeId": 610071,
+   "open": 0,
+   "row": 5,
+   "type": "SkillLevel"
+  },
+  {
+   "boardId": 61,
+   "col": 10,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610070,
+   "open": 0,
+   "row": 5,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 14,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610089,
+   "open": 0,
+   "row": 6,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 13,
+   "effectList": [
+    {
+     "desc": "Defense Bonus +30"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Defense",
+   "nodeId": 610088,
+   "open": 0,
+   "row": 6,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 1,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610091,
+   "open": 0,
+   "row": 7,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 15,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610090,
+   "open": 0,
+   "row": 6,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 3,
+   "effectList": [
+    {
+     "desc": "MP +50"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Max MP",
+   "nodeId": 610093,
+   "open": 1,
+   "row": 7,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 2,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610092,
+   "open": 0,
+   "row": 7,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 5,
+   "effectList": [
+    {
+     "desc": "Ice Chain +1"
+    }
+   ],
+   "grade": "Legend",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Legend_Sprite.png",
+   "name": "Skill Level Up - Ice Chain",
+   "nodeId": 610095,
+   "open": 1,
+   "row": 7,
+   "type": "SkillLevel"
+  },
+  {
+   "boardId": 61,
+   "col": 4,
+   "effectList": [
+    {
+     "desc": "Attack Bonus +3"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Attack",
+   "nodeId": 610094,
+   "open": 1,
+   "row": 7,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 6,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610081,
+   "open": 0,
+   "row": 6,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 5,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610080,
+   "open": 0,
+   "row": 6,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 8,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610083,
+   "open": 0,
+   "row": 6,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 7,
+   "effectList": [
+    {
+     "desc": "Critical Hit Resist +5"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Critical Hit Resist",
+   "nodeId": 610082,
+   "open": 0,
+   "row": 6,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 10,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610085,
+   "open": 0,
+   "row": 6,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 9,
+   "effectList": [
+    {
+     "desc": "Defense Bonus +30"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Defense",
+   "nodeId": 610084,
+   "open": 1,
+   "row": 6,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 12,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610087,
+   "open": 0,
+   "row": 6,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 11,
+   "effectList": [
+    {
+     "desc": "Attack Bonus +3"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Attack",
+   "nodeId": 610086,
+   "open": 0,
+   "row": 6,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 15,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610105,
+   "open": 0,
+   "row": 7,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 14,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610104,
+   "open": 0,
+   "row": 7,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 2,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610107,
+   "open": 0,
+   "row": 8,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 1,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610106,
+   "open": 0,
+   "row": 8,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 4,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610109,
+   "open": 0,
+   "row": 8,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 3,
+   "effectList": [
+    {
+     "desc": "Defiance +1"
+    }
+   ],
+   "grade": "Legend",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Legend_Sprite.png",
+   "name": "Skill Level Up - Defiance",
+   "nodeId": 610108,
+   "open": 1,
+   "row": 8,
+   "type": "SkillLevel"
+  },
+  {
+   "boardId": 61,
+   "col": 6,
+   "effectList": [
+    {
+     "desc": "Defense Bonus +30"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Defense",
+   "nodeId": 610111,
+   "open": 0,
+   "row": 8,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 5,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610110,
+   "open": 0,
+   "row": 8,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 7,
+   "effectList": [
+    {
+     "desc": "MP +50"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Max MP",
+   "nodeId": 610097,
+   "open": 1,
+   "row": 7,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 6,
+   "effectList": [
+    {
+     "desc": "HP +100"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Max HP",
+   "nodeId": 610096,
+   "open": 1,
+   "row": 7,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 9,
+   "effectList": [
+    {
+     "desc": "Critical Hit Resist +5"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Critical Hit Resist",
+   "nodeId": 610099,
+   "open": 1,
+   "row": 7,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 8,
+   "effectList": [
+    {
+     "desc": "Attack Bonus +3"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Attack",
+   "nodeId": 610098,
+   "open": 1,
+   "row": 7,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 11,
+   "effectList": [
+    {
+     "desc": "MP +50"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Max MP",
+   "nodeId": 610101,
+   "open": 0,
+   "row": 7,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 10,
+   "effectList": [
+    {
+     "desc": "Absorb Essence +1"
+    }
+   ],
+   "grade": "Rare",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Rare_Sprite.png",
+   "name": "Skill Level Up - Absorb Essence",
+   "nodeId": 610100,
+   "open": 0,
+   "row": 7,
+   "type": "SkillLevel"
+  },
+  {
+   "boardId": 61,
+   "col": 13,
+   "effectList": [
+    {
+     "desc": "Critical Hit Resist +5"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Critical Hit Resist",
+   "nodeId": 610103,
+   "open": 0,
+   "row": 7,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 12,
+   "effectList": [
+    {
+     "desc": "Critical Hit +5"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Critical Hit",
+   "nodeId": 610102,
+   "open": 0,
+   "row": 7,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 1,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610121,
+   "open": 0,
+   "row": 9,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 15,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610120,
+   "open": 0,
+   "row": 8,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 3,
+   "effectList": [
+    {
+     "desc": "Critical Hit +5"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Critical Hit",
+   "nodeId": 610123,
+   "open": 0,
+   "row": 9,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 2,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610122,
+   "open": 0,
+   "row": 9,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 5,
+   "effectList": [
+    {
+     "desc": "HP +100"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Max HP",
+   "nodeId": 610125,
+   "open": 0,
+   "row": 9,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 4,
+   "effectList": [
+    {
+     "desc": "Critical Hit Resist +5"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Critical Hit Resist",
+   "nodeId": 610124,
+   "open": 0,
+   "row": 9,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 7,
+   "effectList": [
+    {
+     "desc": "Critical Hit +5"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Critical Hit",
+   "nodeId": 610127,
+   "open": 1,
+   "row": 9,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 6,
+   "effectList": [
+    {
+     "desc": "Robe of Flame +1"
+    }
+   ],
+   "grade": "Rare",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Rare_Sprite.png",
+   "name": "Skill Level Up - Flame Robe",
+   "nodeId": 610126,
+   "open": 0,
+   "row": 9,
+   "type": "SkillLevel"
+  },
+  {
+   "boardId": 61,
+   "col": 8,
+   "effectList": [
+    {
+     "desc": ""
+    }
+   ],
+   "grade": "None",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Start_Sprite.png",
+   "name": "Nezekan - Start",
+   "nodeId": 610113,
+   "open": 0,
+   "row": 8,
+   "type": "Start"
+  },
+  {
+   "boardId": 61,
+   "col": 7,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610112,
+   "open": 0,
+   "row": 8,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 10,
+   "effectList": [
+    {
+     "desc": "Attack Bonus +3"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Attack",
+   "nodeId": 610115,
+   "open": 0,
+   "row": 8,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 9,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610114,
+   "open": 0,
+   "row": 8,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 12,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610117,
+   "open": 0,
+   "row": 8,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 11,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610116,
+   "open": 0,
+   "row": 8,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 14,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610119,
+   "open": 0,
+   "row": 8,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 13,
+   "effectList": [
+    {
+     "desc": "Flame Scattershot +1"
+    }
+   ],
+   "grade": "Legend",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Legend_Sprite.png",
+   "name": "Skill Level Up - Flame Scattershot",
+   "nodeId": 610118,
+   "open": 1,
+   "row": 8,
+   "type": "SkillLevel"
+  },
+  {
+   "boardId": 61,
+   "col": 2,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610137,
+   "open": 0,
+   "row": 10,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 1,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610136,
+   "open": 0,
+   "row": 10,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 4,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610139,
+   "open": 0,
+   "row": 10,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 3,
+   "effectList": [
+    {
+     "desc": "Attack Bonus +3"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Attack",
+   "nodeId": 610138,
+   "open": 0,
+   "row": 10,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 6,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610141,
+   "open": 0,
+   "row": 10,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 5,
+   "effectList": [
+    {
+     "desc": "Defense Bonus +30"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Defense",
+   "nodeId": 610140,
+   "open": 0,
+   "row": 10,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 8,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610143,
+   "open": 0,
+   "row": 10,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 7,
+   "effectList": [
+    {
+     "desc": "Attack Bonus +3"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Attack",
+   "nodeId": 610142,
+   "open": 1,
+   "row": 10,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 9,
+   "effectList": [
+    {
+     "desc": "HP +100"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Max HP",
+   "nodeId": 610129,
+   "open": 1,
+   "row": 9,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 8,
+   "effectList": [
+    {
+     "desc": "Defense Bonus +30"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Defense",
+   "nodeId": 610128,
+   "open": 1,
+   "row": 9,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 11,
+   "effectList": [
+    {
+     "desc": "Flame Arrow +1"
+    }
+   ],
+   "grade": "Legend",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Legend_Sprite.png",
+   "name": "Skill Level Up - Flame Arrow",
+   "nodeId": 610131,
+   "open": 1,
+   "row": 9,
+   "type": "SkillLevel"
+  },
+  {
+   "boardId": 61,
+   "col": 10,
+   "effectList": [
+    {
+     "desc": "MP +50"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Max MP",
+   "nodeId": 610130,
+   "open": 1,
+   "row": 9,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 13,
+   "effectList": [
+    {
+     "desc": "HP +100"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Max HP",
+   "nodeId": 610133,
+   "open": 1,
+   "row": 9,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 12,
+   "effectList": [
+    {
+     "desc": "Defense Bonus +30"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Defense",
+   "nodeId": 610132,
+   "open": 1,
+   "row": 9,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 15,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610135,
+   "open": 0,
+   "row": 9,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 14,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610134,
+   "open": 0,
+   "row": 9,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 3,
+   "effectList": [
+    {
+     "desc": "Absorb Essence +1"
+    }
+   ],
+   "grade": "Rare",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Rare_Sprite.png",
+   "name": "Skill Level Up - Absorb Essence",
+   "nodeId": 610153,
+   "open": 0,
+   "row": 11,
+   "type": "SkillLevel"
+  },
+  {
+   "boardId": 61,
+   "col": 2,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610152,
+   "open": 0,
+   "row": 11,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 5,
+   "effectList": [
+    {
+     "desc": "Frost Burst +1"
+    }
+   ],
+   "grade": "Legend",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Legend_Sprite.png",
+   "name": "Skill Level Up - Frost Burst",
+   "nodeId": 610155,
+   "open": 0,
+   "row": 11,
+   "type": "SkillLevel"
+  },
+  {
+   "boardId": 61,
+   "col": 4,
+   "effectList": [
+    {
+     "desc": "MP +50"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Max MP",
+   "nodeId": 610154,
+   "open": 0,
+   "row": 11,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 7,
+   "effectList": [
+    {
+     "desc": "MP +50"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Max MP",
+   "nodeId": 610157,
+   "open": 1,
+   "row": 11,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 6,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610156,
+   "open": 0,
+   "row": 11,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 9,
+   "effectList": [
+    {
+     "desc": "Critical Hit Resist +5"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Critical Hit Resist",
+   "nodeId": 610159,
+   "open": 0,
+   "row": 11,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 8,
+   "effectList": [
+    {
+     "desc": "Bittercold Wind +1"
+    }
+   ],
+   "grade": "Legend",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Legend_Sprite.png",
+   "name": "Skill Level Up - Bittercold Wind",
+   "nodeId": 610158,
+   "open": 0,
+   "row": 11,
+   "type": "SkillLevel"
+  },
+  {
+   "boardId": 61,
+   "col": 10,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610145,
+   "open": 0,
+   "row": 10,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 9,
+   "effectList": [
+    {
+     "desc": "Critical Hit +5"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Critical Hit",
+   "nodeId": 610144,
+   "open": 0,
+   "row": 10,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 12,
+   "effectList": [
+    {
+     "desc": "MP +50"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Max MP",
+   "nodeId": 610147,
+   "open": 1,
+   "row": 10,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 11,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610146,
+   "open": 0,
+   "row": 10,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 14,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610149,
+   "open": 0,
+   "row": 10,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 13,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610148,
+   "open": 0,
+   "row": 10,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 1,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610151,
+   "open": 0,
+   "row": 11,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 15,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610150,
+   "open": 0,
+   "row": 10,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 4,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610169,
+   "open": 0,
+   "row": 12,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 3,
+   "effectList": [
+    {
+     "desc": "HP +100"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Max HP",
+   "nodeId": 610168,
+   "open": 0,
+   "row": 12,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 6,
+   "effectList": [
+    {
+     "desc": "Attack Bonus +3"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Attack",
+   "nodeId": 610171,
+   "open": 0,
+   "row": 12,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 5,
+   "effectList": [
+    {
+     "desc": "Critical Hit +5"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Critical Hit",
+   "nodeId": 610170,
+   "open": 0,
+   "row": 12,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 8,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610173,
+   "open": 0,
+   "row": 12,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 7,
+   "effectList": [
+    {
+     "desc": "HP +100"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Max HP",
+   "nodeId": 610172,
+   "open": 1,
+   "row": 12,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 10,
+   "effectList": [
+    {
+     "desc": "HP +100"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Max HP",
+   "nodeId": 610175,
+   "open": 0,
+   "row": 12,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 9,
+   "effectList": [
+    {
+     "desc": "Attack Bonus +3"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Attack",
+   "nodeId": 610174,
+   "open": 0,
+   "row": 12,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 11,
+   "effectList": [
+    {
+     "desc": "MP +50"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Max MP",
+   "nodeId": 610161,
+   "open": 1,
+   "row": 11,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 10,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610160,
+   "open": 0,
+   "row": 11,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 13,
+   "effectList": [
+    {
+     "desc": "Robe of Earth +1"
+    }
+   ],
+   "grade": "Rare",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Rare_Sprite.png",
+   "name": "Skill Level Up - Earth Robe",
+   "nodeId": 610163,
+   "open": 0,
+   "row": 11,
+   "type": "SkillLevel"
+  },
+  {
+   "boardId": 61,
+   "col": 12,
+   "effectList": [
+    {
+     "desc": "Attack Bonus +3"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Attack",
+   "nodeId": 610162,
+   "open": 1,
+   "row": 11,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 15,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610165,
+   "open": 0,
+   "row": 11,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 14,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610164,
+   "open": 0,
+   "row": 11,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 2,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610167,
+   "open": 0,
+   "row": 12,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 1,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610166,
+   "open": 0,
+   "row": 12,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 5,
+   "effectList": [
+    {
+     "desc": "Cold Snap +1"
+    }
+   ],
+   "grade": "Rare",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Rare_Sprite.png",
+   "name": "Skill Level Up - Cold Snap",
+   "nodeId": 610185,
+   "open": 0,
+   "row": 13,
+   "type": "SkillLevel"
+  },
+  {
+   "boardId": 61,
+   "col": 4,
+   "effectList": [
+    {
+     "desc": "Critical Hit Resist +5"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Critical Hit Resist",
+   "nodeId": 610184,
+   "open": 0,
+   "row": 13,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 7,
+   "effectList": [
+    {
+     "desc": "Hellfire +1"
+    }
+   ],
+   "grade": "Legend",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Legend_Sprite.png",
+   "name": "Skill Level Up - Hellfire",
+   "nodeId": 610187,
+   "open": 1,
+   "row": 13,
+   "type": "SkillLevel"
+  },
+  {
+   "boardId": 61,
+   "col": 6,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610186,
+   "open": 0,
+   "row": 13,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 9,
+   "effectList": [
+    {
+     "desc": "Fire Mark +1"
+    }
+   ],
+   "grade": "Rare",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Rare_Sprite.png",
+   "name": "Skill Level Up - Fire Mark",
+   "nodeId": 610189,
+   "open": 0,
+   "row": 13,
+   "type": "SkillLevel"
+  },
+  {
+   "boardId": 61,
+   "col": 8,
+   "effectList": [
+    {
+     "desc": "Critical Hit +5"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Critical Hit",
+   "nodeId": 610188,
+   "open": 0,
+   "row": 13,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 11,
+   "effectList": [
+    {
+     "desc": "Critical Hit +5"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Critical Hit",
+   "nodeId": 610191,
+   "open": 0,
+   "row": 13,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 10,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610190,
+   "open": 0,
+   "row": 13,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 12,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610177,
+   "open": 0,
+   "row": 12,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 11,
+   "effectList": [
+    {
+     "desc": "Frost +1"
+    }
+   ],
+   "grade": "Legend",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Legend_Sprite.png",
+   "name": "Skill Level Up - Frost",
+   "nodeId": 610176,
+   "open": 0,
+   "row": 12,
+   "type": "SkillLevel"
+  },
+  {
+   "boardId": 61,
+   "col": 14,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610179,
+   "open": 0,
+   "row": 12,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 13,
+   "effectList": [
+    {
+     "desc": "Critical Hit Resist +5"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Critical Hit Resist",
+   "nodeId": 610178,
+   "open": 0,
+   "row": 12,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 1,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610181,
+   "open": 0,
+   "row": 13,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 15,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610180,
+   "open": 0,
+   "row": 12,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 3,
+   "effectList": [
+    {
+     "desc": "Cooldown Reduction +1.5%"
+    }
+   ],
+   "grade": "Unique",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Unique_Sprite.png",
+   "name": "Cooldown Reduction",
+   "nodeId": 610183,
+   "open": 0,
+   "row": 13,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 2,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610182,
+   "open": 0,
+   "row": 13,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 6,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610201,
+   "open": 0,
+   "row": 14,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 5,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610200,
+   "open": 0,
+   "row": 14,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 8,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610203,
+   "open": 0,
+   "row": 14,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 7,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610202,
+   "open": 0,
+   "row": 14,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 10,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610205,
+   "open": 0,
+   "row": 14,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 9,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610204,
+   "open": 0,
+   "row": 14,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 12,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610207,
+   "open": 0,
+   "row": 14,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 11,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610206,
+   "open": 0,
+   "row": 14,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 13,
+   "effectList": [
+    {
+     "desc": "Combat Speed +1.5%"
+    }
+   ],
+   "grade": "Unique",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Unique_Sprite.png",
+   "name": "Combat Speed",
+   "nodeId": 610193,
+   "open": 0,
+   "row": 13,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 12,
+   "effectList": [
+    {
+     "desc": "Defense Bonus +30"
+    }
+   ],
+   "grade": "Common",
+   "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/UT_FWindow_Daevanion_Node_Common_Sprite.png",
+   "name": "Defense",
+   "nodeId": 610192,
+   "open": 0,
+   "row": 13,
+   "type": "Stat"
+  },
+  {
+   "boardId": 61,
+   "col": 15,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610195,
+   "open": 0,
+   "row": 13,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 14,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610194,
+   "open": 0,
+   "row": 13,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 2,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610197,
+   "open": 0,
+   "row": 14,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 1,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610196,
+   "open": 0,
+   "row": 14,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 4,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610199,
+   "open": 0,
+   "row": 14,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 3,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610198,
+   "open": 0,
+   "row": 14,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 7,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610217,
+   "open": 0,
+   "row": 15,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 6,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610216,
+   "open": 0,
+   "row": 15,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 9,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610219,
+   "open": 0,
+   "row": 15,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 8,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610218,
+   "open": 0,
+   "row": 15,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 11,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610221,
+   "open": 0,
+   "row": 15,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 10,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610220,
+   "open": 0,
+   "row": 15,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 13,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610223,
+   "open": 0,
+   "row": 15,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 12,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610222,
+   "open": 0,
+   "row": 15,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 14,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610209,
+   "open": 0,
+   "row": 14,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 13,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610208,
+   "open": 0,
+   "row": 14,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 1,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610211,
+   "open": 0,
+   "row": 15,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 15,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610210,
+   "open": 0,
+   "row": 14,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 3,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610213,
+   "open": 0,
+   "row": 15,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 2,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610212,
+   "open": 0,
+   "row": 15,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 5,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610215,
+   "open": 0,
+   "row": 15,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 4,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610214,
+   "open": 0,
+   "row": 15,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 15,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610225,
+   "open": 0,
+   "row": 15,
+   "type": "None"
+  },
+  {
+   "boardId": 61,
+   "col": 14,
+   "effectList": [],
+   "grade": "None",
+   "icon": "",
+   "name": "",
+   "nodeId": 610224,
+   "open": 0,
+   "row": 15,
+   "type": "None"
+  }
+ ],
+ "openSkillEffectList": [
+  {
+   "desc": "Flame Scattershot +1"
+  },
+  {
+   "desc": "Hellfire +1"
+  },
+  {
+   "desc": "Wish of Concentration +1"
+  },
+  {
+   "desc": "Ice Chain +1"
+  },
+  {
+   "desc": "Flame Arrow +1"
+  },
+  {
+   "desc": "Defiance +1"
+  }
+ ],
+ "openStatEffectList": [
+  {
+   "desc": "HP +700"
+  },
+  {
+   "desc": "MP +350"
+  },
+  {
+   "desc": "Critical Hit Resist +5"
+  },
+  {
+   "desc": "Attack Bonus +12"
+  },
+  {
+   "desc": "Critical Hit +5"
+  },
+  {
+   "desc": "Defense Bonus +120"
+  }
+ ]
+}

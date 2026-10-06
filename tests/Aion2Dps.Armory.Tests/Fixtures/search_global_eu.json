@@ -1,0 +1,65 @@
+{
+ "list": [
+  {
+   "characterId": "FAKEcharId00AbCdEf_-0123456789xyzXYZ00%3D",
+   "name": "<strong>tester</strong>",
+   "race": 2,
+   "pcId": 16,
+   "level": 22,
+   "serverId": 2305,
+   "serverName": "Marchutan",
+   "profileImageUrl": "/game_profile_images/aion2global/images?gameServerKey=2305&charKey=100000000000000000",
+   "region": "eu"
+  },
+  {
+   "characterId": "FAKEcharId01AbCdEf_-0123456789xyzXYZ01%3D",
+   "name": "<strong>Tester</strong>",
+   "race": 1,
+   "pcId": 6,
+   "level": 17,
+   "serverId": 1306,
+   "serverName": "Ariel",
+   "profileImageUrl": "/game_profile_images/aion2global/images?gameServerKey=1306&charKey=100000000000000001",
+   "region": "eu"
+  },
+  {
+   "characterId": "FAKEcharId02AbCdEf_-0123456789xyzXYZ02%3D",
+   "name": "<strong>Tester</strong>x",
+   "race": 1,
+   "pcId": 6,
+   "level": 1,
+   "serverId": 1301,
+   "serverName": "Siel",
+   "profileImageUrl": "/game_profile_images/aion2global/images?gameServerKey=1301&charKey=100000000000000002",
+   "region": "eu"
+  },
+  {
+   "characterId": "FAKEcharId03AbCdEf_-0123456789xyzXYZ03%3D",
+   "name": "<strong>TESTER</strong>",
+   "race": 2,
+   "pcId": 16,
+   "level": 22,
+   "serverId": 2301,
+   "serverName": "Israphel",
+   "profileImageUrl": "/game_profile_images/aion2global/images?gameServerKey=2301&charKey=100000000000000003",
+   "region": "eu"
+  },
+  {
+   "characterId": "FAKEcharId04AbCdEf_-0123456789xyzXYZ04%3D",
+   "name": "<strong>Tester</strong>&amp;Co",
+   "race": 1,
+   "pcId": 34,
+   "level": 1,
+   "serverId": 1313,
+   "serverName": "Phernos",
+   "profileImageUrl": "/game_profile_images/aion2global/images?gameServerKey=1313&charKey=100000000000000004",
+   "region": "eu"
+  }
+ ],
+ "pagination": {
+  "page": 1,
+  "size": 5,
+  "total": 2777,
+  "endPage": 556
+ }
+}

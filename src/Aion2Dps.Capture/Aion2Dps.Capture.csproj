@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>Aion2Dps.Capture</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Aion2Dps.Contracts\Aion2Dps.Contracts.csproj" />
+    <PackageReference Include="SharpPcap" Version="6.3.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aion2Dps.Capture.Tests" />
+  </ItemGroup>
+</Project>

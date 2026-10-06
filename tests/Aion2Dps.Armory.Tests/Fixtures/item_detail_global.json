@@ -1,0 +1,86 @@
+{
+ "id": 110530047,
+ "name": "Spiritforged Spellbook",
+ "grade": "Unique",
+ "gradeName": "Unique",
+ "icon": "https://assets.playnccdn.com/static-aion2-gamedata/resources/Icon_WP_MB_0078_T05.png",
+ "level": 45,
+ "levelValue": 7,
+ "enchantLevel": 7,
+ "storable": false,
+ "tradable": false,
+ "tradablePersonal": false,
+ "enchantable": true,
+ "decomposable": true,
+ "maxEnchantLevel": 15,
+ "raceName": "All",
+ "classNames": [
+  "Sorcerer"
+ ],
+ "categoryName": "Spellbook",
+ "type": "Equip",
+ "equipLevel": 1,
+ "magicStoneSlotCount": 4,
+ "godStoneSlotCount": 1,
+ "costumes": [
+  "Golden Vow (Spellbook)"
+ ],
+ "subStatCount": 0,
+ "subSkillCountMax": 0,
+ "subStatRandom": false,
+ "mainStats": [
+  {
+   "id": "WeaponFixingDamage",
+   "name": "Attack",
+   "minValue": "206",
+   "value": "229",
+   "extra": "35",
+   "exceed": false
+  },
+  {
+   "id": "WeaponAccuracy",
+   "name": "Accuracy",
+   "value": "100",
+   "extra": "0",
+   "exceed": false
+  },
+  {
+   "id": "Critical",
+   "name": "Critical Hit",
+   "value": "100",
+   "extra": "0",
+   "exceed": false
+  }
+ ],
+ "soulBindRate": "100",
+ "subStats": [
+  {
+   "id": "STR",
+   "name": "Might",
+   "minValue": "15",
+   "value": "15"
+  },
+  {
+   "id": "Critical",
+   "name": "Critical Hit",
+   "minValue": "16",
+   "value": "16"
+  },
+  {
+   "id": "MPMax",
+   "name": "MP",
+   "minValue": "57",
+   "value": "57"
+  },
+  {
+   "id": "Block",
+   "name": "Block",
+   "minValue": "23",
+   "value": "23"
+  }
+ ],
+ "sources": [
+  "Quest"
+ ],
+ "favorite": false
+}
