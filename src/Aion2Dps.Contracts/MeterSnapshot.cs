@@ -55,6 +55,8 @@ public sealed record PlayerRow
     public uint EntityId { get; init; }
     public string Name { get; init; } = "";
     public CharacterClass Class { get; init; }
+    /// <summary>Latest gear score reported by the party roster; null when unavailable.</summary>
+    public uint? GearScore { get; init; }
     public CombatantKind Kind { get; init; }
     public bool IsLocal { get; init; }
     public bool IsPartyMember { get; init; }

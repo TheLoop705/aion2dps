@@ -181,7 +181,7 @@ public sealed class AppearancePage : DashboardPage
         // Rows & columns
         var rows = new StackPanel();
         var sizes = new WrapPanel();
-        foreach (var (rs, label) in new[] { (RowSize.Normal, "Normal"), (RowSize.Compact, "Compact"), (RowSize.Micro, "Micro (name + DPS)") })
+        foreach (var (rs, label) in new[] { (RowSize.Normal, "Normal"), (RowSize.Compact, "Compact"), (RowSize.Micro, "Micro") })
         {
             var rb = new RadioButton { Content = label, GroupName = "rowsize", IsChecked = O.RowSize == rs };
             var r = rs;
@@ -200,10 +200,11 @@ public sealed class AppearancePage : DashboardPage
         Col("Contribution %", () => O.ShowContribution, v => O.ShowContribution = v);
         Col("Crit %", () => O.ShowCritRate, v => O.ShowCritRate = v);
         Col("Max hit", () => O.ShowMaxHit, v => O.ShowMaxHit = v);
+        Col("Gear score", () => O.ShowGearScore, v => O.ShowGearScore = v);
         Col("Rank", () => O.ShowRank, v => O.ShowRank = v);
         Col("Class emblem", () => O.ShowClassEmblem, v => O.ShowClassEmblem = v);
         Col("Column header", () => O.ShowColumnHeader, v => O.ShowColumnHeader = v);
-        rows.Children.Add(Ui.Field("Columns", colsPanel, "DPS is always shown; Micro rows show name, DPS and contribution."));
+        rows.Children.Add(Ui.Field("Columns", colsPanel, "DPS is always shown; Micro rows also support gear score and contribution. Unknown gear scores show —."));
         var opLabel = Ui.Text(Formatting.Fmt.Percent(O.BackgroundOpacity, 0), ThemeKeys.TextMuted, 12);
         var op = Ui.Slider(0.15, 1, O.BackgroundOpacity, v => { O.BackgroundOpacity = Math.Round(v, 2); opLabel.Text = Formatting.Fmt.Percent(v, 0); Changed(retheme: false); }, 200);
         rows.Children.Add(Ui.Field("Overlay background opacity", Row(op, opLabel)));
@@ -218,6 +219,7 @@ public sealed class AppearancePage : DashboardPage
             O.ShowContribution = fresh.ShowContribution;
             O.ShowCritRate = fresh.ShowCritRate;
             O.ShowMaxHit = fresh.ShowMaxHit;
+            O.ShowGearScore = fresh.ShowGearScore;
             O.ShowRank = fresh.ShowRank;
             O.ShowClassEmblem = fresh.ShowClassEmblem;
             O.ShowColumnHeader = fresh.ShowColumnHeader;

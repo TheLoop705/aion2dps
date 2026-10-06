@@ -86,6 +86,7 @@ internal static class SnapshotBuilder
                 EntityId = c.Id,
                 Name = c.Name,
                 Class = c.Class,
+                GearScore = c.Kind == CombatantKind.Player ? core.Party.Get(c.Name)?.GearScore : null,
                 Kind = c.Kind,
                 IsLocal = c.IsLocal,
                 IsPartyMember = c.IsPartyMember,

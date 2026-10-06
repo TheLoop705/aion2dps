@@ -131,6 +131,7 @@ public static class RealScreens
             var mid = engine.GetSnapshot(clock);
             var opts = new OverlayViewOptions { RowSize = RowSize.Compact, Version = Infrastructure.AppPaths.Version };
             files.Add(RenderOverlay("sim-boss-midfight", mid, capture.Status, opts, dir));
+            files.Add(RenderOverlay("sim-boss-midfight-gearscore", mid, capture.Status, opts with { ShowGearScore = true }, dir));
             files.Add(RenderOverlay("sim-boss-midfight-normal", mid, capture.Status, opts with { RowSize = RowSize.Normal, ShowCritRate = true, ShowMaxHit = true }, dir, ThemeCatalog.Glacier));
             files.Add(RenderOverlay("sim-boss-midfight-total", mid, capture.Status, opts with { View = MeterView.Total }, dir, ThemeCatalog.Daybreak));
             var midRecord = engine.GetCurrentEncounter();

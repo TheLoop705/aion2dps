@@ -56,6 +56,7 @@ public sealed class OverlaySettings
     public bool ShowContribution { get; set; } = true;
     public bool ShowCritRate { get; set; }
     public bool ShowMaxHit { get; set; }
+    public bool ShowGearScore { get; set; }
     public bool ShowRank { get; set; } = true;
     public bool ShowClassEmblem { get; set; } = true;
     public bool ShowColumnHeader { get; set; } = true;

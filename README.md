@@ -12,7 +12,7 @@ you use the Character page.
 ## Features
 
 * **Overlay**: borderless, click-through-capable, never takes focus. Boss name, HP bar and timer, ranked rows with
-  DPS / total / contribution (optional crit %, max hit), DPS / TOTAL / TAKEN / HEAL views, boss-only / all-targets /
+  DPS / total / contribution (optional gear score, crit %, max hit), DPS / TOTAL / TAKEN / HEAL views, boss-only / all-targets /
   PvP modes, target cycling, training stopwatch (30 s–5 min), copy-to-chat summary, KILL / WIPE badges, an HP-check
   warning when decoded damage does not explain the boss's HP loss, and clear states for "Npcap missing",
   "waiting for game", "detecting" and "waiting for combat".
@@ -85,6 +85,9 @@ Other options: `--no-overlay`, `--allow-multiple`, and the offscreen verificatio
 without showing any window) and `--render-demo-screens <dir>` (the design catalog of every overlay state × theme).
 
 Settings, logs and the fight history live in `%APPDATA%\Aion2Dps`; recordings go to `Documents\Aion2Dps\captures`.
+
+To show gear score in the overlay, open **Appearance → Rows & columns → Columns → Gear score**. Scores appear as
+**GS** when available from the game; unknown scores show **—**. Clicking a player also shows GS in their breakdown.
 
 ## Command-line tool
 

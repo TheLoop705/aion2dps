@@ -804,6 +804,7 @@ public sealed class OverlayView : UserControl
         else Col(4, "");
         Col(-1, "NAME", TextAlignment.Left);
         double numW = o.RowSize == RowSize.Normal ? 56 : 52;
+        if (o.ShowGearScore) Col(numW - 8, "GS");
         if (o.ShowCritRate) Col(numW - 10, "CRIT");
         if (o.ShowMaxHit) Col(numW, "MAX");
         Col(numW, p);
