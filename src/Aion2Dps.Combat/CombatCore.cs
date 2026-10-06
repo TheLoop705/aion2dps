@@ -24,6 +24,7 @@ internal sealed class CombatCore
 
     private readonly Dictionary<ulong, int> _resetCounts = new();
     private readonly List<EncounterRecord> _completed = new();
+    private readonly ShieldedIncomingTracker _shieldedIncoming = new();
     /// <summary>
     /// A killed encounter still inside its kill grace while a newer encounter became current (an add was hit right
     /// after the boss died). Late killing blows on its dead targets still go there; it is finalized when the grace ends.
@@ -81,6 +82,7 @@ internal sealed class CombatCore
     {
         SawTraffic = true;
         var t = ev.Time;
+        _shieldedIncoming.BeginEvent(t);
         if (LastEventTime is null || t > LastEventTime) LastEventTime = t;
         CheckTimers(t);
 
@@ -665,6 +667,7 @@ internal sealed class CombatCore
 
     private void ClearZoneState()
     {
+        _shieldedIncoming.Clear();
         Entities.ClearForZoneChange();
         Summons.Clear();
         Buffs.Clear();
@@ -693,6 +696,7 @@ internal sealed class CombatCore
         }
         if (SkillIds.GetKind(skill) == SkillKind.Link) return;
         long amount = e.Amount ?? 0;
+        if (!e.EffectValidated && IsConfirmedNpcIncoming(e.Actor, e.Target)) _shieldedIncoming.OnCompanion(e);
         if (amount < 0 || amount > MaxAmount || (amount > 0 && !e.EffectValidated))
         {
             // A record whose effect id does not belong to its skill is misaligned (§8.2.3): its "amount" is some other
@@ -836,7 +840,14 @@ internal sealed class CombatCore
             Flags = HitFlags.Dot | (src.ViaSummon ? HitFlags.Summon : HitFlags.None),
         };
         Route(hit, src, target, tside, qualifiesStart: false);
+        if (hit.Kind == HitKind.Incoming && hit.Flags.HasFlag(HitFlags.Incoming)
+            && IsConfirmedNpcIncoming(e.Actor, e.Target) && Current is { } enc)
+            _shieldedIncoming.OnTick(e, hit, enc);
     }
+
+    private bool IsConfirmedNpcIncoming(uint actor, uint target) =>
+        Entities.Get(actor) is NpcEntity { IsSummon: false, Inferred: false, NpcCode: not 0 }
+        && Entities.Get(target) is PlayerEntity { IsEnemy: false };
 
     private void Route(Hit hit, Attribution src, Entity target, Side tside, bool qualifiesStart)
     {
@@ -1540,6 +1551,7 @@ internal sealed class CombatCore
 
     public void Reset()
     {
+        _shieldedIncoming.Clear();
         FinalizeGrace();
         var t = LastEventTime ?? Current?.LastActivity ?? DateTime.UtcNow;
         if (Current is { } enc)
@@ -1564,6 +1576,7 @@ internal sealed class CombatCore
 
     public void ClearSession()
     {
+        _shieldedIncoming.Clear();
         FinalizeGrace();
         if (Current is { } enc)
         {

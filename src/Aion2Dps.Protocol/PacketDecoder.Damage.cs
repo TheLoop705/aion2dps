@@ -118,9 +118,11 @@ public sealed partial class PacketDecoder
 
         // Absorb/negation block: sw 0x40 (on damage records) or flag 0x01 (on dmg_type 6 notices): a count varint and
         // that many u32 effect ids of the target's buff that absorbed or negated the hit.
+        uint[]? absorbEffects = null;
         if ((sw & 0x40) != 0 || (flag & 0x01) != 0)
         {
-            if (!TrySkipAbsorbBlock(ref r)) { why = "bad absorb block"; return false; }
+            bool absorbOk = probe ? TrySkipAbsorbBlock(ref r) : TryReadAbsorbBlock(ref r, out absorbEffects);
+            if (!absorbOk) { why = "bad absorb block"; return false; }
         }
 
         // Trailer: u8 sequence, 00 (§8.2 #15). The sequence equals hit_index for single-target player hits; NPC area
@@ -175,6 +177,7 @@ public sealed partial class PacketDecoder
             PowerScalar = scalar,
             Amount = amount,
             ExtraHits = extras ?? Array.Empty<uint>(),
+            AbsorbEffects = absorbEffects ?? Array.Empty<uint>(),
             EffectValidated = effectOk,
         };
         return true;
@@ -208,6 +211,16 @@ public sealed partial class PacketDecoder
     {
         if (!r.TryReadVarUInt(out uint n) || n is < 1 or > MaxAbsorbEntries) return false;
         return r.TrySkip((int)n * 4);
+    }
+
+    /// <summary>Preserves explicit buff effect ids for combat shield accounting; probe lookahead still skips them.</summary>
+    private static bool TryReadAbsorbBlock(ref SpanReader r, out uint[] effects)
+    {
+        effects = Array.Empty<uint>();
+        if (!r.TryReadVarUInt(out uint n) || n is < 1 or > MaxAbsorbEntries || r.Remaining < n * 4) return false;
+        effects = new uint[n];
+        for (int i = 0; i < effects.Length; i++) r.TryReadU32(out effects[i]);
+        return true;
     }
 
     /// <summary>Offset (0..8) of a u32 that passes the effect check against <paramref name="skill"/>, preferring the

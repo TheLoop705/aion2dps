@@ -44,6 +44,8 @@ public sealed record DamageEvent : GameEvent
     public long? Amount { get; init; }
     /// <summary>Multi-hit breakdown (already included in <see cref="Amount"/>).</summary>
     public IReadOnlyList<uint> ExtraHits { get; init; } = Array.Empty<uint>();
+    /// <summary>Target buff effect ids explicitly listed by an absorb/negation block (at most eight).</summary>
+    public IReadOnlyList<uint> AbsorbEffects { get; init; } = Array.Empty<uint>();
     /// <summary>True when the effect-id validator (§8.2.3) passed.</summary>
     public bool EffectValidated { get; init; }
     /// <summary>True when this is a layout-0 no-damage cast/companion notice.</summary>

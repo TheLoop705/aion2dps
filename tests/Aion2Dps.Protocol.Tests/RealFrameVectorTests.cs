@@ -103,6 +103,7 @@ public class RealFrameVectorTests
         Assert.Equal(U(x, "target"), e.Target);
         Assert.Equal(U(x, "actor"), e.Actor);
         Assert.Equal(U(x, "switch"), e.Switch);
+        Assert.Equal(x.GetProperty("absorbed").EnumerateArray().Select(a => a.GetUInt32()), e.AbsorbEffects);
         Assert.Equal(U(x, "layout"), e.Layout);
         Assert.Equal(U(x, "skill_raw"), e.SkillRaw);
         Assert.Equal(U(x, "skill"), e.SkillId);

@@ -42,7 +42,8 @@ SHA-256 checksum, installs to `%LOCALAPPDATA%\Programs\Aion2Dps`, creates a Star
 The release includes the .NET runtime. Run the same command to update after closing the meter; settings and fight
 history in `%APPDATA%\Aion2Dps` are preserved. You can also download the release ZIP and extract it anywhere.
 
-Version 0.2.0 publishes the current meter; the planned hardening work is deferred.
+Version 0.2.1 hardens capture during dungeon transitions, corrects summon identity and shield damage accounting,
+and checks boss HP loss against damage and effective healing. The installer uses the latest published GitHub release.
 
 ## Requirements
 

@@ -10,6 +10,61 @@ public sealed class DamageRobustnessTests
     private const string Placeholder = "DCAB020400DCAB025E420F00010251E1F50501000000904E80CAB5EE010100";
 
     [Fact]
+    public void Generic_retaliation_companion_preserves_explicit_shield_effect_and_net_amount()
+    {
+        // Sanitized Draupnir shield interaction: generic type-9 companion, 76 damage after absorption.
+        var (events, diag) = Run.Body(Opcodes.Damage,
+            "644400C8010000000000094B33636500000000004C01AFDEEA690000");
+        var d = Assert.IsType<DamageEvent>(Assert.Single(events));
+        Assert.Equal(100u, d.Target);
+        Assert.Equal(200u, d.Actor);
+        Assert.Equal(0u, d.SkillRaw);
+        Assert.Equal(0x44u, d.Switch);
+        Assert.Equal(9, d.DamageType);
+        Assert.Equal(76, d.Amount);
+        Assert.Equal(new uint[] { 1777000111 }, d.AbsorbEffects);
+        Assert.False(d.EffectValidated);
+        Assert.Equal(0, diag.DecodeErrors);
+        Assert.Equal(0, diag.DamageTrailingBytes);
+    }
+
+    [Theory]
+    [InlineData(1, false)]
+    [InlineData(8, false)]
+    [InlineData(1, true)]
+    [InlineData(8, true)]
+    public void Absorb_effects_are_preserved_for_switch_and_flag_blocks(int count, bool flagBlock)
+    {
+        var effects = Enumerable.Range(0, count).Select(i => 1777000111u + (uint)i).ToArray();
+        var body = W.DamageBody(100, 200, 500);
+        if (flagBlock) body[2] |= 0x01;
+        else body[1] |= 0x40;
+        var wire = W.Concat(body[..^2], W.VarInt((uint)count),
+            effects.SelectMany(BitConverter.GetBytes).ToArray(), body[^2..]);
+        var (events, diag) = Run.Body(Opcodes.Damage, Convert.ToHexString(wire));
+
+        Assert.Equal(effects, Assert.IsType<DamageEvent>(Assert.Single(events)).AbsorbEffects);
+        Assert.Equal(0, diag.DecodeErrors);
+        Assert.Equal(0, diag.DamageTrailingBytes);
+    }
+
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(9, 9)]
+    [InlineData(1, 0)]
+    [InlineData(8, 7)]
+    public void Malformed_absorb_counts_and_truncated_effects_are_rejected(int announced, int present)
+    {
+        var body = W.DamageBody(100, 200, 500);
+        body[1] |= 0x40;
+        var wire = W.Concat(body[..^2], W.VarInt((uint)announced), new byte[present * 4], body[^2..]);
+        var (events, diag) = Run.Body(Opcodes.Damage, Convert.ToHexString(wire));
+
+        Assert.Empty(events);
+        Assert.Equal(1, diag.DecodeErrors);
+    }
+
+    [Fact]
     public void Area_hit_trailer_does_not_hide_the_next_valid_record()
     {
         var (events, diag) = Run.Body(Opcodes.Damage, AreaHit + PlayerHit);
