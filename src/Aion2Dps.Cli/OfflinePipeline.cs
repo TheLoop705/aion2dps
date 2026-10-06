@@ -5,7 +5,10 @@ using Aion2Dps.Protocol;
 
 namespace Aion2Dps.Cli;
 
-/// <summary>The real decoding chain used by every CLI command: capture/replay bytes → ProtocolPipeline → CombatEngine.</summary>
+/// <summary>
+/// The real decoding chain used by every CLI command: capture/replay bytes → MultiFlowProtocolPipeline (one frame decoder
+/// per game flow, one packet decoder) → CombatEngine. A TCP gap of any flow marks the active encounter.
+/// </summary>
 internal sealed class OfflinePipeline
 {
     private static GameDataStore? _sharedData;
@@ -19,8 +22,7 @@ internal sealed class OfflinePipeline
             lock (Records) Records.Add(r);
             onCompleted?.Invoke(r);
         };
-        Protocol = new ProtocolPipeline(Engine, OpcodeTable.LoadOrDefault());
-        Input = new DiscontinuityTap(Protocol.Input, reason =>
+        Protocol = new MultiFlowProtocolPipeline(Engine, OpcodeTable.LoadOrDefault(), onDiscontinuity: (_, reason) =>
         {
             if (reason == DiscontinuityReason.TcpGap) Engine.NotifyCaptureGap();
         });
@@ -28,8 +30,10 @@ internal sealed class OfflinePipeline
 
     public GameDataStore GameData { get; }
     public CombatEngine Engine { get; }
-    public ProtocolPipeline Protocol { get; }
-    public IStreamSink Input { get; }
+    public MultiFlowProtocolPipeline Protocol { get; }
+
+    /// <summary>Pass to capture/replay: flow-aware (IStreamSinkFactory) and a single default stream for simulator feeds.</summary>
+    public IStreamSink Input => Protocol.Input;
     public List<EncounterRecord> Records { get; } = new();
     public DateTime LastClockUtc { get; private set; }
 

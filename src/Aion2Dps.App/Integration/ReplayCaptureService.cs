@@ -6,7 +6,8 @@ namespace Aion2Dps.App.Integration;
 /// <summary>
 /// <see cref="ICaptureService"/> facade over <see cref="IReplaySource"/> for <c>--replay &lt;file&gt;</c>: Start runs the
 /// replay in the background into the pipeline and <see cref="Now"/> is the replay clock (capture time, advancing in real
-/// time after the file ends so idle timeouts can close the last encounter).
+/// time after the file ends so idle timeouts can close the last encounter). Every game flow of the file is replayed
+/// (interleaved by timestamp) when the sink is flow-aware (<see cref="IStreamSinkFactory"/>, e.g. the multi-flow pipeline).
 /// </summary>
 public sealed class ReplayCaptureService : ICaptureService
 {
@@ -93,11 +94,16 @@ public sealed class ReplayCaptureService : ICaptureService
             else
             {
                 var stats = (_source as PcapReplaySource)?.LastStatistics;
+                if (stats?.Servers is { } servers)
+                {
+                    lock (_gate) _status = _status with { ServerEndpoint = servers, LocalEndpoint = stats.LastClient, BytesDelivered = stats.BytesDelivered, GapCount = stats.Gaps };
+                }
+
                 Finish(CaptureState.Stopped, stats is null
                     ? "Replay finished"
                     : stats.BytesDelivered == 0
                         ? $"Replay finished: no AION 2 game traffic found in {Path.GetFileName(_path)}"
-                        : $"Replay finished: {stats.Packets:N0} packets, {stats.Gaps} gap(s)");
+                        : $"Replay finished: {stats.Packets:N0} packets, {stats.Flows} game flow(s) (max {stats.MaxConcurrentFlows} at once), {stats.Gaps} gap(s)");
             }
         }, TaskScheduler.Default);
     }

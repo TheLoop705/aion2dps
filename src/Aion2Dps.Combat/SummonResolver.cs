@@ -39,7 +39,11 @@ internal sealed class SummonResolver
         var e = _entities.Get(actor);
         if (e is SummonEntity s)
         {
-            s.FirstSkill ??= skill;
+            if (s.FirstSkill is null)
+            {
+                s.FirstSkill = skill;
+                s.NextAttempt = default;
+            }
             if (s.PowerScalar == 0 && scalar != 0) s.PowerScalar = scalar;
             return;
         }
@@ -68,9 +72,19 @@ internal sealed class SummonResolver
                     var next = _entities.Get(owner);
                     if (next == null)
                     {
-                        // Owner id not bound yet (mid-stream start). Monster skills → an NPC owner; otherwise a player.
-                        if (ss.FirstSkill is uint fs && SkillIds.GetKind(fs) == SkillKind.Npc) return new RootResult(RootKind.Npc, owner);
-                        next = _entities.CreateProvisionalPlayer(owner);
+                        // Owner id not bound yet (mid-stream start). Monster skills → an NPC owner; player skills → a
+                        // player whose 45 36 we missed. Before the entity acted we cannot tell (boss mechanic entities
+                        // carry the boss as owner): stay unresolved and retry once it acts or the owner is bound.
+                        switch (ss.FirstSkill is uint fs ? SkillIds.GetKind(fs) : SkillKind.Unknown)
+                        {
+                            case SkillKind.Npc:
+                                return new RootResult(RootKind.Npc, owner);
+                            case SkillKind.Player or SkillKind.Spirit or SkillKind.Theostone or SkillKind.Link:
+                                next = _entities.CreateProvisionalPlayer(owner);
+                                break;
+                            default:
+                                return new RootResult(RootKind.Unresolved, 0);
+                        }
                     }
                     cur = next;
                     break;
@@ -91,12 +105,19 @@ internal sealed class SummonResolver
 
         if (s.OwnerHint is uint o && o != s.Id && o is >= 1 and <= 9_999_999) return Set(s, o, OwnerSource.SpawnOwner);
         if (s.AnchorHint is uint a && a != s.Id && a != 0) return Set(s, a, OwnerSource.Anchor);
-        if (_entities.FindPlayerByName(s.CasterName) is { } byName) return Set(s, byName.Id, OwnerSource.CasterName);
+        // The inline name is an owner only for entities that act with player skills: boss mechanic entities (Murute's
+        // Gas Rocks, Kromede's spawns) carry the name of the player they target. Deferred until the first skill is known.
+        if (s.FirstSkill is uint named && SkillIds.GetKind(named) != SkillKind.Npc
+            && _entities.FindPlayerByName(s.CasterName) is { } byName) return Set(s, byName.Id, OwnerSource.CasterName);
         if (s.FirstSkill is uint fs && FindCastLink(s, fs) is uint caster) return Set(s, caster, OwnerSource.CastLink);
         if (s.PowerScalar != 0 && FindUniqueScalar(s.PowerScalar, t, CharacterClass.Unknown, s.Id) is { } byScalar)
             return Set(s, byScalar.Id, OwnerSource.PowerScalar);
         if (s.FirstSkill is uint fs2 && SkillIds.GetKind(fs2) == SkillKind.Spirit && FindOnlyElementalist() is { } ele)
             return Set(s, ele.Id, OwnerSource.OnlyElementalist);
+        // A skill entity we never saw spawn, acting with a class skill: the party's only player of that class owns it.
+        if (s.Orphan && s.FirstSkill is uint fs3 && SkillIds.GetKind(fs3) == SkillKind.Player
+            && FindOnlyOfClass(SkillIds.ClassOf(fs3)) is { } sameClass && sameClass.Id != s.Id)
+            return Set(s, sameClass.Id, OwnerSource.OnlyOfClass);
 
         s.NextAttempt = t + RetryDelay;
         return false;
@@ -152,15 +173,28 @@ internal sealed class SummonResolver
         return found;
     }
 
-    private PlayerEntity? FindOnlyElementalist()
+    /// <summary>True when any known (non-provisional, friendly) player of <paramref name="cls"/> recently used <paramref name="scalar"/>.</summary>
+    public bool AnyPlayerWithScalar(uint scalar, DateTime t, uint exclude, CharacterClass cls)
     {
+        foreach (var e in _entities.All)
+            if (e is PlayerEntity { IsProvisional: false, IsEnemy: false } p && p.Id != exclude && p.Class == cls && p.HasRecentScalar(scalar, t, ScalarWindow))
+                return true;
+        return false;
+    }
+
+    private PlayerEntity? FindOnlyElementalist() => FindOnlyOfClass(CharacterClass.Elementalist, allowProvisional: true);
+
+    /// <summary>The only friendly player of <paramref name="cls"/> (party roster first, else every known player).</summary>
+    private PlayerEntity? FindOnlyOfClass(CharacterClass cls, bool allowProvisional = false)
+    {
+        if (cls == CharacterClass.Unknown) return null;
         if (_party.HasRoster)
         {
             PlayerEntity? only = null;
             int count = 0;
             foreach (var m in _party.Members)
             {
-                if (m.Class != CharacterClass.Elementalist && ClassInfo.FromCode(m.ClassCode) != CharacterClass.Elementalist) continue;
+                if (m.Class != cls && ClassInfo.FromCode(m.ClassCode) != cls) continue;
                 count++;
                 only = _entities.FindPlayerByName(m.Name);
             }
@@ -170,7 +204,7 @@ internal sealed class SummonResolver
         PlayerEntity? found = null;
         foreach (var e in _entities.All)
         {
-            if (e is not PlayerEntity { IsEnemy: false, Class: CharacterClass.Elementalist } p) continue;
+            if (e is not PlayerEntity { IsEnemy: false } p || p.Class != cls || (p.IsProvisional && !allowProvisional)) continue;
             if (found != null) return null;
             found = p;
         }
@@ -190,11 +224,12 @@ internal sealed class SummonResolver
         _pending.Add(s);
     }
 
-    /// <summary>Moves pending bucket hits of summons whose owner chain now ends in a player. Returns the encounters that changed.</summary>
-    public HashSet<Encounter>? Reattribute(DateTime t, bool force)
+    /// <summary>Moves pending bucket hits of summons whose owner chain now ends in a player. Returns the encounters that
+    /// changed, each with the combatant ids whose totals changed (old and new actors of the moved hits).</summary>
+    public Dictionary<Encounter, HashSet<uint>>? Reattribute(DateTime t, bool force)
     {
         if (_pending.Count == 0) return null;
-        HashSet<Encounter>? changed = null;
+        Dictionary<Encounter, HashSet<uint>>? changed = null;
         List<SummonEntity>? done = null;
         foreach (var s in _pending)
         {
@@ -208,8 +243,26 @@ internal sealed class SummonResolver
             if (root.Kind == RootKind.Unresolved) continue;
             if (root.Kind == RootKind.Player)
             {
-                foreach (var h in hits) h.Actor = root.Id;
-                (changed ??= new()).Add(enc);
+                changed ??= new();
+                if (!changed.TryGetValue(enc, out var ids)) changed[enc] = ids = new HashSet<uint>();
+                ids.Add(root.Id);
+                foreach (var h in hits)
+                {
+                    ids.Add(h.Actor);
+                    h.Actor = root.Id;
+                }
+            }
+            else if (root.Kind == RootKind.Npc)
+            {
+                // A mechanic entity whose owner was unknown was provisionally in the friendly bucket. Once its
+                // owner is known to be an NPC, its old NPC-to-NPC hits are not party damage.
+                var discarded = new HashSet<Hit>(hits);
+                enc.Hits.RemoveAll(discarded.Contains);
+                enc.RebuildLive();
+                foreach (var boss in enc.Bosses) boss.HpCheck.RemoveDamage(discarded);
+                changed ??= new();
+                if (!changed.TryGetValue(enc, out var ids)) changed[enc] = ids = new HashSet<uint>();
+                foreach (var h in hits) ids.Add(h.Actor);
             }
             (done ??= new()).Add(s);
         }

@@ -43,7 +43,8 @@ internal sealed class EntityTracker
         _byId[e.Id] = e;
         if (_pendingHp.Remove(e.Id, out var pending))
         {
-            if (pending.Max is > 0 && e is NpcEntity { MaxSource: MaxHpSource.None or MaxHpSource.HighestSeen } n)
+            // 1B 92 / stat kind 7 max seen before the entity was bound: it beats the spawn's base hp_max (LIVE-FINDINGS NEW 2).
+            if (pending.Max is > 0 && e is NpcEntity { MaxSource: MaxHpSource.None or MaxHpSource.HighestSeen or MaxHpSource.Spawn } n)
             {
                 n.MaxHp = pending.Max;
                 n.MaxSource = MaxHpSource.HpUpdate;
@@ -164,15 +165,23 @@ internal sealed class EntityTracker
     public NpcEntity Spawn(SpawnEvent e, NpcInfo? info)
     {
         bool summon = e.IsSummonLike || (e.OwnerId is uint o && o != 0 && o != e.Entity);
+        // A re-spawn whose head was not recognised (NpcCode 0) must not erase what the first spawn told us.
+        var prev = e.NpcCode == 0 && Get(e.Entity) is NpcEntity pn && pn.IsSummon == summon && pn.NpcCode != 0 ? pn : null;
         NpcEntity n;
         if (summon)
         {
-            n = new SummonEntity(e.Entity)
-            {
-                OwnerHint = e.OwnerId is uint ow && ow != 0 && ow != e.Entity ? ow : null,
-                AnchorHint = e.AnchorId is uint an && an != 0 && an != e.Entity ? an : null,
-                CasterName = string.IsNullOrEmpty(e.CasterName) ? null : e.CasterName,
-            };
+            // A late first spawn supplies the owner of a skill entity already seen attacking. Keep the orphan
+            // instance so its unresolved hits can move to that owner. An already spawned entity is still replaced:
+            // its id may have been reused, and its old hits must never move to the new summon.
+            var s = Get(e.Entity) is SummonEntity { Orphan: true, Dead: false } orphan ? orphan : new SummonEntity(e.Entity);
+            s.Orphan = false;
+            s.OwnerHint = e.OwnerId is uint ow && ow != 0 && ow != e.Entity ? ow : null;
+            s.AnchorHint = e.AnchorId is uint an && an != 0 && an != e.Entity ? an : null;
+            s.CasterName = string.IsNullOrEmpty(e.CasterName) ? null : e.CasterName;
+            s.ResolvedOwner = null;
+            s.OwnerSource = OwnerSource.None;
+            s.NextAttempt = default;
+            n = s;
         }
         else
         {
@@ -181,6 +190,23 @@ internal sealed class EntityTracker
         n.NpcCode = e.NpcCode;
         n.Info = info;
         n.SpawnTime = e.Time;
+        if (prev != null)
+        {
+            n.NpcCode = prev.NpcCode;
+            n.Info = prev.Info;
+            if (e.HpMax is not > 0 && prev.MaxHp is > 0)
+            {
+                n.MaxHp = prev.MaxHp;
+                n.MaxSource = prev.MaxSource;
+            }
+            if (e.HpCurrent is null)
+            {
+                n.Hp = prev.Hp;
+                n.Dead = prev.Dead;
+                n.DeathTime = prev.DeathTime;
+            }
+            n.HighestHp = prev.HighestHp;
+        }
         if (e.HpMax is > 0)
         {
             n.MaxHp = e.HpMax;
@@ -219,7 +245,7 @@ internal sealed class EntityTracker
 
     public NpcEntity CreateUnknownNpc(uint id)
     {
-        var n = new NpcEntity(id);
+        var n = new NpcEntity(id) { Inferred = true };
         Bind(n);
         return n;
     }

@@ -60,8 +60,10 @@ public static class Program
                                                              TrainingDummy)
               selftest [--seeds N]                          Run every simulator scenario through the full pipeline (stream and
                                                             pcap paths) and compare with the ground truth; exit code 0/1
-              live [--seconds N] [--adapter NAME] [--record file.pcapng]
-                                                            Live Npcap capture; prints status and the meter every second
+              live [--seconds N] [--adapter NAME] [--record file.pcapng] [--stop-file path] [--json out.json]
+                                                            Live Npcap capture of every game flow (world + instance);
+                                                            prints status and the meter every second;
+                                                            create the stop file to stop gracefully, --json exports completed fights
               adapters                                      List Npcap capture adapters
               locate                                        Find the AION 2 process and its game connection
 
@@ -143,9 +145,10 @@ public static class Program
         var d = pipe.Protocol.ProtocolDiagnostics;
         Console.WriteLine();
         Console.WriteLine($"Done in {sw.Elapsed.TotalSeconds:0.00} s: {stats.Format}, {Printer.N(stats.Packets)} packets, {Printer.N(stats.BytesDelivered)} game bytes, " +
-                          $"{stats.Locks} flow lock(s), {stats.Gaps} gap(s); {Printer.N(d.Frames)} frames, {Printer.N(d.Bundles)} bundles, " +
+                          $"{stats.Flows} game flow(s) (max {stats.MaxConcurrentFlows} concurrent), {stats.Gaps} gap(s); {Printer.N(d.Frames)} frames, {Printer.N(d.Bundles)} bundles, " +
                           $"{Printer.N(d.EventsEmitted)} events, {Printer.N(d.DecodeErrors)} decode errors; {pipe.Records.Count} encounter(s).");
-        if (stats.LastServer is { } server) Console.WriteLine($"Game server {server}, client {stats.LastClient}");
+        if (stats.Servers is { } server) Console.WriteLine($"Game server(s) {server}");
+        Printer.Flows(Console.Out, stats, pipe.Protocol);
         if (pipe.Engine.LocalPlayer is { } lp)
             Console.WriteLine($"Local player: {lp.Name} ({pipe.GameData.GetClassName(lp.Class)}, level {lp.Level}, {pipe.GameData.GetServerName(lp.ServerId) ?? "server " + lp.ServerId})");
         if (stats.BytesDelivered == 0) Console.WriteLine("No AION 2 game traffic was found in this file.");
@@ -176,7 +179,8 @@ public static class Program
             .GroupBy(kv => kv.Value).ToDictionary(g => g.Key, g => string.Join("/", g.Select(kv => kv.Key)));
 
         Console.WriteLine($"{Path.GetFileName(file)}: {stats.Format}, {Printer.N(stats.Packets)} packets ({Printer.N(stats.TcpPackets)} TCP), " +
-                          $"{Printer.N(stats.BytesDelivered)} game bytes, {stats.Locks} lock(s), {stats.Gaps} gap(s), {stats.TlsFlowsIgnored} TLS flow(s) ignored");
+                          $"{Printer.N(stats.BytesDelivered)} game bytes, {stats.Flows} game flow(s) (max {stats.MaxConcurrentFlows} concurrent), {stats.Gaps} gap(s), {stats.TlsFlowsIgnored} TLS flow(s) ignored");
+        Printer.Flows(Console.Out, stats, pipe.Protocol);
         Console.WriteLine();
         Console.WriteLine($"{"Opcode",-7} {"Name",-18} {"Count",10} {"Bytes",12} {"Decoded",10} {"Failed",8}");
         foreach (var s in d.GetCensus())
@@ -241,7 +245,7 @@ public static class Program
         Directory.CreateDirectory(tmp);
         int failures = 0, checks = 0;
         var sw = Stopwatch.StartNew();
-        Console.WriteLine("Self-test: simulator scenarios → ProtocolPipeline → CombatEngine (real game data) vs ground truth");
+        Console.WriteLine("Self-test: simulator scenarios → MultiFlowProtocolPipeline → CombatEngine (real game data) vs ground truth");
         try
         {
             for (int seed = 1; seed <= seeds; seed++)
@@ -271,7 +275,17 @@ public static class Program
                     var b = new OfflinePipeline();
                     var stats = PcapReplaySource.Replay(pcap, b.Input, 0, b.Clock);
                     b.Drain();
-                    failures += Report($"{name,-17} seed {seed} pcap  ", scenario, b, start, $"{stats.Locks} lock, {stats.Gaps} gaps");
+                    failures += Report($"{name,-17} seed {seed} pcap  ", scenario, b, start, $"{stats.Flows} flow, {stats.Gaps} gaps");
+                    checks++;
+
+                    // 3. Two concurrent game flows (world: identity + noise, instance: combat) in one pcap.
+                    string multi = Path.Combine(tmp, $"{name}-{seed}-multiflow.pcap");
+                    MultiFlowPcapExporter.WriteFile(multi, scenario, start, new MultiFlowOptions { Seed = seed * 17 + 2 });
+                    var m = new OfflinePipeline();
+                    var mstats = PcapReplaySource.Replay(multi, m.Input, 0, m.Clock);
+                    m.Drain();
+                    failures += Report($"{name,-17} seed {seed} 2flow ", scenario, m, start,
+                        $"{mstats.Flows} flows, max {mstats.MaxConcurrentFlows} concurrent, {mstats.Gaps} gaps");
                     checks++;
                 }
             }
@@ -331,7 +345,18 @@ public static class Program
 
     private static int Live(string[] args)
     {
-        double seconds = DoubleOption(args, "--seconds", 0);
+        foreach (var name in new[] { "--stop-file", "--json", "--adapter", "--record" })
+        {
+            if (HasFlag(args, name) && (string.IsNullOrWhiteSpace(Option(args, name)) || Option(args, name)!.StartsWith("--")))
+                return Usage(2, $"live: {name} requires a value.");
+        }
+        double seconds = 0;
+        if (HasFlag(args, "--seconds") &&
+            (!double.TryParse(Option(args, "--seconds"), System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out seconds) || !double.IsFinite(seconds) || seconds < 0))
+            return Usage(2, "live: --seconds must be a finite, non-negative number.");
+        string? stopFile = Option(args, "--stop-file");
+        string? json = Option(args, "--json");
         var npcap = NpcapAvailability.Check();
         if (!npcap.IsAvailable)
         {
@@ -342,7 +367,7 @@ public static class Program
 
         int index = 0;
         OfflinePipeline? pipe = null;
-        pipe = new OfflinePipeline(new EngineOptions(), r => Printer.Encounter(Console.Out, r, pipe!.GameData, ++index));
+        pipe = new OfflinePipeline(new EngineOptions(), r => Printer.Encounter(Console.Out, r, pipe!.GameData, Interlocked.Increment(ref index)));
         using var capture = new NpcapCaptureService();
         capture.AdapterOverride = Option(args, "--adapter");
         using var cts = CtrlC();
@@ -352,13 +377,14 @@ public static class Program
         var sw = Stopwatch.StartNew();
         while (!cts.IsCancellationRequested && (seconds <= 0 || sw.Elapsed.TotalSeconds < seconds))
         {
+            if (stopFile is not null && File.Exists(stopFile)) break;
             if (cts.Token.WaitHandle.WaitOne(1000)) break;
             var now = DateTime.UtcNow;
             pipe.Engine.Tick(now);
             var s = capture.Status;
             var snap = pipe.Engine.GetSnapshot(now);
             var d = pipe.Protocol.Diagnostics;
-            string status = $"[{sw.Elapsed:mm\\:ss}] {s.State}: {s.Message}" +
+            string status = $"[{sw.Elapsed:mm\\:ss}] {s.State}: {s.Message} · flows {capture.OpenFlowCount}" +
                             (s.ServerEndpoint is null ? "" : $" server {s.ServerEndpoint}") +
                             (s.AdapterDescription is null ? "" : $" via {s.AdapterDescription}") +
                             $" · pkts {Printer.N(s.PacketsSeen)} bytes {Printer.N(s.BytesDelivered)} gaps {s.GapCount} · frames {Printer.N(d.Frames)} events {Printer.N(d.EventsEmitted)} errors {Printer.N(d.DecodeErrors)}";
@@ -373,6 +399,19 @@ public static class Program
 
         capture.Stop();
         Console.WriteLine($"Stopped. {pipe.Records.Count} completed encounter(s).");
+        foreach (var f in capture.GetFlows())
+            Console.WriteLine($"  flow {f.ServerEndpoint} -> {f.LocalEndpoint}{(f.ByHint ? " [process hint]" : "")}: {Printer.N(f.Packets)} packets, " +
+                              $"{Printer.N(f.BytesDelivered)} bytes, {f.Gaps} gap(s){(f.EndReason is null ? "" : ", ended: " + f.EndReason)}");
+        Printer.FlowCounters(Console.Out, pipe.Protocol);
+        if (json is not null)
+        {
+            var jsonPath = Path.GetFullPath(json);
+            Directory.CreateDirectory(Path.GetDirectoryName(jsonPath)!);
+            EncounterRecord[] records;
+            lock (pipe.Records) records = pipe.Records.ToArray();
+            File.WriteAllText(jsonPath, "[\n" + string.Join(",\n", records.Select(EncounterRecordSerializer.ToJson)) + "\n]\n");
+            Console.WriteLine($"Wrote {records.Length} completed encounter record(s) to {jsonPath}");
+        }
         return 0;
     }
 

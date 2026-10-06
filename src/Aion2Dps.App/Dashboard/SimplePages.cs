@@ -152,7 +152,7 @@ public sealed class AboutPage : DashboardPage
         return t;
     }
 
-    /// <summary>data/NOTICE.txt as plain text (tables become "file — source" lines).</summary>
+    /// <summary>data/NOTICE.txt as plain text (markdown tables become "file — source" lines).</summary>
     internal static string ReadNotice()
     {
         try

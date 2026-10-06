@@ -11,6 +11,9 @@ internal static class EncounterRecordBuilder
         public readonly Dictionary<uint, SkillStats> Skills = new();
         public readonly Dictionary<(uint Source, uint Skill), SourceDamage> Sources = new();
         public readonly Dictionary<(uint Source, uint Skill, byte Tag), DateTime> CastSeen = new();
+        /// <summary>Damage per boss entity of the encounter.</summary>
+        public readonly Dictionary<uint, long> ByBoss = new();
+        public uint? PrimaryBossId;
         public long[] PerSecond;
 
         public Builder(CombatantRecord r, int seconds)
@@ -39,7 +42,12 @@ internal static class EncounterRecordBuilder
             }
             long amt = h.Amount;
             R.Damage += amt;
-            if (h.ToPrimaryBoss) R.BossDamage += amt;
+            if (h.ToBoss)
+            {
+                R.AllBossesDamage += amt;
+                ByBoss[h.Target] = ByBoss.GetValueOrDefault(h.Target) + amt;
+                if (h.Target == PrimaryBossId) R.BossDamage += amt;
+            }
             if ((uint)second < (uint)PerSecond.Length) PerSecond[second] += amt;
             if (R.FirstHitUtc is null || h.Time < R.FirstHitUtc) R.FirstHitUtc = h.Time;
             if (R.LastHitUtc is null || h.Time > R.LastHitUtc) R.LastHitUtc = h.Time;
@@ -137,6 +145,7 @@ internal static class EncounterRecordBuilder
         DateTime start = enc.StartUtc;
         double duration = enc.DurationSeconds;
         var local = core.Entities.Local;
+        var primary = enc.Primary;
 
         var rec = new EncounterRecord
         {
@@ -150,14 +159,15 @@ internal static class EncounterRecordBuilder
             ServerId = local is { ServerId: > 0 } ? local.ServerId : null,
             LocalPlayerName = local is { Name.Length: > 0 } ? local.Name : null,
             LocalPlayerClass = local?.Class ?? CharacterClass.Unknown,
-            BossNpcCode = enc.BossNpcCode,
-            BossEntityId = enc.PrimaryBossId,
-            BossMaxHp = enc.BossMaxHp,
-            BossHpStart = enc.BossHpStart,
-            BossHpEnd = enc.BossHpEnd,
-            BossHpTimeline = enc.Timeline.ToSamples(start),
-            ResetCount = enc.ResetCount,
-            HpCheck = enc.HpCheck.ToResult(),
+            BossNpcCode = primary?.NpcCode,
+            BossEntityId = primary?.Id,
+            BossMaxHp = primary?.MaxHp,
+            BossHpStart = primary?.HpStart,
+            BossHpEnd = primary?.HpEnd,
+            BossHpTimeline = primary?.Timeline.ToSamples(start) ?? new List<HpSample>(),
+            ResetCount = primary?.ResetsBefore ?? 0,
+            HpCheck = primary?.HpCheck.ToResult(),
+            OverallHpCheck = enc.Bosses.Count > 0 ? HpCheckTracker.Combine(enc.Bosses.Select(b => b.HpCheck).ToList()) : null,
             CaptureGaps = enc.CaptureGaps,
             Note = enc.Note,
         };
@@ -202,7 +212,7 @@ internal static class EncounterRecordBuilder
                 r.ServerId ??= m.ServerId != 0 ? m.ServerId : null;
             }
             if (r.Level is null && core.Entities.Get(id) is PlayerEntity { Level: { } lvl } pe && pe.DisplayName == r.Name) r.Level = lvl;
-            b = new Builder(r, seconds);
+            b = new Builder(r, seconds) { PrimaryBossId = primary?.Id };
             builders[id] = b;
             return b;
         }
@@ -289,7 +299,11 @@ internal static class EncounterRecordBuilder
         rec.TotalDamage = total;
         rec.PartyDps = total / duration;
 
-        bool hpContribution = enc.Kind == EncounterKind.Boss && enc.BossMaxTrusted && enc.BossMaxHp is > 0;
+        // Contribution = damage to the encounter's bosses / sum of their max HP (bosses with a trusted max only).
+        long trustedMax = 0;
+        if (enc.Kind == EncounterKind.Boss)
+            foreach (var boss in enc.Bosses)
+                if (boss.MaxTrusted && boss.MaxHp is long mh && mh > 0) trustedMax += mh;
         var combatants = new List<CombatantRecord>(builders.Count);
         foreach (var b in builders.Values)
         {
@@ -299,7 +313,17 @@ internal static class EncounterRecordBuilder
             if (r.Kind != CombatantKind.EnemyPlayer)
             {
                 r.DamageShare = total > 0 ? (double)r.Damage / total : 0;
-                r.Contribution = hpContribution ? (double)r.BossDamage / enc.BossMaxHp!.Value : r.DamageShare;
+                if (trustedMax > 0)
+                {
+                    long toTrusted = 0;
+                    foreach (var boss in enc.Bosses)
+                        if (boss.MaxTrusted && boss.MaxHp is > 0) toTrusted += b.ByBoss.GetValueOrDefault(boss.Id);
+                    r.Contribution = (double)toTrusted / trustedMax;
+                }
+                else
+                {
+                    r.Contribution = r.DamageShare;
+                }
                 if (r.Kind == CombatantKind.Player) r.Buffs = core.Buffs.Compute(r.EntityId, start, duration);
             }
             if (r.Kind == CombatantKind.EnemyPlayer) r.Damage = r.DamageToLocal;
@@ -334,6 +358,47 @@ internal static class EncounterRecordBuilder
             });
         }
         rec.Targets = targets;
+
+        var bosses = new List<BossResult>(enc.Bosses.Count);
+        foreach (var boss in enc.Bosses)
+        {
+            bool trusted = boss.MaxTrusted && boss.MaxHp is > 0;
+            var shares = new List<BossDamageShare>();
+            foreach (var b in builders.Values)
+            {
+                if (b.R.Kind == CombatantKind.EnemyPlayer || !b.ByBoss.TryGetValue(boss.Id, out long dmg) || dmg <= 0) continue;
+                shares.Add(new BossDamageShare
+                {
+                    EntityId = b.R.EntityId,
+                    Damage = dmg,
+                    Contribution = trusted ? (double)dmg / boss.MaxHp!.Value : null,
+                });
+            }
+            shares.Sort((x, y) => y.Damage != x.Damage ? y.Damage.CompareTo(x.Damage) : x.EntityId.CompareTo(y.EntityId));
+            enc.Targets.TryGetValue(boss.Id, out var ts);
+            bosses.Add(new BossResult
+            {
+                NpcCode = boss.NpcCode,
+                EntityId = boss.Id,
+                IsPrimary = ReferenceEquals(boss, primary),
+                MaxHp = boss.MaxHp,
+                MaxHpTrusted = trusted,
+                HpStart = boss.HpStart,
+                HpEnd = boss.Killed ? 0 : boss.HpEnd,
+                Killed = boss.Killed,
+                KillTimeSeconds = boss.KillTime is { } kt ? Math.Max(0, (kt - start).TotalSeconds) : null,
+                EngagedSeconds = Math.Max(0, ((boss.FirstHit ?? boss.EngagedAt) - start).TotalSeconds),
+                LastHitSeconds = boss.LastHit is { } lh ? Math.Max(0, (lh - start).TotalSeconds) : null,
+                Resets = boss.Resets,
+                ResetCountBefore = boss.ResetsBefore,
+                DamageTaken = ts?.DamageTaken ?? 0,
+                SelfHealing = ts?.SelfHealing ?? 0,
+                HpTimeline = boss.Timeline.ToSamples(start),
+                HpCheck = boss.HpCheck.ToResult(),
+                DamageByCombatant = shares,
+            });
+        }
+        rec.Bosses = bosses;
         return rec;
     }
 }

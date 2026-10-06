@@ -222,9 +222,60 @@ public class AdapterSelectorTests
     {
         var server = IPv4Endpoint.Parse("87.232.75.150:13328");
         Assert.Equal("tcp and (host 87.232.75.150 and port 13328)", CaptureFilters.ForServers(new[] { server }, includeGamePort: false));
-        Assert.Equal("tcp and ((host 87.232.75.150 and port 13328) or port 13328)", CaptureFilters.ForServers(new[] { server }));
+        // A game-port server is covered by the game port itself: no host clause, the very same text as GamePort().
+        Assert.Equal("tcp port 13328", CaptureFilters.ForServers(new[] { server }));
         Assert.Equal("tcp port 13328", CaptureFilters.GamePort());
         Assert.Equal("tcp", CaptureFilters.ForServers(Array.Empty<IPv4Endpoint>(), includeGamePort: false));
+        Assert.Equal("tcp port 13328 or (tcp and (host 10.0.0.9 and port 7777))",
+            CaptureFilters.ForServers(new[] { server, IPv4Endpoint.Parse("10.0.0.9:7777") }));
+    }
+
+    /// <summary>
+    /// Regression (review: robustness): every filter change on an open handle (BIOCSETF) flushes its buffered packets,
+    /// and the filter used to change whenever the connection poll saw a new game connection (game start, every instance
+    /// change), right in the connect-time burst (identity, map, spawns). The filter text must stay the same while only
+    /// game-port servers come and go.
+    /// </summary>
+    [Fact]
+    public void Filter_DoesNotChange_WhenGamePortConnectionsComeAndGo()
+    {
+        var world = IPv4Endpoint.Parse("87.232.75.150:13328");
+        var instance = IPv4Endpoint.Parse("193.202.112.155:13328");
+        string waiting = CaptureFilters.GamePort();
+        Assert.Equal(waiting, CaptureFilters.ForServers(new[] { world }));
+        Assert.Equal(waiting, CaptureFilters.ForServers(new[] { world, instance }));
+        Assert.Equal(waiting, CaptureFilters.ForServers(new[] { instance, world, instance }));
+        Assert.Equal(waiting, CaptureFilters.ForServers(Array.Empty<IPv4Endpoint>()));
+
+        // Servers off the game port are sorted: the order of the poll result does not matter.
+        var a = IPv4Endpoint.Parse("10.0.0.9:7777");
+        var b = IPv4Endpoint.Parse("10.0.0.1:7777");
+        Assert.Equal(CaptureFilters.ForServers(new[] { a, world, b }), CaptureFilters.ForServers(new[] { b, a, instance }));
+
+        Assert.True(CaptureFilters.Equivalent("tcp port 13328", "  TCP   port 13328 "));
+        Assert.False(CaptureFilters.Equivalent("tcp port 13328", CaptureFilters.Detection()));
+    }
+
+    [Fact]
+    public void DetectionFilter_SkipsBulkWebAndSmbTraffic()
+    {
+        string f = CaptureFilters.Detection();
+        Assert.StartsWith("tcp", f);
+        foreach (int port in CaptureFilters.BulkPorts) Assert.Contains($"not port {port}", f);
+        Assert.DoesNotContain("13328", f); // the game port stays included
+    }
+
+    [Fact]
+    public void OpenRetry_BacksOffExponentially_UpToTheCap()
+    {
+        var first = TimeSpan.FromSeconds(5);
+        var max = TimeSpan.FromSeconds(60);
+        Assert.Equal(TimeSpan.FromSeconds(5), NpcapCaptureService.RetryDelay(1, first, max));
+        Assert.Equal(TimeSpan.FromSeconds(10), NpcapCaptureService.RetryDelay(2, first, max));
+        Assert.Equal(TimeSpan.FromSeconds(40), NpcapCaptureService.RetryDelay(4, first, max));
+        Assert.Equal(max, NpcapCaptureService.RetryDelay(5, first, max));
+        Assert.Equal(max, NpcapCaptureService.RetryDelay(1000, first, max));
+        Assert.Equal(TimeSpan.Zero, NpcapCaptureService.RetryDelay(3, TimeSpan.Zero, max));
     }
 }
 

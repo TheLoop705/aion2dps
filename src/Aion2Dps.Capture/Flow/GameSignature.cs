@@ -14,8 +14,15 @@ public static class GameSignature
 
     private static ReadOnlySpan<byte> Opcode0036 => [0x00, 0x36];
 
-    /// <summary>Counts heartbeat frames (<c>0E 00 36</c> + 8 bytes, or legacy <c>06 00 36</c>) in one TCP payload.</summary>
-    public static int CountHeartbeats(ReadOnlySpan<byte> payload)
+    /// <summary>Plausible heartbeat server clock (Unix ms, PROTOCOL.md §8.1): 2020-01-01 ...</summary>
+    public const ulong MinServerClockMs = 1_577_836_800_000UL;
+    /// <summary>... up to 2100-01-01 (the protocol's "never").</summary>
+    public const ulong MaxServerClockMs = 4_102_444_800_000UL;
+
+    /// <summary>Counts heartbeat frames (<c>0E 00 36</c> + 8 bytes, or legacy <c>06 00 36</c>) in one TCP payload.
+    /// With <paramref name="requireServerClock"/> only <c>0E 00 36</c> frames whose 8-byte body is a plausible Unix-ms
+    /// server clock count (a strong check for flows off the game port; legacy heartbeats carry no clock).</summary>
+    public static int CountHeartbeats(ReadOnlySpan<byte> payload, bool requireServerClock = false)
     {
         int count = 0;
         int i = 1;
@@ -27,11 +34,21 @@ public static class GameSignature
             byte lead = payload[p - 1];
             if (lead == 0x0E && p + 2 + 8 <= payload.Length)
             {
+                if (requireServerClock)
+                {
+                    ulong clock = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(payload.Slice(p + 2, 8));
+                    if (clock is < MinServerClockMs or > MaxServerClockMs)
+                    {
+                        i = p + 1;
+                        continue;
+                    }
+                }
+
                 count++;
                 i = p + 10;
                 continue;
             }
-            if (lead == 0x06)
+            if (lead == 0x06 && !requireServerClock)
             {
                 count++;
                 i = p + 2;

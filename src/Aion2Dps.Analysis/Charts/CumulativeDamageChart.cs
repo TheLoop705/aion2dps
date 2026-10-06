@@ -38,8 +38,15 @@ public sealed class CumulativeDamageChart : ChartBase
         InvalidateVisual();
     }
 
-    public void SetEncounter(EncounterRecord record) =>
-        SetSeries(ChartData.CumulativeSeries(record), record.BossMaxHp, ChartData.KillTime(record));
+    public void SetEncounter(EncounterRecord record)
+    {
+        // Multi-boss fight: the reference line is the bosses' combined max HP (all of it must go for a full clear).
+        _multiBoss = ChartData.IsMultiBoss(record) && record.Bosses.All(b => b.MaxHp is > 0);
+        long? max = _multiBoss ? record.Bosses.Sum(b => b.MaxHp!.Value) : record.BossMaxHp;
+        SetSeries(ChartData.CumulativeSeries(record), max, ChartData.KillTime(record));
+    }
+
+    private bool _multiBoss;
 
     protected override void OnRender(DrawingContext dc)
     {
@@ -108,7 +115,7 @@ public sealed class CumulativeDamageChart : ChartBase
         {
             double y = Math.Round(Y(hp)) + 0.5;
             dc.DrawLine(MakePen(TextBrush, 1.4, [6, 4]), new Point(plot.Left, y), new Point(plot.Right, y));
-            string label = "Boss HP " + Fmt.Number(hp) + (_killTime is { } k2 ? " · down at " + Fmt.Duration(k2) : "");
+            string label = (_multiBoss ? "Bosses' HP " : "Boss HP ") + Fmt.Number(hp) + (_killTime is { } k2 ? " · down at " + Fmt.Duration(k2) : "");
             var ft = Text(label, BaseFontSize * 0.85, TextBrush, FontWeights.SemiBold);
             var bg = new Rect(plot.Left + 6, y - ft.Height - 3, ft.Width + 8, ft.Height + 2);
             dc.DrawRoundedRectangle(Fade(SurfaceBrush, 0.85), null, bg, 3, 3);
@@ -129,7 +136,7 @@ public sealed class CumulativeDamageChart : ChartBase
                     $"{Fmt.Number(v)}  {Fmt.Percent(sum > 0 ? (double)v / sum : null, 0)}"));
             }
             rows.Add(new TooltipLine(null, "Party total", Fmt.Number(sum), true));
-            if (_bossMaxHp is { } mh) rows.Add(new TooltipLine(null, "Boss HP removed", Fmt.Percent(Math.Min(1, (double)sum / mh)), false));
+            if (_bossMaxHp is { } mh) rows.Add(new TooltipLine(null, _multiBoss ? "Bosses' HP removed" : "Boss HP removed", Fmt.Percent(Math.Min(1, (double)sum / mh)), false));
             DrawTooltip(dc, new Point(x, p.Y), Fmt.Duration(idx) + " · cumulative damage", rows);
         }
     }

@@ -51,6 +51,17 @@ public sealed class EncounterRecord
 
     public HpCheckResult? HpCheck { get; set; }
 
+    /// <summary>
+    /// Every boss of the encounter in engagement order. Bosses fought at the same time (overlapping damage windows) share
+    /// one encounter; bosses fought one after another get one encounter each. The primary boss (largest max HP, ties →
+    /// first engaged) is the one mirrored by <see cref="BossNpcCode"/>, <see cref="BossMaxHp"/>, <see cref="BossHpTimeline"/>
+    /// and <see cref="HpCheck"/>. Empty for trash/PvP fights and for records saved before multi-boss support.
+    /// </summary>
+    public List<BossResult> Bosses { get; set; } = new();
+
+    /// <summary>HP check summed over all bosses of the encounter (equals <see cref="HpCheck"/> for a single boss).</summary>
+    public HpCheckResult? OverallHpCheck { get; set; }
+
     /// <summary>True when the capture had TCP gaps or resyncs during the fight (numbers may be incomplete).</summary>
     public bool CaptureGaps { get; set; }
 
@@ -75,11 +86,14 @@ public sealed class CombatantRecord
     public long Damage { get; set; }
     /// <summary>Damage dealt to the primary boss only.</summary>
     public long BossDamage { get; set; }
+    /// <summary>Damage dealt to all bosses of the encounter (equals <see cref="BossDamage"/> for a single boss).</summary>
+    public long AllBossesDamage { get; set; }
     /// <summary>Damage / encounter DurationSeconds (the comparable "whole fight" DPS).</summary>
     public double Dps { get; set; }
     /// <summary>Damage / (own last hit − own first hit), min 1 s.</summary>
     public double ActiveDps { get; set; }
-    /// <summary>0..1: share of the boss's max HP removed by this player; falls back to share of party damage.</summary>
+    /// <summary>0..1: share of the bosses' max HP removed by this player (damage to the encounter's bosses / sum of their
+    /// max HP); falls back to share of party damage.</summary>
     public double Contribution { get; set; }
     /// <summary>0..1: share of party damage.</summary>
     public double DamageShare { get; set; }
@@ -239,6 +253,48 @@ public sealed class HitRecord
 
 public readonly record struct HpSample(float T, long Hp);
 
+/// <summary>One boss of a (possibly multi-boss) encounter.</summary>
+public sealed class BossResult
+{
+    public uint? NpcCode { get; set; }
+    public uint EntityId { get; set; }
+    /// <summary>True for the encounter's primary boss (largest max HP, ties → first engaged).</summary>
+    public bool IsPrimary { get; set; }
+    public long? MaxHp { get; set; }
+    /// <summary>Max HP came from the game (spawn, stat kind 7 or HP update) and the boss was near full HP when engaged.</summary>
+    public bool MaxHpTrusted { get; set; }
+    public long? HpStart { get; set; }
+    public long? HpEnd { get; set; }
+    public bool Killed { get; set; }
+    /// <summary>Seconds from <see cref="EncounterRecord.StartUtc"/> to the death (null when not killed).</summary>
+    public double? KillTimeSeconds { get; set; }
+    /// <summary>Seconds from <see cref="EncounterRecord.StartUtc"/> to the boss's first counted hit.</summary>
+    public double EngagedSeconds { get; set; }
+    /// <summary>Seconds from <see cref="EncounterRecord.StartUtc"/> to the boss's last counted hit.</summary>
+    public double? LastHitSeconds { get; set; }
+    /// <summary>Times this boss returned to full HP (reset) during the encounter.</summary>
+    public int Resets { get; set; }
+    /// <summary>How many times this boss reset before this attempt.</summary>
+    public int ResetCountBefore { get; set; }
+    public long DamageTaken { get; set; }
+    public long SelfHealing { get; set; }
+    /// <summary>Boss HP over time (seconds from StartUtc).</summary>
+    public List<HpSample> HpTimeline { get; set; } = new();
+    public HpCheckResult? HpCheck { get; set; }
+    /// <summary>Counted damage to this boss per friendly combatant, highest first.</summary>
+    public List<BossDamageShare> DamageByCombatant { get; set; } = new();
+}
+
+/// <summary>One combatant's damage to one boss.</summary>
+public sealed class BossDamageShare
+{
+    /// <summary><see cref="CombatantRecord.EntityId"/> of the combatant.</summary>
+    public uint EntityId { get; set; }
+    public long Damage { get; set; }
+    /// <summary>0..1: Damage / boss max HP; null when the max HP is not trusted.</summary>
+    public double? Contribution { get; set; }
+}
+
 /// <summary>Self-test: does decoded damage explain the boss's HP loss? (PROTOCOL.md §11.4)</summary>
 public sealed class HpCheckResult
 {
@@ -249,5 +305,7 @@ public sealed class HpCheckResult
     public double Ratio { get; set; }
     /// <summary>|Ratio − 1| ≤ 0.01.</summary>
     public bool Passed { get; set; }
+    /// <summary>Damage beyond the remaining HP in the killing window (simultaneous last hits); excluded from the ratio.</summary>
+    public long Overkill { get; set; }
     public string? Note { get; set; }
 }

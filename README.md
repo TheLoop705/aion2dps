@@ -21,6 +21,7 @@ you use the Character page.
   ctrl+click two rows to compare players side by side.
 * **History**: every boss kill and wipe is saved to a local SQLite database (`%APPDATA%\Aion2Dps\history.db`) with
   the full encounter (every hit), grouped by instance and boss, with a full report per fight.
+  Simultaneous bosses share an encounter with separate HP checks and damage breakdowns for each boss.
 * **Trends**: best / median / last DPS and fastest kill per boss, with a per-fight DPS chart.
 * **Character**: your character as detected from login data, plus lookup of any character's gear, stats and
   daevanion boards through the official AION 2 site (Global, Korea, Taiwan).
@@ -93,8 +94,8 @@ Settings, logs and the fight history live in `%APPDATA%\Aion2Dps`; recordings go
 | `replay <file> [--speed N] [--json out.json]` | Decodes a `.pcap` / `.pcapng` / hex log through flow detection, TCP reassembly, the protocol decoder and the combat engine; prints every completed encounter (kind, boss, outcome, duration, per-player damage / DPS / share / crit / healing / damage taken, HP check) and optionally writes the full encounter records as JSON |
 | `census <file>` | Opcode census (count, bytes, decoded, failed per opcode) and decoder statistics (resyncs, bundle errors, decode errors, recent errors with hex) |
 | `simulate <scenario> --out file.pcap [--seed N]` | Writes a simulator scenario (`BossKill`, `BossWipeThenKill`, `TrashPull`, `PvpSkirmish`, `TrainingDummy`) as a pcap with handshake, client packets and a TLS decoy flow |
-| `selftest [--seeds N]` | Runs every scenario through the full pipeline twice (in-memory stream and pcap replay) plus a storage round trip, compares with the exact ground truth; exit code 0 = pass, 1 = fail |
-| `live [--seconds N] [--adapter NAME] [--record file.pcapng]` | Live capture; prints capture status and the meter every second (exit code 2 with install instructions when Npcap is missing) |
+| `selftest [--seeds N]` | Runs every scenario through an in-memory stream, single-flow pcap and concurrent world/instance pcap, plus a storage round trip; compares with exact ground truth; exit code 0 = pass, 1 = fail |
+| `live [--seconds N] [--adapter NAME] [--record file.pcapng] [--stop-file path] [--json out.json]` | Live capture of world and instance connections; prints the meter every second. Creating the stop file stops capture gracefully; JSON exports completed encounters (exit code 2 with install instructions when Npcap is missing) |
 | `adapters` | Lists Npcap capture adapters |
 | `locate` | Shows the AION 2 processes, their game connections and the adapter that would be used |
 

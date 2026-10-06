@@ -7,6 +7,9 @@ public sealed partial class PacketDecoder
 {
     private const int MaxChainedRecords = 64;
 
+    /// <summary>Largest accepted count of an absorb block (§8.2 #14b, real frames carry 1).</summary>
+    private const int MaxAbsorbEntries = 8;
+
     /// <summary>
     /// <c>04 38</c> damage / heal / cast notice (§8.2). The first record is decoded leniently (flagged by
     /// <see cref="DamageEvent.EffectValidated"/>); further chained records must pass every §8.2.3 validator.
@@ -26,8 +29,12 @@ public sealed partial class PacketDecoder
                 break;
             }
 
-            Emit(ev!);
-            _diag.IncrementDamageRecords();
+            if (ev is not null)
+            {
+                Emit(ev);
+                _diag.IncrementDamageRecords();
+            }
+
             records++;
             if (r.IsAtEnd || !ChainDamageRecords || records >= MaxChainedRecords) break;
         }
@@ -36,25 +43,34 @@ public sealed partial class PacketDecoder
         return true;
     }
 
-    /// <summary>Parses one damage record (§8.2.1). In strict mode every validator of §8.2.3 must pass.</summary>
-    private bool TryParseDamageRecord(ref SpanReader r, bool strict, out DamageEvent? ev, out string? why)
+    /// <summary>
+    /// Parses one damage record (§8.2.1). In strict mode every validator of §8.2.3 must pass. Returns true with
+    /// <paramref name="ev"/> = null for a well-formed record that is deliberately not emitted (the 500,000,000
+    /// self-targeted "restore to full HP" placeholder sent when an instanced NPC's max HP is scaled, LIVE-FINDINGS).
+    /// </summary>
+    private bool TryParseDamageRecord(ref SpanReader r, bool strict, out DamageEvent? ev, out string? why, bool probe = false)
     {
         ev = null;
         why = null;
         if (!r.TryReadVarUInt(out uint target)) { why = "truncated target"; return false; }
         if (!r.TryReadVarUInt(out uint sw)) { why = "truncated switch"; return false; }
         byte layout = (byte)(sw & 0x0F);
-        if (layout is not (0 or 4 or 5 or 6 or 7)) { why = $"unknown layout {layout} (sw 0x{sw:X2})"; return false; }
-        if (strict && (sw & ~0x3Fu) != 0) { why = "unknown switch bits"; return false; }
-        if (!r.TryReadVarUInt(out _)) { why = "truncated flag"; return false; }
+        // Layout 2 (mods/dir block, no amount) is real on Global: an evaded NPC hit (dmg_type 1).
+        if (layout is not (0 or 2 or 4 or 5 or 6 or 7)) { why = $"unknown layout {layout} (sw 0x{sw:X2})"; return false; }
+        if (strict && (sw & ~0x7Fu) != 0) { why = "unknown switch bits"; return false; }
+        if (!r.TryReadVarUInt(out uint flag)) { why = "truncated flag"; return false; }
         if (!r.TryReadVarUInt(out uint actor)) { why = "truncated actor"; return false; }
+        // The first record can be lenient about unverified effects, but impossible entity ids must never enter
+        // combat state. Apply the same documented id range to the first record and chained records.
+        if (target is 0 or > MaxEntityId || actor is 0 or > MaxEntityId) { why = "entity out of range"; return false; }
         if (!r.TryReadU32(out uint skillRaw)) { why = "truncated skill"; return false; }
         if (!r.TryReadU8(out byte hitTag) || !r.TryReadU8(out byte dmgType)) { why = "truncated hit tag/type"; return false; }
 
         byte mods = 0, dir = 0;
         if ((layout & 0x02) != 0)
         {
-            if (!r.TryReadU8(out mods) || !r.TrySkip(1) || !r.TryReadU8(out dir)) { why = "truncated mods/dir"; return false; }
+            // mods u8, a varint (0 except with mods 0x20, where it carries a value), dir u8.
+            if (!r.TryReadU8(out mods) || !r.TryReadVarUInt(out _) || !r.TryReadU8(out dir)) { why = "truncated mods/dir"; return false; }
         }
 
         if ((layout & 0x01) != 0)
@@ -70,6 +86,7 @@ public sealed partial class PacketDecoder
 
         long? amount = null;
         uint[]? extras = null;
+        bool placeholder = false;
         if ((layout & 0x04) != 0)
         {
             if (!r.TryReadVarUInt(out uint a)) { why = "truncated amount"; return false; }
@@ -90,16 +107,35 @@ public sealed partial class PacketDecoder
                 if (sum >= a) { why = $"extra hits {sum} not below amount {a}"; return false; }
             }
 
-            if (a > AmountCap) { why = $"amount {a} above cap"; return false; }
+            if (a > AmountCap)
+            {
+                // Real instanced NPCs send actor == target, skills 1000030..1000034, amount 500,000,000 right after a
+                // max-HP increase (00 8D kind 7): the HP is set to the new max. Not damage, not a heal worth showing.
+                if (actor != target) { why = $"amount {a} above cap"; return false; }
+                placeholder = true;
+            }
         }
 
-        // Trailer: hit_index (low byte), 00 (§8.2 #15). Only consumed when it matches.
+        // Absorb/negation block: sw 0x40 (on damage records) or flag 0x01 (on dmg_type 6 notices): a count varint and
+        // that many u32 effect ids of the target's buff that absorbed or negated the hit.
+        if ((sw & 0x40) != 0 || (flag & 0x01) != 0)
+        {
+            if (!TrySkipAbsorbBlock(ref r)) { why = "bad absorb block"; return false; }
+        }
+
+        // Trailer: u8 sequence, 00 (§8.2 #15). The sequence equals hit_index for single-target player hits; NPC area
+        // hits carry a per-cast target counter instead. With flag 0x04 a varint follows the trailer (Assassin and
+        // Gladiator hits; it grows with the amount, meaning unknown). Consumed when it matches hit_index or when the
+        // trailer (plus that varint) ends the frame exactly, or a strictly validated next record follows it.
+        // Lookahead reads only the next record's fields: it does not emit events, count placeholders or recurse.
         bool trailer = false;
         var rest = r.RemainingSpan;
-        if (rest.Length >= 2 && rest[0] == (byte)hitIndex && rest[1] == 0)
+        if (!probe && rest.Length >= 2 && rest[1] == 0 &&
+            (rest[0] == (byte)hitIndex || EndsAfterTrailer(rest[2..], flag) || ValidRecordAfterTrailer(rest[2..], flag)))
         {
             r.TrySkip(2);
             trailer = true;
+            if ((flag & 0x04) != 0 && !r.TryReadVarUInt(out _)) { why = "truncated flag-4 tail"; return false; }
         }
 
         uint skillId = SkillIds.Normalize(skillRaw);
@@ -109,8 +145,15 @@ public sealed partial class PacketDecoder
         {
             if (!effectOk) { why = "chained record: effect check failed"; return false; }
             if (scalar != 0 && scalar is < 1000 or > 200_000) { why = "chained record: power scalar out of range"; return false; }
-            if (!trailer && !r.IsAtEnd) { why = "chained record: no trailer"; return false; }
-            if (target is 0 or > MaxEntityId || actor is 0 or > MaxEntityId) { why = "chained record: entity out of range"; return false; }
+            if (!probe && !trailer && !r.IsAtEnd) { why = "chained record: no trailer"; return false; }
+        }
+
+        if (probe) return true;
+
+        if (placeholder)
+        {
+            _diag.IncrementDamagePlaceholders();
+            return true;
         }
 
         ev = new DamageEvent
@@ -135,6 +178,36 @@ public sealed partial class PacketDecoder
             EffectValidated = effectOk,
         };
         return true;
+    }
+
+    /// <summary>True when the bytes after a trailer are exactly what the record still owns: nothing, or (flag 0x04)
+    /// one varint.</summary>
+    private static bool EndsAfterTrailer(ReadOnlySpan<byte> after, uint flag)
+    {
+        if ((flag & 0x04) == 0) return after.IsEmpty;
+        return VarInt.TryRead(after, out _, out int width) == VarIntStatus.Ok && width == after.Length;
+    }
+
+    /// <summary>A differing area-hit trailer is accepted before another record only when its fields validate.</summary>
+    private bool ValidRecordAfterTrailer(ReadOnlySpan<byte> after, uint flag)
+    {
+        if ((flag & 0x04) != 0)
+        {
+            if (VarInt.TryRead(after, out _, out int width) != VarIntStatus.Ok) return false;
+            after = after[width..];
+        }
+
+        if (after.IsEmpty) return false;
+        var candidate = new SpanReader(after);
+        return TryParseDamageRecord(ref candidate, strict: true, out _, out _, probe: true);
+    }
+
+    /// <summary>Absorb block (<c>04 38</c> sw 0x40 / flag 0x01, <c>05 38</c> flag 0x04): count varint (1..8), then
+    /// count × u32 effect id.</summary>
+    private static bool TrySkipAbsorbBlock(ref SpanReader r)
+    {
+        if (!r.TryReadVarUInt(out uint n) || n is < 1 or > MaxAbsorbEntries) return false;
+        return r.TrySkip((int)n * 4);
     }
 
     /// <summary>Offset (0..8) of a u32 that passes the effect check against <paramref name="skill"/>, preferring the

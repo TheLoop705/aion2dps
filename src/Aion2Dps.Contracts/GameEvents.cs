@@ -54,7 +54,7 @@ public sealed record DamageEvent : GameEvent
 public sealed record DotEvent : GameEvent
 {
     public uint Target { get; init; }
-    /// <summary>0x02 amount present, 0x01 heal present, 0x08 skill present.</summary>
+    /// <summary>0x02 amount present, 0x01 heal present, 0x08 trigger skill present, 0x40 effect skill present.</summary>
     public byte Flags { get; init; }
     public uint Actor { get; init; }
     public uint Stack { get; init; }
@@ -63,7 +63,7 @@ public sealed record DotEvent : GameEvent
     public long? Amount { get; init; }
     /// <summary>Heal of this tick (flags 0x0B) or HoT total announcement (0x09).</summary>
     public long? Heal { get; init; }
-    /// <summary>Exact source skill when flags &amp; 0x08.</summary>
+    /// <summary>Exact skill from flag 0x08, overridden by the effect skill when flag 0x40 is present.</summary>
     public uint? SkillId { get; init; }
 
     public bool IsDamageTick => (Flags & 0x02) != 0 && (Flags & 0x01) == 0;

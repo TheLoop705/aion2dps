@@ -106,5 +106,6 @@ public sealed class WindowBounds
     public double Top { get; set; }
     public double Width { get; set; }
     public double Height { get; set; }
-    [JsonIgnore] public bool IsValid => Width >= 200 && Height >= 200 && double.IsFinite(Left) && double.IsFinite(Top);
+    [JsonIgnore] public bool IsValid => Width >= 200 && Height >= 200 && double.IsFinite(Width) &&
+                                       double.IsFinite(Height) && double.IsFinite(Left) && double.IsFinite(Top);
 }

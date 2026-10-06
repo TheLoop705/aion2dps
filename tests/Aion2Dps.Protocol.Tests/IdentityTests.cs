@@ -279,12 +279,22 @@ public class SmallRecordTests
         Assert.Equal(3564u, b.Caster);
         Assert.Equal(18120030u, b.SourceSkill);
 
-        var b2 = Run.Single<BuffAppliedEvent>("2b38f81b011335ade5cc0ae02e00000000000065a020f4a0010000ec1b0c5e7d1401");
-        Assert.Equal(181200301u, b2.BuffId);
+        // Real 2B 38 (Global, 2026-10-06): no count byte, the entry starts right after the target.
+        var b2 = Run.Single<BuffAppliedEvent>("2b38BF2E13B9114F93D70A60090000000000007D38BC12A1010000BF2E06BB8E150102BFDC1F48A1D578474F0EE645");
+        Assert.Equal(5951u, b2.Target);
+        Assert.Equal(2233u, b2.Stack);
+        Assert.Equal(181900111u, b2.BuffId);
+        Assert.Equal(2400u, b2.DurationMs);
+        Assert.Equal(18190011u, b2.SourceSkill);
 
         var r = Run.Single<BuffRemovedEvent>("0e92f81b01ade5cc0a");
         Assert.Equal(3576u, r.Target);
         Assert.Equal(181200301u, r.BuffId);
+
+        // The old "skip 2 bytes" reading of 2B 38 would misalign; a 2A 38-shaped body under 2B 38 must not decode.
+        var (wrong, diag) = Run.Payload("2b38f81b011335ade5cc0ae02e00000000000065a020f4a0010000ec1b0c5e7d1401004f576fc60aa7724600c02144");
+        Assert.Empty(wrong);
+        Assert.Equal(1, diag.DecodeErrors);
     }
 
     [Fact]

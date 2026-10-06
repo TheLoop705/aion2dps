@@ -7,8 +7,10 @@ internal enum MaxHpSource : byte
     None,
     /// <summary><c>41 36</c> spawn hp_max (§11.2 #1, preferred).</summary>
     Spawn,
-    /// <summary><c>1B 92</c> hp_max (§11.2 #2).</summary>
+    /// <summary><c>1B 92</c> hp_max (§11.2 #2). Overrides the spawn value (the spawn carries the solo/base max).</summary>
     HpUpdate,
+    /// <summary><c>00 8D</c> 8-byte stat kind 7 (LIVE-FINDINGS NEW 2): the party-scaled max HP. Highest priority.</summary>
+    StatMax,
     /// <summary>Highest current HP seen: a lower bound only (§11.2 #3). Never "trusted" for contribution.</summary>
     HighestSeen,
 }
@@ -22,6 +24,8 @@ internal enum OwnerSource : byte
     CastLink,
     PowerScalar,
     OnlyElementalist,
+    /// <summary>Orphan skill entity using a class skill: the party's only player of that class.</summary>
+    OnlyOfClass,
 }
 
 internal abstract class Entity
@@ -111,6 +115,12 @@ internal class NpcEntity : Entity
     /// <summary>Lowest HP fraction since the last full-HP state (wipe detection, §11.3).</summary>
     public double MinFraction = 1.0;
     public DateTime SpawnTime;
+    /// <summary>Healing recorded for this NPC since its last HP reading (explains an HP rise that is not a reset).</summary>
+    public long SelfHealSinceReading;
+    /// <summary>Capture time of the last friendly damage this NPC took.</summary>
+    public DateTime? LastDamagedAt;
+    /// <summary>Created from a hit on an id we never saw spawn (no <c>41 36</c>): may really be a player.</summary>
+    public bool Inferred;
 
     public virtual bool IsSummon => false;
 }

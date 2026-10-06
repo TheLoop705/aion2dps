@@ -53,6 +53,7 @@ public class ConcurrencyAndPerformanceTests
                 Time = t, Actor = actor, Target = target, SkillRaw = skill, SkillId = skill, Layout = 6, Switch = 6,
                 DamageType = (byte)(rng.Next(4) == 0 ? 3 : 2), Mods = rng.Next(5) == 0 ? HitMods.Perfect : HitMods.None,
                 Direction = (HitDirection)rng.Next(3), HitTag = (byte)i, HitIndex = 1, PowerScalar = 10_000 + (uint)p, Amount = amount,
+                EffectId = skill * 100 + 11, EffectValidated = true,
             });
         }
         return (s, events, bossDamage);
@@ -76,7 +77,8 @@ public class ConcurrencyAndPerformanceTests
         {
             try
             {
-                while (!done.IsSet)
+                // do/while: on a loaded machine the producer can finish before this thread is scheduled.
+                do
                 {
                     var snap = s.Engine.GetSnapshot(Script.At(10));
                     _ = snap.Rows.Sum(r => r.Damage);
@@ -84,7 +86,7 @@ public class ConcurrencyAndPerformanceTests
                     if (snapshots % 7 == 0) s.Engine.CycleTarget(1);
                     if (snapshots % 13 == 0) s.Engine.Mode = snapshots % 2 == 0 ? MeterMode.AllTargets : MeterMode.BossOnly;
                     snapshots++;
-                }
+                } while (!done.IsSet);
             }
             catch (Exception ex) { lock (errors) errors.Add(ex); }
         });

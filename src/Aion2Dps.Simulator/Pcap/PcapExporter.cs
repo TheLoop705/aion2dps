@@ -23,6 +23,27 @@ public sealed record PcapExportOptions
     public int Seed { get; init; } = 7;
 }
 
+/// <summary>One TCP connection of a multi-flow capture (see <see cref="PcapExporter.WriteFlows"/>).</summary>
+public sealed record PcapFlowSpec
+{
+    /// <summary>Server→client payloads in order (timestamps = capture times).</summary>
+    public required IReadOnlyList<StreamChunk> Chunks { get; init; }
+    public IPAddress ServerIp { get; init; } = IPAddress.Parse("193.202.112.47");
+    public IPAddress ClientIp { get; init; } = IPAddress.Parse("192.168.1.50");
+    public ushort ServerPort { get; init; } = 13328;
+    public ushort ClientPort { get; init; } = 62311;
+    public uint ServerInitialSeq { get; init; } = 0x3A1F_0000;
+    public uint ClientInitialSeq { get; init; } = 0x7B20_0000;
+    /// <summary>Write the SYN / SYN-ACK / ACK handshake before the data.</summary>
+    public bool IncludeHandshake { get; init; } = true;
+    /// <summary>Time of the SYN (default: 80 ms before the first chunk).</summary>
+    public DateTime? OpenAtUtc { get; init; }
+    /// <summary>Seconds between small client→server packets (0 = none).</summary>
+    public double ClientPacketIntervalSeconds { get; init; } = 3.0;
+    /// <summary>When set, the connection is closed with a FIN exchange at this time (not before the last chunk).</summary>
+    public DateTime? CloseAtUtc { get; init; }
+}
+
 /// <summary>
 /// Writes a server→client stream as a classic libpcap file (magic A1B2C3D4, µs timestamps, Ethernet II / IPv4 / TCP)
 /// with correct sequence/ack numbers and checksums, plus a few client→server packets and a TLS decoy flow,
@@ -52,59 +73,51 @@ public static class PcapExporter
     public static void Write(Stream output, IReadOnlyList<StreamChunk> chunks, PcapExportOptions? options = null)
     {
         var o = options ?? new PcapExportOptions();
+        var flow = new PcapFlowSpec
+        {
+            Chunks = chunks,
+            ServerIp = o.ServerIp,
+            ClientIp = o.ClientIp,
+            ServerPort = o.ServerPort,
+            ClientPort = o.ClientPort,
+            ServerInitialSeq = o.ServerInitialSeq,
+            ClientInitialSeq = o.ClientInitialSeq,
+            IncludeHandshake = o.IncludeHandshake,
+            ClientPacketIntervalSeconds = o.ClientPacketIntervalSeconds,
+        };
+        WriteFlows(output, [flow], o);
+    }
+
+    /// <summary>
+    /// Writes several concurrent TCP connections into one pcap stream, interleaved by timestamp (for equal timestamps,
+    /// flows listed first come first). Each flow has its own handshake, sequence numbers, client packets and optional FIN
+    /// exchange. <paramref name="options"/> supplies the TLS decoy flow and the random seed; its single-flow addresses
+    /// are not used here.
+    /// </summary>
+    public static void WriteFlows(Stream output, IReadOnlyList<PcapFlowSpec> flows, PcapExportOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(flows);
+        var o = options ?? new PcapExportOptions();
         var rng = new Random(o.Seed);
         var packets = new List<Packet>();
         int order = 0;
-        DateTime first = chunks.Count > 0 ? chunks[0].TimeUtc : DateTime.UtcNow;
-        DateTime lastTime = chunks.Count > 0 ? chunks[^1].TimeUtc : first;
+        DateTime? first = null, last = null;
+        foreach (var f in flows)
+        {
+            if (f.Chunks.Count == 0) continue;
+            if (first is null || f.Chunks[0].TimeUtc < first) first = f.Chunks[0].TimeUtc;
+            if (last is null || f.Chunks[^1].TimeUtc > last) last = f.Chunks[^1].TimeUtc;
+        }
 
-        uint sSeq = o.ServerInitialSeq, cSeq = o.ClientInitialSeq;
+        first ??= DateTime.UtcNow;
+        last ??= first;
         ushort ipId = 0x1200;
-        const byte Syn = 0x02, Ack = 0x10, Psh = 0x08;
-
-        byte[] Server(byte flags, ReadOnlySpan<byte> payload) =>
-            BuildPacket(ServerMac, ClientMac, o.ServerIp, o.ClientIp, o.ServerPort, o.ClientPort, sSeq, cSeq, flags, ipId++, 115, payload);
-        byte[] Client(byte flags, ReadOnlySpan<byte> payload) =>
-            BuildPacket(ClientMac, ServerMac, o.ClientIp, o.ServerIp, o.ClientPort, o.ServerPort, cSeq, sSeq, flags, ipId++, 128, payload);
-
-        if (o.IncludeHandshake)
+        foreach (var f in flows) AddFlow(packets, ref order, ref ipId, f, rng);
+        if (o.IncludeTlsDecoy)
         {
-            var t0 = first.AddMilliseconds(-80);
-            packets.Add(new Packet(t0, order++, Client(Syn, default)));
-            cSeq++;
-            packets.Add(new Packet(t0.AddMilliseconds(30), order++, Server(Syn | Ack, default)));
-            sSeq++;
-            packets.Add(new Packet(t0.AddMilliseconds(31), order++, Client(Ack, default)));
+            var decoyClient = flows.Count > 0 ? flows[0].ClientIp : o.ClientIp;
+            AddTlsDecoy(packets, ref order, o with { ClientIp = decoyClient }, rng, first.Value, last.Value);
         }
-        else
-        {
-            sSeq++;
-            cSeq++;
-        }
-
-        double nextClient = o.ClientPacketIntervalSeconds > 0 ? 0.5 : double.MaxValue;
-        foreach (var chunk in chunks)
-        {
-            double offset = (chunk.TimeUtc - first).TotalSeconds;
-            while (offset >= nextClient)
-            {
-                var payload = new byte[13];
-                rng.NextBytes(payload);
-                payload[0] = 0x11; // looks like a framed client record
-                packets.Add(new Packet(first.AddSeconds(nextClient), order++, Client(Psh | Ack, payload)));
-                cSeq += (uint)payload.Length;
-                nextClient += o.ClientPacketIntervalSeconds;
-            }
-
-            for (int pos = 0; pos < chunk.Data.Length; pos += MaxTcpPayload)
-            {
-                var part = chunk.Data.AsSpan(pos, Math.Min(MaxTcpPayload, chunk.Data.Length - pos));
-                packets.Add(new Packet(chunk.TimeUtc, order++, Server(Psh | Ack, part)));
-                sSeq += (uint)part.Length;
-            }
-        }
-
-        if (o.IncludeTlsDecoy) AddTlsDecoy(packets, ref order, o, rng, first, lastTime);
 
         packets.Sort((a, b) => a.Time != b.Time ? a.Time.CompareTo(b.Time) : a.Order.CompareTo(b.Order));
 
@@ -129,6 +142,71 @@ public static class PcapExporter
             output.Write(rec);
             output.Write(p.Bytes);
         }
+    }
+
+    private static void AddFlow(List<Packet> packets, ref int order, ref ushort ipId, PcapFlowSpec f, Random rng)
+    {
+        var chunks = f.Chunks;
+        if (chunks.Count == 0) return;
+        DateTime first = chunks[0].TimeUtc;
+        uint sSeq = f.ServerInitialSeq, cSeq = f.ClientInitialSeq;
+        ushort id = ipId;
+        const byte Fin = 0x01, Syn = 0x02, Ack = 0x10, Psh = 0x08;
+
+        byte[] Server(byte flags, ReadOnlySpan<byte> payload) =>
+            BuildPacket(ServerMac, ClientMac, f.ServerIp, f.ClientIp, f.ServerPort, f.ClientPort, sSeq, cSeq, flags, id++, 115, payload);
+        byte[] Client(byte flags, ReadOnlySpan<byte> payload) =>
+            BuildPacket(ClientMac, ServerMac, f.ClientIp, f.ServerIp, f.ClientPort, f.ServerPort, cSeq, sSeq, flags, id++, 128, payload);
+
+        if (f.IncludeHandshake)
+        {
+            var t0 = f.OpenAtUtc ?? first.AddMilliseconds(-80);
+            packets.Add(new Packet(t0, order++, Client(Syn, default)));
+            cSeq++;
+            packets.Add(new Packet(t0.AddMilliseconds(30), order++, Server(Syn | Ack, default)));
+            sSeq++;
+            packets.Add(new Packet(t0.AddMilliseconds(31), order++, Client(Ack, default)));
+        }
+        else
+        {
+            sSeq++;
+            cSeq++;
+        }
+
+        double nextClient = f.ClientPacketIntervalSeconds > 0 ? 0.5 : double.MaxValue;
+        foreach (var chunk in chunks)
+        {
+            double offset = (chunk.TimeUtc - first).TotalSeconds;
+            while (offset >= nextClient)
+            {
+                var payload = new byte[13];
+                rng.NextBytes(payload);
+                payload[0] = 0x11; // looks like a framed client record
+                packets.Add(new Packet(first.AddSeconds(nextClient), order++, Client(Psh | Ack, payload)));
+                cSeq += (uint)payload.Length;
+                nextClient += f.ClientPacketIntervalSeconds;
+            }
+
+            for (int pos = 0; pos < chunk.Data.Length; pos += MaxTcpPayload)
+            {
+                var part = chunk.Data.AsSpan(pos, Math.Min(MaxTcpPayload, chunk.Data.Length - pos));
+                packets.Add(new Packet(chunk.TimeUtc, order++, Server(Psh | Ack, part)));
+                sSeq += (uint)part.Length;
+            }
+        }
+
+        if (f.CloseAtUtc is { } close)
+        {
+            // Orderly close: the server sends FIN, the client answers with FIN, the server ACKs.
+            if (close < chunks[^1].TimeUtc) close = chunks[^1].TimeUtc;
+            packets.Add(new Packet(close, order++, Server(Fin | Ack, default)));
+            sSeq++;
+            packets.Add(new Packet(close.AddMilliseconds(1), order++, Client(Fin | Ack, default)));
+            cSeq++;
+            packets.Add(new Packet(close.AddMilliseconds(30), order++, Server(Ack, default)));
+        }
+
+        ipId = id;
     }
 
     private static void AddTlsDecoy(List<Packet> packets, ref int order, PcapExportOptions o, Random rng, DateTime first, DateTime last)

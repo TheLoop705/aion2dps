@@ -20,5 +20,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\data\**\*" LinkBase="data" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="RealVectors\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

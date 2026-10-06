@@ -83,9 +83,18 @@ public static class ChartData
     public static string MapLabel(IGameData gameData, uint mapId) =>
         gameData.GetMapName(mapId) ?? (gameData.IsInstanceMap(mapId) ? $"Dungeon {mapId}" : $"Open world ({mapId})");
 
-    /// <summary>Boss display name (NPC table), or a fallback by kind.</summary>
+    /// <summary>True when several bosses were fought at the same time in this encounter.</summary>
+    public static bool IsMultiBoss(EncounterRecord record) => record.Bosses.Count >= 2;
+
+    /// <summary>Display name of one boss of the encounter.</summary>
+    public static string BossName(BossResult boss, IGameData gameData) =>
+        boss.NpcCode is { } code ? gameData.GetNpcName(code) : $"Target {boss.EntityId}";
+
+    /// <summary>Boss display name (NPC table) — "Silver Blade Rotan + Black Smoke Murute" for a multi-boss fight, in
+    /// engagement order — or a fallback by kind.</summary>
     public static string Title(EncounterRecord record, IGameData gameData)
     {
+        if (IsMultiBoss(record)) return string.Join(" + ", record.Bosses.Select(b => BossName(b, gameData)));
         if (record.BossNpcCode is { } code) return gameData.GetNpcName(code);
         return record.Kind switch
         {

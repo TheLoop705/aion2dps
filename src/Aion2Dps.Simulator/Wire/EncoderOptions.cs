@@ -101,8 +101,14 @@ public sealed record BuffEncodeOptions
 {
     public static readonly BuffEncodeOptions Default = new();
 
+    /// <summary>Entry count of the <c>2A 38</c> frame (1 in every real frame).</summary>
     public byte Byte1 { get; init; } = 0x01;
+    /// <summary>Entry flags: 0x13 (source skill present) or 0x11 (no source skill, e.g. the dodge window buff 200).</summary>
     public byte Byte2 { get; init; } = 0x13;
+    /// <summary>The u8 after the caster (1..14 in real frames; 0x0C in the stacys bundle frame).</summary>
+    public byte Level { get; init; } = 0x0C;
+    /// <summary>The u8 before the position floats (00 or 02 in real frames).</summary>
+    public byte Tail { get; init; }
     public float X { get; init; } = 15317.83f;
     public float Y { get; init; } = 12704.64f;
     public float Z { get; init; } = 645.0f;
