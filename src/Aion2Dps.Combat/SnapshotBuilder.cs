@@ -22,7 +22,7 @@ internal static class SnapshotBuilder
         }
 
         var enc = core.Current;
-        if (enc == null)
+        if (enc == null || EndedDisplayExpired(enc, opts.EndedDisplaySeconds, now))
         {
             string status = core.TrainingArmed
                 ? $"Training ready ({core.TrainingDuration.TotalSeconds:0} s): hit a target to start"
@@ -180,6 +180,11 @@ internal static class SnapshotBuilder
             Bosses = bosses,
         };
     }
+
+    private static bool EndedDisplayExpired(Encounter enc, double delay, DateTime now) =>
+        enc is { Ended: true, Finalized: true, EndedAt: { } endedAt }
+        && double.IsFinite(delay) && delay > 0
+        && (now - endedAt).TotalSeconds >= delay;
 
     private static TargetInfo ToTargetInfo(IGameData gd, TargetState t, BossState? boss, uint? primaryId)
     {

@@ -89,6 +89,9 @@ Settings, logs and the fight history live in `%APPDATA%\Aion2Dps`; recordings go
 To show gear score in the overlay, open **Appearance → Rows & columns → Columns → Gear score**. Scores appear as
 **GS** when available from the game; unknown scores show **—**. Clicking a player also shows GS in their breakdown.
 
+Finished fights remain on the live meter for **15 seconds**, then its counters clear. The fight stays in History.
+Adjust **Settings → Meter → Clear finished fights after**; set it to **0** to keep results until the next fight.
+
 ## Command-line tool
 
 `aion2dps-cli` (`src\Aion2Dps.Cli\bin\Debug\net10.0-windows\aion2dps-cli.exe`) runs the same pipeline without UI:

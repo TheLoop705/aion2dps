@@ -253,7 +253,9 @@ public sealed class FakeCombatEngine : ICombatEngine
 
         if (_mode == MeterMode.Pvp) return BuildPvp(baseSnap, now);
 
-        if (_phase == Phase.Waiting || _fight is null)
+        bool finishedDisplayExpired = _phase == Phase.Ended && double.IsFinite(Options.EndedDisplaySeconds)
+            && Options.EndedDisplaySeconds > 0 && (now - _phaseStart).TotalSeconds >= Options.EndedDisplaySeconds;
+        if (_phase == Phase.Waiting || _fight is null || finishedDisplayExpired)
             return baseSnap with { State = MeterState.WaitingForCombat, StatusText = "Waiting for combat" };
 
         var f = _fight;

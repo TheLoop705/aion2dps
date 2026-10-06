@@ -142,6 +142,13 @@ public static class RealScreens
             files.Add(RenderOverlay("sim-boss-ended", ended, capture.Status, opts, dir));
             Drain();
             var last = saved.LastOrDefault(r => r.Kind == EncounterKind.Boss) ?? throw new InvalidOperationException("The simulated boss kill was not completed.");
+            engine.Options.EndedDisplaySeconds = 15;
+            var cleared = engine.GetSnapshot(clock);
+            if (cleared.State != MeterState.WaitingForCombat || cleared.TotalDamage != 0 || cleared.Rows.Count != 0
+                || engine.GetCurrentEncounter()?.Id != last.Id)
+                throw new InvalidOperationException("Finished-fight display did not clear while retaining its record.");
+            files.Add(RenderOverlay("sim-boss-cleared", cleared, capture.Status, opts, dir));
+            engine.Options.EndedDisplaySeconds = 0;
             files.Add(RenderBreakdown("sim-breakdown-dps", last, services.GameData, BreakdownTab.Dps, dir));
             files.Add(RenderBreakdown("sim-breakdown-accuracy", last, services.GameData, BreakdownTab.Accuracy, dir));
             files.Add(RenderBreakdown("sim-breakdown-defense", last, services.GameData, BreakdownTab.Defense, dir));

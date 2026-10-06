@@ -92,6 +92,8 @@ public sealed class GeneralSettings
     public bool LivePlayerClock { get; set; } = true;
     public double IdleTimeoutSeconds { get; set; } = 10;
     public double BossIdleTimeoutSeconds { get; set; } = 30;
+    /// <summary>How long completed fights remain on the live meter; zero keeps them until the next fight.</summary>
+    public double EndedDisplaySeconds { get; set; } = 15;
     public bool PartyOnly { get; set; }
     public bool SaveTrashFights { get; set; }
     public bool LaunchOverlayOnStart { get; set; } = true;

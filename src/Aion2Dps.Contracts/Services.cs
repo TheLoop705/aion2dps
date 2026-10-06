@@ -23,6 +23,9 @@ public sealed class EngineOptions
     public long BossHpThreshold { get; set; } = 5_000_000;
     /// <summary>Show only the local player + party roster members (when a roster is known). False = everyone hitting the same targets.</summary>
     public bool PartyOnly { get; set; } = false;
+    /// <summary>Hide an ended encounter's overlay totals after this delay from its end time, once finalized.
+    /// Zero (default), negative and non-finite values keep the final display. Encounter records remain available.</summary>
+    public double EndedDisplaySeconds { get; set; } = 0;
 }
 
 /// <summary>
@@ -38,7 +41,8 @@ public interface ICombatEngine : IGameEventSink
     /// <summary>Live overlay state at <paramref name="nowUtc"/> (pass DateTime.UtcNow when live, the replay clock otherwise).</summary>
     MeterSnapshot GetSnapshot(DateTime nowUtc);
 
-    /// <summary>Deep copy of the active encounter (or the last ended one while it is still displayed), or null.</summary>
+    /// <summary>Deep copy of the active encounter, or the last ended one retained until the next fight or reset,
+    /// even after its overlay display clears; null when no encounter is retained.</summary>
     EncounterRecord? GetCurrentEncounter();
 
     /// <summary>Drives idle timeouts when no events arrive. Call ~1×/s with the capture clock.</summary>
