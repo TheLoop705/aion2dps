@@ -276,15 +276,18 @@ public sealed class BreakdownView : UserControl
         root.Children.Add(top);
 
         double active = c.FirstHitUtc is { } f && c.LastHitUtc is { } l ? Math.Max(1, (l - f).TotalSeconds) : r.DurationSeconds;
-        bool contributionIsHp = r.BossMaxHp is > 0 && c.BossDamage > 0;
+        bool multiBoss = ChartData.IsMultiBoss(r);
+        bool contributionIsHp = r.BossMaxHp is > 0 && (c.BossDamage > 0 || (multiBoss && c.AllBossesDamage > 0));
         string maxHitSkill = c.Quality.MaxHit > 0 && c.Quality.MaxHitSkillId != 0 ? _gameData.GetSkillName(c.Quality.MaxHitSkillId) : "";
         root.Children.Add(Ui.TileGrid(6,
         [
             Ui.Tile("Damage", Fmt.Number(c.Damage), c.Healing > 0 ? "+" + Fmt.Number(c.Healing) + " healing" : null, Fmt.Exact(c.Damage) + " damage"),
             Ui.Tile("DPS", Fmt.Dps(c.Dps), "over " + Fmt.Duration(r.DurationSeconds), $"{Fmt.Exact(c.Dps)} = damage / fight time ({Fmt.Duration(r.DurationSeconds)})", ThemeKeys.Accent),
             Ui.Tile("Active DPS", Fmt.Dps(c.ActiveDps), "over " + Fmt.Duration(active), $"{Fmt.Exact(c.ActiveDps)} = damage / own first-to-last hit ({Fmt.Duration(active)})"),
-            Ui.Tile("Contribution", Fmt.Percent(c.Contribution), contributionIsHp ? "of boss HP" : "of party damage",
-                contributionIsHp ? "Share of the boss's max HP this player removed" : "Boss HP unknown: share of party damage"),
+            Ui.Tile("Contribution", Fmt.Percent(c.Contribution), contributionIsHp ? multiBoss ? "of the bosses' HP" : "of boss HP" : "of party damage",
+                contributionIsHp
+                    ? multiBoss ? "Share of the bosses' combined max HP this player removed (damage to every boss of the fight)" : "Share of the boss's max HP this player removed"
+                    : "Boss HP unknown: share of party damage"),
             Ui.Tile("Share", Fmt.Percent(c.DamageShare), "of party damage", "Share of all friendly damage"),
             Ui.Tile("Max hit", c.Quality.MaxHit > 0 ? Fmt.Number(c.Quality.MaxHit) : Fmt.Dash, maxHitSkill.Length > 0 ? maxHitSkill : null,
                 c.Quality.MaxHit > 0 ? Fmt.Exact(c.Quality.MaxHit) + (maxHitSkill.Length > 0 ? " · " + maxHitSkill : "") : "No direct hits", ThemeKeys.Crit),

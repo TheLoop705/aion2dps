@@ -6,6 +6,9 @@ namespace Aion2Dps.Protocol;
 /// Convenience composition of the protocol layer: <see cref="Input"/> (an <see cref="IStreamSink"/> fed by capture or
 /// replay) → <see cref="FrameDecoder"/> → <see cref="PacketDecoder"/> → the given <see cref="IGameEventSink"/>, all
 /// sharing one <see cref="ProtocolDiagnostics"/>.
+/// <para>This decodes ONE byte stream. Live capture and replays follow several game connections at once (world +
+/// dungeon instance, LIVE-FINDINGS NEW 1); hosts use <see cref="MultiFlowProtocolPipeline"/> for them (a frame decoder per
+/// flow, one packet decoder). A plain <see cref="Input"/> passed to capture only receives one flow at a time.</para>
 /// </summary>
 public sealed class ProtocolPipeline
 {

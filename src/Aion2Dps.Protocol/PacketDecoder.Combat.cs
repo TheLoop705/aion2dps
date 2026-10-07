@@ -15,12 +15,20 @@ public sealed partial class PacketDecoder
         return true;
     }
 
-    /// <summary><c>05 38</c> DoT/HoT tick (§8.3). The frame must end exactly after the last flagged field.</summary>
+    /// <summary>
+    /// <c>05 38</c> DoT/HoT tick (§8.3): target, flags u8, actor, stack, effect u32, then per flag bit in this order:
+    /// 0x02 amount varint, 0x01 heal varint, 0x04 absorb block (count varint + count × u32 effect), 0x08 skill u32,
+    /// 0x10 source entity varint, 0x20 source skill u32, 0x40 effect skill u32. The latter matches effect/100 and
+    /// overrides the 0x08 trigger skill (observed on Lakshmi's retaliation ticks). Exact end is required.
+    /// Flags 0x30 without amount/heal are trigger notices (a buff of the target, e.g. the dodge window, reacted to the
+    /// source's skill): decoded and counted, but not emitted (a <see cref="DotEvent"/> cannot carry the source).
+    /// </summary>
     private bool DecodeDot(ReadOnlySpan<byte> body)
     {
         var r = new SpanReader(body);
         if (!r.TryReadVarUInt(out uint target)) return Fail("truncated target");
         if (!r.TryReadU8(out byte flags)) return Fail("truncated flags");
+        if ((flags & 0x80) != 0) return Fail($"unknown flags 0x{flags:X2}");
         if (!r.TryReadVarUInt(out uint actor)) return Fail("truncated actor");
         if (!r.TryReadVarUInt(out uint stack)) return Fail("truncated stack");
         if (!r.TryReadU32(out uint effect)) return Fail("truncated effect");
@@ -38,13 +46,31 @@ public sealed partial class PacketDecoder
             heal = h;
         }
 
+        if ((flags & 0x04) != 0 && !TrySkipAbsorbBlock(ref r)) return Fail("bad absorb block");
+
         if ((flags & 0x08) != 0)
         {
             if (!r.TryReadU32(out uint s)) return Fail("truncated skill");
             skill = SkillIds.Normalize(s);
         }
 
+        if ((flags & 0x10) != 0 && !r.TryReadVarUInt(out _)) return Fail("truncated source entity");
+        if ((flags & 0x20) != 0 && !r.TryReadU32(out _)) return Fail("truncated source skill");
+        if ((flags & 0x40) != 0)
+        {
+            if (!r.TryReadU32(out uint s)) return Fail("truncated effect skill");
+            uint effectSkill = SkillIds.Normalize(s);
+            if (effect == 0 || effectSkill != SkillIds.Normalize(effect / 100)) return Fail("effect skill mismatch");
+            skill = effectSkill;
+        }
+
         if (!r.IsAtEnd) return Fail($"{r.Remaining} unexpected trailing bytes (flags 0x{flags:X2})");
+
+        if ((flags & 0x30) != 0 && (flags & 0x03) == 0)
+        {
+            _diag.IncrementDotTriggerTicks();
+            return true;
+        }
 
         Emit(new DotEvent
         {
@@ -150,55 +176,65 @@ public sealed partial class PacketDecoder
         return true;
     }
 
+    /// <summary>Largest accepted entry count of a <c>2A 38</c> frame (1 in every real sample).</summary>
+    private const int MaxBuffEntries = 16;
+
     /// <summary>
-    /// <c>2A 38</c>/<c>2B 38</c> buff applied, Global layout (§8.13): target, 01, 13, stack, buff u32, duration u32,
-    /// reserved zeros, expiry u64 (server Unix ms), caster, 0C, source skill u32. The real bundle frames carry 4 reserved
-    /// zero bytes (the §8.13 table lists u32 + u8 = 5); the expiry is located as a plausible Unix-ms value after 4
-    /// (preferred, real frames), 5 or 6 bytes.
+    /// <c>2A 38</c> / <c>2B 38</c> buff applied (§8.13), verified on 4,866 real Global frames (all of them end exactly):
+    /// <c>2A 38</c> = target varint, count u8 (1 in every sample), count × entry; <c>2B 38</c> = target varint, one entry.
+    /// entry = flags u8 (0x11/0x13; bit 0x02 = source skill present), stack varint, buff u32, duration u64 ms
+    /// (all FF = permanent), expiry u64 server Unix ms, caster varint, level u8, [source skill u32], u8, 3 × f32.
     /// </summary>
     private bool DecodeBuffApplied(ReadOnlySpan<byte> body)
     {
         var r = new SpanReader(body);
         if (!r.TryReadVarUInt(out uint target)) return Fail("truncated target");
-        if (!r.TrySkip(2)) return Fail("truncated header");
-        if (!r.TryReadVarUInt(out uint stack)) return Fail("truncated stack");
-        if (!r.TryReadU32(out uint buff) || !r.TryReadU32(out uint duration)) return Fail("truncated buff/duration");
-        int reserved = 4;
-        var rest = r.RemainingSpan;
-        if (!IsPlausibleUnixMs(rest, 4))
+        int count = 1;
+        if (_opcode != _ops.BuffApplied2)
         {
-            if (IsPlausibleUnixMs(rest, 5)) reserved = 5;
-            else if (IsPlausibleUnixMs(rest, 6)) reserved = 6;
+            if (!r.TryReadU8(out byte n)) return Fail("truncated count");
+            if (n is < 1 or > MaxBuffEntries) return Fail($"buff count {n} out of range");
+            count = n;
         }
 
-        if (!r.TrySkip(reserved)) return Fail("truncated reserved");
-        if (!r.TryReadU64(out ulong expiry)) return Fail("truncated expiry");
-        if (!r.TryReadVarUInt(out uint caster)) return Fail("truncated caster");
-        uint source = 0;
-        if (r.TrySkip(1) && r.TryReadU32(out uint s)) source = s;
-
-        Emit(new BuffAppliedEvent
+        var found = new BuffAppliedEvent[count];
+        for (int k = 0; k < count; k++)
         {
-            Time = _time, BundleDepth = _depth, Target = target, Stack = stack, BuffId = buff, DurationMs = duration,
-            ExpiryUnixMs = expiry, Caster = caster, SourceSkill = source,
-        });
+            if (!r.TryReadU8(out byte flags)) return Fail("truncated flags");
+            if (!r.TryReadVarUInt(out uint stack)) return Fail("truncated stack");
+            if (!r.TryReadU32(out uint buff) || !r.TryReadU64(out ulong duration)) return Fail("truncated buff/duration");
+            if (!r.TryReadU64(out ulong expiry)) return Fail("truncated expiry");
+            if (!r.TryReadVarUInt(out uint caster)) return Fail("truncated caster");
+            if (!r.TrySkip(1)) return Fail("truncated level");
+            uint source = 0;
+            if ((flags & 0x02) != 0 && !r.TryReadU32(out source)) return Fail("truncated source skill");
+            if (!r.TrySkip(1 + 12)) return Fail("truncated position");
+            found[k] = new BuffAppliedEvent
+            {
+                Time = _time, BundleDepth = _depth, Target = target, Stack = stack, BuffId = buff,
+                DurationMs = duration >= uint.MaxValue ? uint.MaxValue : (uint)duration,
+                ExpiryUnixMs = expiry, Caster = caster, SourceSkill = source,
+            };
+        }
+
+        if (!r.IsAtEnd) return Fail($"{r.Remaining} unexpected trailing bytes");
+        foreach (var e in found) Emit(e);
         return true;
     }
 
-    /// <summary>A u64 at <paramref name="offset"/> that reads as a Unix-ms time between 2020 and 2100.</summary>
-    private static bool IsPlausibleUnixMs(ReadOnlySpan<byte> s, int offset)
-    {
-        if (s.Length < offset + 8) return false;
-        ulong v = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(s[offset..]);
-        return v is >= 1_577_836_800_000UL and <= 4_102_444_800_000UL;
-    }
-
-    /// <summary><c>0E 92</c> buff removed/refreshed (L): target, u8, buff u32.</summary>
+    /// <summary><c>0E 92</c> buff removed (§8.13): target varint, count u8 (0 or 1 in real frames), count × buff u32;
+    /// exact end. One event per buff id; count 0 emits nothing.</summary>
     private bool DecodeBuffRemoved(ReadOnlySpan<byte> body)
     {
         var r = new SpanReader(body);
-        if (!r.TryReadVarUInt(out uint target) || !r.TrySkip(1) || !r.TryReadU32(out uint buff)) return Fail("truncated");
-        Emit(new BuffRemovedEvent { Time = _time, BundleDepth = _depth, Target = target, BuffId = buff });
+        if (!r.TryReadVarUInt(out uint target) || !r.TryReadU8(out byte n)) return Fail("truncated");
+        if (r.Remaining != n * 4) return Fail($"count {n} does not match {r.Remaining} remaining bytes");
+        for (int k = 0; k < n; k++)
+        {
+            r.TryReadU32(out uint buff);
+            Emit(new BuffRemovedEvent { Time = _time, BundleDepth = _depth, Target = target, BuffId = buff });
+        }
+
         return true;
     }
 

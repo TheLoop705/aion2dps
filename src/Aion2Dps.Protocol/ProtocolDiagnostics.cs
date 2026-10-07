@@ -26,7 +26,7 @@ public sealed class ProtocolDiagnostics : IProtocolDiagnostics
     private long _bytesIn, _frames, _bundles, _bundleErrors, _resyncs, _decodeErrors, _eventsEmitted, _lastFrameTicks;
     private long _invalidFrames, _resyncSkippedBytes, _paddingBytes, _extraByteFrames, _tlsRecordsSkipped;
     private long _embeddedBundles, _embeddedFramesForwarded, _embeddedFramesIgnored, _bundleInnerErrors;
-    private long _sinkErrors, _damageRecords, _damageTrailingBytes, _unhandledFrames;
+    private long _sinkErrors, _damageRecords, _damageTrailingBytes, _unhandledFrames, _damagePlaceholders, _dotTriggerTicks;
 
     /// <param name="recentErrorCapacity">How many recent error lines to keep (default 64).</param>
     public ProtocolDiagnostics(int recentErrorCapacity = 64)
@@ -86,6 +86,12 @@ public sealed class ProtocolDiagnostics : IProtocolDiagnostics
     public long DamageTrailingBytes => Interlocked.Read(ref _damageTrailingBytes);
     /// <summary>Frames whose opcode has no decoder.</summary>
     public long UnhandledFrames => Interlocked.Read(ref _unhandledFrames);
+    /// <summary>Well-formed <c>04 38</c> records not emitted: the self-targeted 500,000,000 "restore to full HP"
+    /// placeholder of instanced NPCs whose max HP was scaled (PROTOCOL.md §8.2.2).</summary>
+    public long DamagePlaceholders => Interlocked.Read(ref _damagePlaceholders);
+    /// <summary><c>05 38</c> trigger notices (flags 0x30: a buff of the target negated or reacted to a source entity's
+    /// skill, e.g. a dodge window; no amount, PROTOCOL.md §8.3) decoded but not emitted.</summary>
+    public long DotTriggerTicks => Interlocked.Read(ref _dotTriggerTicks);
 
     // ───────────── census / errors ─────────────
 
@@ -146,7 +152,8 @@ public sealed class ProtocolDiagnostics : IProtocolDiagnostics
         Interlocked.Exchange(ref _embeddedFramesForwarded, 0); Interlocked.Exchange(ref _embeddedFramesIgnored, 0);
         Interlocked.Exchange(ref _bundleInnerErrors, 0); Interlocked.Exchange(ref _sinkErrors, 0);
         Interlocked.Exchange(ref _damageRecords, 0); Interlocked.Exchange(ref _damageTrailingBytes, 0);
-        Interlocked.Exchange(ref _unhandledFrames, 0);
+        Interlocked.Exchange(ref _unhandledFrames, 0); Interlocked.Exchange(ref _damagePlaceholders, 0);
+        Interlocked.Exchange(ref _dotTriggerTicks, 0);
     }
 
     // ───────────── writers (used by the decoders) ─────────────
@@ -169,6 +176,8 @@ public sealed class ProtocolDiagnostics : IProtocolDiagnostics
     public void IncrementDamageRecords() => Interlocked.Increment(ref _damageRecords);
     public void IncrementDamageTrailingBytes() => Interlocked.Increment(ref _damageTrailingBytes);
     public void IncrementUnhandled() => Interlocked.Increment(ref _unhandledFrames);
+    public void IncrementDamagePlaceholders() => Interlocked.Increment(ref _damagePlaceholders);
+    public void IncrementDotTriggerTicks() => Interlocked.Increment(ref _dotTriggerTicks);
 
     /// <summary>A frame (or a bundle frame) was seen: census count/bytes, and the last-frame time.</summary>
     public void RecordFrame(ushort opcode, int bodyBytes, DateTime timeUtc, bool delivered)

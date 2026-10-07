@@ -36,6 +36,9 @@ public sealed class OverlayView : UserControl
     private readonly Border _hpFillBorder = new();
     private readonly Border _hpTradeTaken = new();
     private readonly TextBlock _hpText = Ui.Text("", ThemeKeys.Text, 10.5, FontWeights.SemiBold, mono: true);
+    /// <summary>Slim HP bars of the other engaged bosses in a multi-boss fight (at most 2, under the main bar).</summary>
+    private readonly StackPanel _bossBars = new() { Visibility = Visibility.Collapsed };
+    private readonly SlimBossBar[] _bossBarViews = [new(), new()];
     private readonly TextBlock _subtitle = Ui.Text("", ThemeKeys.TextMuted, 10.5);
     private readonly Button _partyChip;
     private readonly Button _viewChip;
@@ -253,6 +256,13 @@ public sealed class OverlayView : UserControl
         Grid.SetRow(_hpRow, 1);
         g.Children.Add(_hpRow);
 
+        // Line 2b: slim bars of the other bosses (multi-boss fights only)
+        g.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        foreach (var bar in _bossBarViews) _bossBars.Children.Add(bar);
+        Grid.SetColumn(_bossBars, 1);
+        Grid.SetRow(_bossBars, 2);
+        g.Children.Add(_bossBars);
+
         // Line 3: subtitle ........ toolbar
         var line3 = new DockPanel { LastChildFill = true, Margin = new Thickness(0, 5, 0, 0) };
         var tools = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
@@ -269,7 +279,7 @@ public sealed class OverlayView : UserControl
         line3.Children.Add(tools);
         _subtitle.Margin = new Thickness(1, 0, 6, 0);
         line3.Children.Add(_subtitle);
-        Grid.SetRow(line3, 2);
+        Grid.SetRow(line3, 3);
         Grid.SetColumnSpan(line3, 2);
         g.Children.Add(line3);
         return g;
@@ -384,6 +394,7 @@ public sealed class OverlayView : UserControl
 
         bool dark = TryFindResource(AppThemeKeys.IsDark) is not bool d || d;
         if (_hpText.Effect is DropShadowEffect fx) fx.Color = dark ? Colors.Black : Colors.White;
+        foreach (var bar in _bossBarViews) bar.SetShadow(dark ? Colors.Black : Colors.White);
         UpdateHeader(snapshot, status, phase, pvp);
 
         if (_lastWasPvp != pvp)
@@ -417,6 +428,7 @@ public sealed class OverlayView : UserControl
         _hpCheckBadge.Visibility = Visibility.Collapsed;
         _gapsBadge.Visibility = Visibility.Collapsed;
         _hpTradeTaken.Visibility = Visibility.Collapsed;
+        _bossBars.Visibility = Visibility.Collapsed;
 
         if (pvp)
         {
@@ -458,6 +470,7 @@ public sealed class OverlayView : UserControl
             _emblem.Fraction = frac;
             subtitle = s.MapName ?? KindLabel(s);
             if (s.Targets.Count > 1) subtitle += $" · {IndexOf(s.Targets, target) + 1}/{s.Targets.Count}";
+            UpdateBossBars(s, target);
         }
         else
         {
@@ -512,6 +525,83 @@ public sealed class OverlayView : UserControl
             _trainingButton.ClearValue(ForegroundProperty);
         }
         _subtitle.ToolTip = _subtitle.Text;
+    }
+
+    /// <summary>
+    /// Multi-boss fight: the main bar shows the cycled target, and up to two slim bars (name + %) show the other engaged
+    /// bosses. A single-boss fight keeps the classic one-bar header.
+    /// </summary>
+    private void UpdateBossBars(MeterSnapshot s, TargetInfo target)
+    {
+        if (s.Bosses.Count < 2) return;
+        int shown = 0;
+        foreach (var boss in s.Bosses)
+        {
+            if (boss.EntityId == target.EntityId) continue;
+            if (shown == _bossBarViews.Length) break;
+            double? frac = boss.IsDead ? 0 : boss.HpFraction ?? (boss.Hp is { } hp && boss.MaxHp is > 0 ? (double)hp / boss.MaxHp.Value : null);
+            _bossBarViews[shown].Update(boss, frac, HpBrush(frac ?? 1));
+            _bossBarViews[shown].Visibility = Visibility.Visible;
+            shown++;
+        }
+        for (int i = shown; i < _bossBarViews.Length; i++) _bossBarViews[i].Visibility = Visibility.Collapsed;
+        _bossBars.Visibility = shown > 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    /// <summary>One slim secondary boss HP bar: "Black Smoke Murute ········ 42 %".</summary>
+    private sealed class SlimBossBar : Grid
+    {
+        private readonly ColumnDefinition _fill = new() { Width = new GridLength(1, GridUnitType.Star) };
+        private readonly ColumnDefinition _empty = new() { Width = new GridLength(0, GridUnitType.Star) };
+        private readonly Border _fillBorder = new();
+        private readonly TextBlock _name = Ui.Text("", ThemeKeys.Text, 9.5, FontWeights.SemiBold);
+        private readonly TextBlock _pct = Ui.Text("", ThemeKeys.Text, 9.5, FontWeights.SemiBold, mono: true);
+
+        public SlimBossBar()
+        {
+            Height = 12;
+            Margin = new Thickness(0, 3, 0, 0);
+            ColumnDefinitions.Add(_fill);
+            ColumnDefinitions.Add(_empty);
+            var track = new Border();
+            track.Ref(Border.BackgroundProperty, ThemeKeys.BarTrack).Ref(Border.CornerRadiusProperty, ThemeKeys.BarCornerRadius);
+            SetColumnSpan(track, 2);
+            _fillBorder.Ref(Border.CornerRadiusProperty, ThemeKeys.BarCornerRadius);
+            var shadow = new DropShadowEffect { BlurRadius = 3, ShadowDepth = 0, Opacity = 0.9, Color = Colors.Black };
+            _name.Margin = new Thickness(5, -1, 40, 0);
+            _name.TextTrimming = TextTrimming.CharacterEllipsis;
+            _name.VerticalAlignment = VerticalAlignment.Center;
+            _name.Effect = shadow;
+            SetColumnSpan(_name, 2);
+            _pct.HorizontalAlignment = HorizontalAlignment.Right;
+            _pct.VerticalAlignment = VerticalAlignment.Center;
+            _pct.Margin = new Thickness(0, -1, 6, 0);
+            _pct.Effect = shadow;
+            SetColumnSpan(_pct, 2);
+            Children.Add(track);
+            Children.Add(_fillBorder);
+            Children.Add(_name);
+            Children.Add(_pct);
+        }
+
+        public void SetShadow(Color c)
+        {
+            if (_name.Effect is DropShadowEffect fx && fx.Color != c) fx.Color = c;
+        }
+
+        public void Update(TargetInfo boss, double? fraction, Brush brush)
+        {
+            double f = Math.Clamp(fraction ?? 1, 0, 1);
+            _fill.Width = new GridLength(Math.Max(f, 0.00001), GridUnitType.Star);
+            _empty.Width = new GridLength(Math.Max(1 - f, 0.00001), GridUnitType.Star);
+            _fillBorder.Background = brush;
+            _fillBorder.Opacity = fraction is null ? 0.35 : 1;
+            _name.Text = boss.Name.Length > 0 ? boss.Name : "Boss";
+            _pct.Text = boss.IsDead ? "DEAD" : fraction is { } fr ? Fmt.Percent(fr, fr < 0.1 ? 1 : 0) : "—";
+            ToolTip = boss.MaxHp is { } max
+                ? $"{boss.Name}: {Fmt.Exact(boss.IsDead ? 0 : boss.Hp ?? 0)} / {Fmt.Exact(max)} HP · damage taken {Fmt.Exact(boss.DamageTaken)}"
+                : $"{boss.Name}: damage taken {Fmt.Exact(boss.DamageTaken)}";
+        }
     }
 
     private static int IndexOf(IReadOnlyList<TargetInfo> list, TargetInfo t)
@@ -714,6 +804,7 @@ public sealed class OverlayView : UserControl
         else Col(4, "");
         Col(-1, "NAME", TextAlignment.Left);
         double numW = o.RowSize == RowSize.Normal ? 56 : 52;
+        if (o.ShowGearScore) Col(numW - 8, "GS");
         if (o.ShowCritRate) Col(numW - 10, "CRIT");
         if (o.ShowMaxHit) Col(numW, "MAX");
         Col(numW, p);

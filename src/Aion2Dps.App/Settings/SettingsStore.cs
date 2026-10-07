@@ -59,11 +59,37 @@ public sealed class SettingsStore
 
     public static void SaveTo(string path, AppSettings settings)
     {
+        var identity = System.IO.Path.GetFullPath(path).ToUpperInvariant();
+        var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(identity)));
+        using var mutex = new Mutex(false, "Local\\Aion2Dps-settings-" + hash);
+        var acquired = false;
+        try
+        {
+            try { acquired = mutex.WaitOne(TimeSpan.FromSeconds(5)); }
+            catch (AbandonedMutexException) { acquired = true; }
+            if (!acquired) throw new IOException("Another instance is still saving the settings.");
+            SaveAtomic(path, settings);
+        }
+        finally
+        {
+            if (acquired) mutex.ReleaseMutex();
+        }
+    }
+
+    private static void SaveAtomic(string path, AppSettings settings)
+    {
         var dir = System.IO.Path.GetDirectoryName(path);
         if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
-        var tmp = path + ".tmp";
-        File.WriteAllText(tmp, JsonSerializer.Serialize(settings, JsonOptions));
-        File.Move(tmp, path, overwrite: true);
+        var tmp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
+            File.WriteAllText(tmp, JsonSerializer.Serialize(settings, JsonOptions));
+            File.Move(tmp, path, overwrite: true);
+        }
+        finally
+        {
+            try { File.Delete(tmp); } catch { /* a failed save must not hide its original error */ }
+        }
     }
 
     public void Save()
@@ -103,12 +129,22 @@ public sealed class SettingsStore
         if (o.Left is { } l && !double.IsFinite(l)) o.Left = null;
         if (o.Top is { } t && !double.IsFinite(t)) o.Top = null;
         var g = s.General;
-        g.IdleTimeoutSeconds = Math.Clamp(g.IdleTimeoutSeconds, 3, 600);
-        g.BossIdleTimeoutSeconds = Math.Clamp(g.BossIdleTimeoutSeconds, 5, 600);
+        g.IdleTimeoutSeconds = double.IsFinite(g.IdleTimeoutSeconds) ? Math.Clamp(g.IdleTimeoutSeconds, 3, 600) : 10;
+        g.BossIdleTimeoutSeconds = double.IsFinite(g.BossIdleTimeoutSeconds) ? Math.Clamp(g.BossIdleTimeoutSeconds, 5, 600) : 30;
+        g.EndedDisplaySeconds = double.IsFinite(g.EndedDisplaySeconds) ? Math.Clamp(g.EndedDisplaySeconds, 0, 120) : 15;
         var a = s.Appearance;
         if (string.IsNullOrWhiteSpace(a.ThemeId) || Theming.ThemeCatalog.Find(a.ThemeId) is null) a.ThemeId = Theming.ThemeCatalog.DefaultId;
-        if (a.CornerRadius is { } cr) a.CornerRadius = Math.Clamp(cr, 0, 16);
-        if (a.FontSize is { } fs) a.FontSize = Math.Clamp(fs, 9, 18);
+        if (a.CornerRadius is { } cr) a.CornerRadius = double.IsFinite(cr) ? Math.Clamp(cr, 0, 16) : null;
+        if (a.FontSize is { } fs) a.FontSize = double.IsFinite(fs) ? Math.Clamp(fs, 9, 18) : null;
+        if (s.Dashboard is { IsValid: false }) s.Dashboard = null;
+        if (!Enum.IsDefined(o.RowSize)) o.RowSize = RowSize.Compact;
+        if (!Enum.IsDefined(o.View)) o.View = MeterView.Dps;
+        if (!Enum.IsDefined(o.BarMode)) o.BarMode = BarMode.RelativeToTop;
+        if (!Enum.IsDefined(o.DefaultMode)) o.DefaultMode = MeterMode.BossOnly;
+        if (!Enum.IsDefined(o.PvpSort)) o.PvpSort = PvpSort.Threat;
+        if (!Enum.IsDefined(g.Language)) g.Language = GameLanguage.English;
+        if (!Enum.IsDefined(a.ColorMode)) a.ColorMode = RowColorMode.ClassColors;
+        if (!Enum.IsDefined(a.BarStyle)) a.BarStyle = BarStyle.Gradient;
         if (!Theming.ColorUtil.TryParse(a.SingleColor, out _)) a.SingleColor = "#D9A441";
         if (a.Background is not null && !Theming.ColorUtil.TryParse(a.Background, out _)) a.Background = null;
         if (a.Accent is not null && !Theming.ColorUtil.TryParse(a.Accent, out _)) a.Accent = null;

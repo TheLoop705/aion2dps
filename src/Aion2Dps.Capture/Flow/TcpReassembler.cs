@@ -14,22 +14,26 @@ namespace Aion2Dps.Capture;
 public sealed class TcpReassembler
 {
     public const int DefaultMaxPendingBytes = 2 * 1024 * 1024;
+    public const int DefaultMaxPendingSegments = 4096;
     public static readonly TimeSpan DefaultGapTimeout = TimeSpan.FromMilliseconds(1500);
 
     private readonly IStreamSink _output;
     private readonly TimeSpan _gapTimeout;
     private readonly int _maxPendingBytes;
+    private readonly int _maxPendingSegments;
     private readonly Dictionary<uint, byte[]> _pending = new();
     private bool _hasNext;
     private uint _next;
     private int _pendingBytes;
     private DateTime _holeSince;
 
-    public TcpReassembler(IStreamSink output, TimeSpan? gapTimeout = null, int maxPendingBytes = DefaultMaxPendingBytes)
+    public TcpReassembler(IStreamSink output, TimeSpan? gapTimeout = null, int maxPendingBytes = DefaultMaxPendingBytes,
+        int maxPendingSegments = DefaultMaxPendingSegments)
     {
         _output = output ?? throw new ArgumentNullException(nameof(output));
         _gapTimeout = gapTimeout ?? DefaultGapTimeout;
         _maxPendingBytes = maxPendingBytes > 0 ? maxPendingBytes : DefaultMaxPendingBytes;
+        _maxPendingSegments = maxPendingSegments > 0 ? maxPendingSegments : DefaultMaxPendingSegments;
     }
 
     /// <summary>The next expected sequence number, or null before the first data segment.</summary>
@@ -182,7 +186,8 @@ public sealed class TcpReassembler
 
     private void CheckGap(DateTime nowUtc)
     {
-        while (_pending.Count > 0 && (_pendingBytes > _maxPendingBytes || nowUtc - _holeSince > _gapTimeout))
+        while (_pending.Count > 0 && (_pendingBytes > _maxPendingBytes || _pending.Count > _maxPendingSegments ||
+                                     nowUtc - _holeSince > _gapTimeout))
             GiveUp(nowUtc);
     }
 

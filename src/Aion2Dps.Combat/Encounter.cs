@@ -32,14 +32,9 @@ internal sealed class Encounter
 
     public uint? MapId;
 
-    public uint? PrimaryBossId;
-    public uint? BossNpcCode;
-    public long? BossMaxHp;
-    public long? BossHpStart;
-    public long? BossHpEnd;
-    public bool BossMaxTrusted;
-    public readonly HashSet<uint> BossTargets = new();
-    public int ResetCount;
+    /// <summary>Bosses (or dummies) of a Boss/Dummy encounter in engagement order. Several = a multi-boss fight.</summary>
+    public readonly List<BossState> Bosses = new();
+    public readonly Dictionary<uint, BossState> BossById = new();
 
     public readonly List<Hit> Hits = new(1024);
     public readonly Dictionary<uint, CombatantState> Combatants = new();
@@ -49,15 +44,56 @@ internal sealed class Encounter
     public readonly Dictionary<uint, uint> SourceNpcCodes = new();
     public int PvpKills;
 
-    public readonly HpTimeline Timeline = new();
-    public readonly HpCheckTracker HpCheck = new();
-
     public bool CaptureGaps;
     public string? Note;
 
     public TimeSpan? TrainingDuration;
     public DateTime? TrainingEnd;
     public bool TrainingCompleted;
+
+    public bool IsBoss(uint id) => BossById.ContainsKey(id);
+
+    public BossState? Boss(uint id) => BossById.TryGetValue(id, out var b) ? b : null;
+
+    /// <summary>The primary boss: largest max HP, ties → first engaged.</summary>
+    public BossState? Primary
+    {
+        get
+        {
+            BossState? best = null;
+            foreach (var b in Bosses)
+                if (best == null || (b.MaxHp ?? 0) > (best.MaxHp ?? 0)) best = b;
+            return best;
+        }
+    }
+
+    public uint? PrimaryBossId => Primary?.Id;
+
+    /// <summary>"Silver Blade Rotan + Black Smoke Murute": the bosses in engagement order.</summary>
+    public string BossTitle(IGameData gd)
+    {
+        if (Bosses.Count == 0) return "Boss";
+        var names = new List<string>(Bosses.Count);
+        foreach (var b in Bosses) names.Add(b.NpcCode is uint c ? gd.GetNpcName(c) : $"Target {b.Id}");
+        return string.Join(" + ", names);
+    }
+
+    /// <summary>
+    /// Contribution of one combatant: damage to the bosses with a trusted max HP / the sum of those max HPs.
+    /// Null when no boss has a trusted max HP (callers fall back to the share of party damage).
+    /// </summary>
+    public double? HpContribution(CombatantState c)
+    {
+        if (Kind != EncounterKind.Boss) return null;
+        long denom = 0, num = 0;
+        foreach (var b in Bosses)
+        {
+            if (!b.MaxTrusted || b.MaxHp is not long max || max <= 0) continue;
+            denom += max;
+            num += c.DamageByBoss.GetValueOrDefault(b.Id);
+        }
+        return denom > 0 ? (double)num / denom : null;
+    }
 
     public DateTime StartUtc => FirstHit ?? CreatedUtc;
     public DateTime EndUtc => LastHit ?? StartUtc;
@@ -104,7 +140,18 @@ internal sealed class Encounter
         if (ts.Last is null || h.Time > ts.Last) ts.Last = h.Time;
     }
 
-    private void ApplyLive(Hit h)
+    private void NoteBossHit(Hit h)
+    {
+        if (h.IsDodge || h.Amount <= 0) return;
+        if (Kind == EncounterKind.Boss && h.Time > LastActivity) LastActivity = h.Time;
+        if (!h.ToBoss || Boss(h.Target) is not { } boss) return;
+        if (boss.FirstHit is null || h.Time < boss.FirstHit) boss.FirstHit = h.Time;
+        if (boss.LastHit is null || h.Time > boss.LastHit) boss.LastHit = h.Time;
+        if (Combatants.TryGetValue(h.Actor, out var c) && c.IsLocal
+            && (boss.LastLocalHit is null || h.Time > boss.LastLocalHit)) boss.LastLocalHit = h.Time;
+    }
+
+    private void ApplyLive(Hit h, bool combatantsOnly = false)
     {
         switch (h.Kind)
         {
@@ -118,8 +165,13 @@ internal sealed class Encounter
                     c.Scoped.Add(h);
                     NoteScopedHit(h);
                 }
-                if (h.ToPrimaryBoss) c.BossDamage += h.Amount;
-                NoteTarget(h);
+                if (h.ToBoss && h.Amount > 0)
+                {
+                    c.BossDamage += h.Amount;
+                    c.DamageByBoss[h.Target] = c.DamageByBoss.GetValueOrDefault(h.Target) + h.Amount;
+                }
+                if (!combatantsOnly) NoteTarget(h);
+                NoteBossHit(h);
                 break;
             }
             case HitKind.PvpOut:
@@ -132,7 +184,7 @@ internal sealed class Encounter
                     c.Scoped.Add(h);
                     NoteScopedHit(h);
                 }
-                NoteTarget(h);
+                if (!combatantsOnly) NoteTarget(h);
                 break;
             }
             case HitKind.PvpIn:
@@ -148,7 +200,7 @@ internal sealed class Encounter
                 GetCombatant(h.Actor).Healing += h.Amount;
                 break;
             case HitKind.TargetSelfHeal:
-                if (Targets.TryGetValue(h.Target, out var t2)) t2.SelfHealing += h.Amount;
+                if (!combatantsOnly && Targets.TryGetValue(h.Target, out var t2)) t2.SelfHealing += h.Amount;
                 break;
         }
     }
@@ -156,13 +208,43 @@ internal sealed class Encounter
     /// <summary>Recomputes the live totals from the hit list (after summon re-attribution).</summary>
     public void RebuildLive()
     {
+        FirstHit = null;
+        LastHit = null;
+        if (Kind == EncounterKind.Boss) LastActivity = CreatedUtc;
+        foreach (var boss in Bosses)
+        {
+            boss.FirstHit = null;
+            boss.LastHit = null;
+            boss.LastLocalHit = null;
+        }
         foreach (var c in Combatants.Values) c.ResetLive();
         foreach (var t in Targets.Values)
         {
             t.DamageTaken = 0;
             t.SelfHealing = 0;
+            t.First = null;
+            t.Last = null;
         }
         foreach (var h in Hits) ApplyLive(h);
+        foreach (var boss in Bosses)
+            if (boss.FirstHit is { } first) boss.EngagedAt = first;
+    }
+
+    /// <summary>
+    /// Recomputes the live totals of the given combatants only (summon re-attribution moved hits between them). Target
+    /// totals do not depend on the actor, so they are left alone. Same result as <see cref="RebuildLive()"/>.
+    /// </summary>
+    public void RebuildLive(IReadOnlySet<uint> combatants)
+    {
+        if (combatants.Count == 0) return;
+        foreach (var id in combatants)
+            if (Combatants.TryGetValue(id, out var c)) c.ResetLive();
+        foreach (var h in Hits)
+        {
+            if (h.Kind == HitKind.TargetSelfHeal) continue;
+            uint owner = h.Kind is HitKind.Incoming or HitKind.PvpIn ? h.Target : h.Actor;
+            if (combatants.Contains(owner)) ApplyLive(h, combatantsOnly: true);
+        }
     }
 
     /// <summary>The local player's id changed mid-encounter: move its hits and state to the new id.</summary>

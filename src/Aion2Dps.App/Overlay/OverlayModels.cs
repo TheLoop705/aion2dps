@@ -15,6 +15,7 @@ public sealed record OverlayViewOptions
     public bool ShowContribution { get; init; } = true;
     public bool ShowCritRate { get; init; }
     public bool ShowMaxHit { get; init; }
+    public bool ShowGearScore { get; init; }
     public bool ShowRank { get; init; } = true;
     public bool ShowClassEmblem { get; init; } = true;
     public bool ShowColumnHeader { get; init; } = true;
@@ -37,6 +38,7 @@ public sealed record OverlayViewOptions
         ShowContribution = s.Overlay.ShowContribution,
         ShowCritRate = s.Overlay.ShowCritRate,
         ShowMaxHit = s.Overlay.ShowMaxHit,
+        ShowGearScore = s.Overlay.ShowGearScore,
         ShowRank = s.Overlay.ShowRank,
         ShowClassEmblem = s.Overlay.ShowClassEmblem,
         ShowColumnHeader = s.Overlay.ShowColumnHeader,

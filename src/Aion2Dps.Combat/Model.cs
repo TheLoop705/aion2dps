@@ -12,7 +12,7 @@ internal enum HitKind : byte
     PvpIn,
     /// <summary>Direct heal, HoT tick or self-heal by a friendly player.</summary>
     Heal,
-    /// <summary>A target healing itself (boss self-heal trap, §8.3).</summary>
+    /// <summary>Healing received by an NPC target (including the boss self-heal trap, §8.3).</summary>
     TargetSelfHeal,
 }
 
@@ -47,7 +47,8 @@ internal sealed class Hit
     public byte ExtraHits;
     public bool QualityMeasured;
     public bool InScope;
-    public bool ToPrimaryBoss;
+    /// <summary>The target was one of the encounter's bosses when the hit landed.</summary>
+    public bool ToBoss;
 
     public bool IsDot => (Flags & HitFlags.Dot) != 0;
     public bool IsDodge => (Flags & HitFlags.Dodged) != 0;
@@ -108,7 +109,10 @@ internal sealed class CombatantState
     public readonly LiveAccumulator All = new();
     /// <summary>Damage in the encounter's scope (boss only in a boss fight) — the record and the "Boss only" view.</summary>
     public readonly LiveAccumulator Scoped = new();
+    /// <summary>Damage to the encounter's bosses (all of them).</summary>
     public long BossDamage;
+    /// <summary>Damage per boss entity (multi-boss contribution).</summary>
+    public readonly Dictionary<uint, long> DamageByBoss = new();
     public long Healing;
     public long DamageTaken;
     public int Deaths;
@@ -119,6 +123,7 @@ internal sealed class CombatantState
         All.Reset();
         Scoped.Reset();
         BossDamage = 0;
+        DamageByBoss.Clear();
         Healing = 0;
         DamageTaken = 0;
     }

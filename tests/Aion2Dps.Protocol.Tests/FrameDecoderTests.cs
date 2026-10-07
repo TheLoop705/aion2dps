@@ -284,6 +284,58 @@ public class FrameDecoderTests
         Assert.True(dec.IsSynchronized);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(17)]
+    public void Dungeon_transition_after_gap_recovers_map_before_new_census_frames(int chunk)
+    {
+        // Draupnir transition observed on Global: MapLoad, 22 92, 0E 92, 1F 97, heartbeat.
+        // Preserve wire lengths and the public map id; zero all player/position data in unknown bodies.
+        var map = new byte[46];
+        BitConverter.GetBytes(1u).CopyTo(map, 0);
+        BitConverter.GetBytes(600031u).CopyTo(map, 4);
+        var wire = W.Concat(W.Packet(Opcodes.MapLoad, map), W.Packet(0x2292, new byte[146]),
+            W.Packet(0x0E92, new byte[3]), W.Packet(0x1F97, new byte[60]),
+            W.Heartbeat(0x01A11332242CUL), W.Heartbeat(0x01A113322460UL), W.Heartbeat(0x01A113322494UL));
+        var frames = new FrameCollector();
+        var dec = new FrameDecoder(frames);
+        dec.OnDiscontinuity(DiscontinuityReason.TcpGap);
+
+        Run.Feed(dec, wire, chunk: chunk);
+
+        Assert.Equal(new ushort[] { Opcodes.MapLoad, 0x2292, 0x0E92, 0x1F97,
+            Opcodes.Heartbeat, Opcodes.Heartbeat, Opcodes.Heartbeat }, frames.Ops());
+        Assert.Equal(map, frames.Frames[0].Body);
+        Assert.True(dec.IsSynchronized);
+        Assert.Equal(0, dec.BufferedBytes);
+        Assert.Equal(0, dec.Diagnostics.ResyncSkippedBytes);
+        Assert.Equal(0, dec.Diagnostics.InvalidFrames);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(17)]
+    public void Login_start_keeps_alignment_from_complete_1136_frame(int chunk)
+    {
+        // Global instance handoff begins with one complete 280-byte 11 36 login frame.
+        // Its payload is private login data: retain only the observed opcode and wire length.
+        var frames = new FrameCollector();
+        var dec = new FrameDecoder(frames);
+        Run.Feed(dec, W.Packet(0x1136, new byte[276]), chunk: chunk);
+        Assert.True(dec.IsSynchronized);
+
+        // Once aligned, other login opcodes can be walked without entering resync inside their bodies.
+        Run.Feed(dec, W.Concat(W.Packet(0x1536, new byte[78]), W.Heartbeat(), W.Heartbeat(), W.Heartbeat()), chunk: chunk);
+
+        Assert.Equal(new ushort[] { 0x1136, 0x1536, Opcodes.Heartbeat, Opcodes.Heartbeat, Opcodes.Heartbeat }, frames.Ops());
+        Assert.Equal(0, dec.BufferedBytes);
+        Assert.Equal(0, dec.Diagnostics.InvalidFrames);
+        Assert.Equal(0, dec.Diagnostics.Resyncs);
+        Assert.Equal(0, dec.Diagnostics.ResyncSkippedBytes);
+    }
+
     [Fact]
     public void Mid_stream_start_finds_alignment()
     {

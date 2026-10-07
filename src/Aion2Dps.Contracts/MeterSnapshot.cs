@@ -20,6 +20,9 @@ public sealed record MeterSnapshot
     public TargetInfo? Target { get; init; }
     /// <summary>All tracked targets of the encounter (for cycling and multiple HP bars), boss first.</summary>
     public IReadOnlyList<TargetInfo> Targets { get; init; } = Array.Empty<TargetInfo>();
+    /// <summary>The encounter's engaged bosses (primary first, then in engagement order). Several entries = a multi-boss
+    /// fight (e.g. two bosses pulled by two halves of the party); the overlay shows a compact HP bar for each.</summary>
+    public IReadOnlyList<TargetInfo> Bosses { get; init; } = Array.Empty<TargetInfo>();
 
     /// <summary>Friendly combatants ranked by damage (or damage taken / healing, depending on view).</summary>
     public IReadOnlyList<PlayerRow> Rows { get; init; } = Array.Empty<PlayerRow>();
@@ -40,6 +43,8 @@ public sealed record MeterSnapshot
 
     /// <summary>Live HP-check ratio for the current boss (diagnostic; null when unavailable).</summary>
     public double? HpCheckRatio { get; init; }
+    /// <summary>Live HP-check ratio summed over all of the encounter's bosses (null when unavailable).</summary>
+    public double? OverallHpCheckRatio { get; init; }
 
     /// <summary>Set once when a fight beat the local player's previous best on that boss (for a toast).</summary>
     public string? PersonalBestMessage { get; init; }
@@ -50,6 +55,8 @@ public sealed record PlayerRow
     public uint EntityId { get; init; }
     public string Name { get; init; } = "";
     public CharacterClass Class { get; init; }
+    /// <summary>Latest gear score reported by the party roster; null when unavailable.</summary>
+    public uint? GearScore { get; init; }
     public CombatantKind Kind { get; init; }
     public bool IsLocal { get; init; }
     public bool IsPartyMember { get; init; }
@@ -85,6 +92,12 @@ public sealed record TargetInfo
     public double? HpFraction { get; init; }
     public long DamageTaken { get; init; }
     public bool IsDead { get; init; }
+    /// <summary>One of the encounter's bosses (counts for contribution and the HP check).</summary>
+    public bool IsEncounterBoss { get; init; }
+    /// <summary>The encounter's primary boss (largest max HP, ties → first engaged).</summary>
+    public bool IsPrimaryBoss { get; init; }
+    /// <summary>Live HP-check ratio of this boss (null when unavailable or not a boss).</summary>
+    public double? HpCheckRatio { get; init; }
 }
 
 public sealed record PvpRow

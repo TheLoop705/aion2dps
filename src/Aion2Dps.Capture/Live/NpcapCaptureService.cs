@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Aion2Dps.Contracts;
 
 namespace Aion2Dps.Capture;
@@ -10,48 +11,69 @@ public sealed class CaptureServiceOptions
     /// <summary>Game process/connection lookup (default <see cref="GameProcessLocator"/>).</summary>
     public IGameConnectionLocator? Locator { get; set; }
     public FlowTrackerOptions Tracker { get; set; } = new();
-    /// <summary>No packet of the locked flow for this long → back to detection.</summary>
+    /// <summary>A game flow without packets for this long ends and its sink is released (copied into
+    /// <see cref="FlowTrackerOptions.FlowIdleTimeout"/> at <see cref="NpcapCaptureService.Start"/>).</summary>
     public TimeSpan WatchdogTimeout { get; set; } = TimeSpan.FromSeconds(90);
+    /// <summary>How often the game process's connection table (<c>GetExtendedTcpTable</c>) is polled for game flows.</summary>
     public TimeSpan ProcessPollInterval { get; set; } = TimeSpan.FromSeconds(2);
     public TimeSpan StatusInterval { get; set; } = TimeSpan.FromSeconds(1);
     public TimeSpan NpcapRecheckInterval { get; set; } = TimeSpan.FromSeconds(5);
     public TimeSpan AdapterRefreshInterval { get; set; } = TimeSpan.FromSeconds(15);
-    /// <summary>Delay before retrying an adapter that failed to open.</summary>
+    /// <summary>Delay before retrying an adapter that failed to open; doubled after every further failure up to
+    /// <see cref="MaxOpenRetryInterval"/>.</summary>
     public TimeSpan OpenRetryInterval { get; set; } = TimeSpan.FromSeconds(5);
+    public TimeSpan MaxOpenRetryInterval { get; set; } = TimeSpan.FromSeconds(60);
+    /// <summary>After a filter change the old handle keeps reading this long next to the new one, so the packets it had
+    /// buffered are not lost (the overlap is delivered twice; the reassembler drops the duplicates).</summary>
+    public TimeSpan FilterSwapOverlap { get; set; } = TimeSpan.FromMilliseconds(600);
+    /// <summary>A game flow whose connection has left the game process's connection table and that has had no packet for
+    /// this long ends at once (instead of after <see cref="WatchdogTimeout"/>).</summary>
+    public TimeSpan ClosedConnectionIdle { get; set; } = TimeSpan.FromSeconds(10);
     public int ReadTimeoutMs { get; set; } = 100;
     public int SnapLength { get; set; } = 65535;
     public int KernelBufferBytes { get; set; } = 16 * 1024 * 1024;
     /// <summary>While the game process is not running, still watch <c>tcp port 13328</c> on all adapters (covers a renamed
     /// executable). False = capture nothing until the process appears.</summary>
     public bool ScanWithoutProcess { get; set; } = true;
+    /// <summary>Packets waiting for the dispatch thread beyond this many bytes are dropped (and counted) instead of
+    /// growing memory without bound.</summary>
+    public long MaxQueuedBytes { get; set; } = 128L * 1024 * 1024;
+    /// <summary>Bounded public shutdown wait; the supervisor continues draining after a timeout.</summary>
+    internal TimeSpan StopTimeout { get; set; } = TimeSpan.FromSeconds(10);
 }
 
 /// <summary>
-/// Live capture of the AION 2 game connection through Npcap (PROTOCOL.md §2). A background supervisor thread polls the
-/// game process connection table, selects the adapter, opens it non-promiscuously (snaplen 65535, 100 ms read timeout)
-/// with a BPF filter for the game server, locks the flow (process hint or heartbeat signature), reassembles the
-/// server→client direction and delivers it to the <see cref="IStreamSink"/> with pcap timestamps.
-/// <para>Sink calls are serialised (one at a time, in stream order) and made from the adapter reader thread.
-/// <see cref="DiscontinuityReason.CaptureRestarted"/> is emitted at every <see cref="Start"/>,
-/// <see cref="DiscontinuityReason.NewConnection"/> when a different flow is locked later, and
-/// <see cref="DiscontinuityReason.TcpGap"/> after a reassembly gap.</para>
+/// Live capture of the AION 2 game connections through Npcap (PROTOCOL.md §2, LIVE-FINDINGS NEW 1). A background
+/// supervisor thread polls the game process connection table (~every 2 s, every ESTABLISHED connection to port 13328 is a
+/// hint), selects the adapters, opens them non-promiscuously (snaplen 65535, 100 ms read timeout) with a BPF filter for
+/// <c>tcp port 13328</c> plus the hinted hosts, and every game flow is locked independently (process hint or heartbeat
+/// signature), reassembled and delivered to its own sink.
+/// <para><b>Ordering:</b> the adapter reader threads only copy packets into one queue; a single dispatch thread feeds
+/// the <see cref="GameFlowTracker"/>, so every sink call happens on that one thread, in arrival (capture) order, also
+/// with several adapters. With an <see cref="IStreamSinkFactory"/> sink every flow gets its own sink
+/// (<see cref="DiscontinuityReason.TcpGap"/>/<see cref="DiscontinuityReason.NewConnection"/> per flow);
+/// <see cref="DiscontinuityReason.CaptureRestarted"/> is emitted to the sink itself at every <see cref="Start"/>.
+/// A plain <see cref="IStreamSink"/> gets one flow at a time (<see cref="SingleSinkFlowAdapter"/>).</para>
 /// </summary>
-public sealed class NpcapCaptureService : ICaptureService
+public sealed class NpcapCaptureService : ICaptureService, ICaptureFlowStatus
 {
     private readonly CaptureServiceOptions _options;
     private readonly Func<NpcapCheckResult> _probe;
     private readonly IGameConnectionLocator _locator;
     private readonly object _lifecycle = new();
-    private readonly object _sync = new(); // serialises tracker access (reader threads, supervisor, recording)
+    private readonly object _sync = new(); // tracker state: dispatch thread (writes, sink calls), supervisor (reads, hints)
     private readonly Dictionary<string, DeviceReader> _readers = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, int> _sourceIds = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<int, AdapterInfo> _sourceAdapters = new();
+    private readonly ConcurrentDictionary<int, AdapterInfo> _sourceAdapters = new();
     private readonly Dictionary<string, DateTime> _openRetryAfter = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _openErrors = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, int> _openFailures = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>Handles replaced by a handle with a new filter: still reading until their deadline (no lost packets).</summary>
+    private readonly List<(DeviceReader Reader, DateTime DisposeAt)> _retiring = new();
 
     private Thread? _thread;
     private ManualResetEventSlim _stopEvent = new(false);
-    private StreamSinkGuard? _sink;
+    private CaptureDispatcher? _dispatcher;
     private GameFlowTracker? _tracker;
     private PcapFileWriter? _recorder;
     private string? _recordingPath;
@@ -89,6 +111,21 @@ public sealed class NpcapCaptureService : ICaptureService
         get { lock (_lifecycle) return _thread is not null; }
     }
 
+    /// <summary>Game flows currently open.</summary>
+    public int OpenFlowCount
+    {
+        get { lock (_sync) return _tracker?.ActiveFlowCount ?? 0; }
+    }
+
+    /// <summary>Open game flows and recently ended ones.</summary>
+    public IReadOnlyList<CaptureFlowInfo> GetFlows()
+    {
+        lock (_sync) return _tracker?.GetFlows() ?? Array.Empty<CaptureFlowInfo>();
+    }
+
+    /// <summary>Packets dropped because the dispatch queue was full.</summary>
+    public long DroppedPackets => _dispatcher?.Dropped ?? 0;
+
     public void Start(IStreamSink sink)
     {
         ArgumentNullException.ThrowIfNull(sink);
@@ -97,14 +134,16 @@ public sealed class NpcapCaptureService : ICaptureService
             ObjectDisposedException.ThrowIf(_disposed, this);
             if (_thread is not null) return; // idempotent
             _stopEvent = new ManualResetEventSlim(false);
-            _sink = new StreamSinkGuard(sink);
-            var tracker = new GameFlowTracker(_sink, _options.Tracker);
-            tracker.Locked += info => AppLog.Info("Capture", $"Capturing game flow {info}");
+            _options.Tracker.FlowIdleTimeout = _options.WatchdogTimeout;
+            var tracker = new GameFlowTracker(sink, _options.Tracker);
+            tracker.Locked += info => AppLog.Info("Capture", $"Capturing game flow #{info.LockNumber} {info}");
             lock (_sync)
             {
                 tracker.Recorder = _recorder;
                 _tracker = tracker;
             }
+
+            _dispatcher = new CaptureDispatcher(tracker, _sync, _options.MaxQueuedBytes);
             _lastPublished = null;
             _thread = new Thread(Run) { IsBackground = true, Name = "Aion2Dps capture supervisor" };
             _thread.Start();
@@ -120,29 +159,38 @@ public sealed class NpcapCaptureService : ICaptureService
             if (thread is null) return;
             _stopEvent.Set();
         }
-        if (Thread.CurrentThread != thread) thread.Join(TimeSpan.FromSeconds(10));
-        lock (_lifecycle)
-        {
-            _thread = null;
-        }
-        StopRecording();
-        Publish(new CaptureStatus { State = CaptureState.Stopped, Message = "Capture is stopped." }, force: true);
+
+        // A status handler can request stop on the supervisor itself; its finally block owns the actual cleanup.
+        if (Thread.CurrentThread == thread) return;
+        if (!thread.Join(_options.StopTimeout))
+            throw new TimeoutException("Capture is still stopping. Its readers and queued packets must finish before capture can restart.");
     }
 
     public void StartRecording(string pcapngPath)
     {
         ArgumentException.ThrowIfNullOrEmpty(pcapngPath);
-        var writer = PcapFileWriter.Create(pcapngPath, PcapFileWriter.FormatForPath(pcapngPath));
+        PcapFileWriter writer;
         PcapFileWriter? old;
-        lock (_sync)
+        lock (_lifecycle)
         {
-            old = _recorder;
-            _recorder = writer;
-            _recordingPath = Path.GetFullPath(pcapngPath);
-            if (_tracker is not null) _tracker.Recorder = writer;
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (_thread is not null && _stopEvent.IsSet)
+                throw new InvalidOperationException("Capture is stopping. Start recording after it has finished.");
+
+            // Creation and attachment share the lifecycle guard, so disposal cannot finish between them and orphan
+            // a newly opened writer. Recording before Start remains supported.
+            writer = PcapFileWriter.Create(pcapngPath, PcapFileWriter.FormatForPath(pcapngPath));
+            lock (_sync)
+            {
+                old = _recorder;
+                _recorder = writer;
+                _recordingPath = Path.GetFullPath(pcapngPath);
+                if (_tracker is not null) _tracker.Recorder = writer;
+            }
         }
+
         old?.Dispose();
-        AppLog.Info("Capture", $"Recording the game flow to {_recordingPath} ({writer.Format})");
+        AppLog.Info("Capture", $"Recording every game flow to {_recordingPath} ({writer.Format})");
         Publish(_status with { RecordingPath = _recordingPath }, force: true);
     }
 
@@ -156,6 +204,7 @@ public sealed class NpcapCaptureService : ICaptureService
             _recordingPath = null;
             if (_tracker is not null) _tracker.Recorder = null;
         }
+
         if (old is null) return;
         try
         {
@@ -166,6 +215,7 @@ public sealed class NpcapCaptureService : ICaptureService
         {
             AppLog.Error("Capture", "Closing the recording failed", ex);
         }
+
         Publish(_status with { RecordingPath = null }, force: true);
     }
 
@@ -176,8 +226,11 @@ public sealed class NpcapCaptureService : ICaptureService
             if (_disposed) return;
             _disposed = true;
         }
+
         try { Stop(); } catch (Exception ex) { AppLog.Error("Capture", "Stop during dispose failed", ex); }
-        StopRecording();
+        // A timed-out run still owns the recorder until its queued packets drain. A recorder started without a run
+        // has no supervisor to close it, so dispose it here.
+        if (!IsRunning) StopRecording();
     }
 
     // ───────────────────────────── supervisor ─────────────────────────────
@@ -191,8 +244,9 @@ public sealed class NpcapCaptureService : ICaptureService
         public IReadOnlyList<AdapterInfo> Adapters = Array.Empty<AdapterInfo>();
         public DateTime AdaptersAt = DateTime.MinValue;
         public string? LastOverride;
-        public int? LockPid;
-        public FlowLockInfo? LastLock;
+        /// <summary>Game process id per locked flow (from the connection table at the time it was seen).</summary>
+        public readonly Dictionary<TcpFlowKey, int> FlowPids = new();
+        public readonly HashSet<TcpFlowKey> UnlockRequested = new();
     }
 
     private void Run()
@@ -200,7 +254,8 @@ public sealed class NpcapCaptureService : ICaptureService
         var st = new LoopState();
         var stop = _stopEvent;
         var tracker = _tracker!;
-        lock (_sync) _sink!.OnDiscontinuity(DiscontinuityReason.CaptureRestarted);
+        var dispatcher = _dispatcher!;
+        dispatcher.Start();
         Publish(new CaptureStatus { State = CaptureState.WaitingForGame, Message = "Starting capture, looking for AION 2..." }, force: true);
         try
         {
@@ -208,7 +263,7 @@ public sealed class NpcapCaptureService : ICaptureService
             {
                 try
                 {
-                    Step(st, tracker);
+                    Step(st, tracker, dispatcher);
                 }
                 catch (Exception ex)
                 {
@@ -217,16 +272,30 @@ public sealed class NpcapCaptureService : ICaptureService
                     Publish(_status with { State = CaptureState.Error, Message = $"Capture error: {ex.Message}" }, force: false);
                     stop.Wait(TimeSpan.FromSeconds(2));
                 }
+
                 stop.Wait(250);
             }
         }
         finally
         {
-            CloseAllReaders();
+            // Also reject new recorders if this run exits through a fault rather than a public Stop request.
+            lock (_lifecycle) stop.Set();
+            try
+            {
+                CloseAllReaders();
+                dispatcher.Complete();
+                StopRecording();
+                Publish(new CaptureStatus { State = CaptureState.Stopped, Message = "Capture is stopped." }, force: true);
+            }
+            finally
+            {
+                lock (_lifecycle)
+                    if (ReferenceEquals(_thread, Thread.CurrentThread)) _thread = null;
+            }
         }
     }
 
-    private void Step(LoopState st, GameFlowTracker tracker)
+    private void Step(LoopState st, GameFlowTracker tracker, CaptureDispatcher dispatcher)
     {
         var now = DateTime.UtcNow;
 
@@ -239,6 +308,7 @@ public sealed class NpcapCaptureService : ICaptureService
                 st.NextNpcapCheck = now + _options.NpcapRecheckInterval;
                 if (st.Npcap.IsAvailable) AppLog.Info("Capture", st.Npcap.Reason);
             }
+
             if (st.Npcap is not { IsAvailable: true })
             {
                 CloseAllReaders();
@@ -252,7 +322,7 @@ public sealed class NpcapCaptureService : ICaptureService
             }
         }
 
-        // 2. Game process and connections; adapters.
+        // 2. Game process and ALL its connections (every ESTABLISHED port-13328 connection is a game flow); adapters.
         string? ovr = _adapterOverride;
         bool overrideChanged = !string.Equals(ovr, st.LastOverride, StringComparison.OrdinalIgnoreCase);
         bool polled = false;
@@ -262,49 +332,74 @@ public sealed class NpcapCaptureService : ICaptureService
             st.NextPoll = now + _options.ProcessPollInterval;
             polled = true;
         }
+
         if (st.Adapters.Count == 0 || now - st.AdaptersAt > _options.AdapterRefreshInterval || overrideChanged)
         {
             st.Adapters = AdapterSelector.ListAdapters();
             st.AdaptersAt = now;
         }
+
         st.LastOverride = ovr;
         var located = st.Located;
         var hintConnections = located.Candidates.Where(c => c.IsGamePort).ToList();
         if (hintConnections.Count == 0) hintConnections = located.Candidates.ToList();
 
-        // 3. Watchdog + hints.
-        FlowLockInfo? lockInfo;
+        // 3. Hints + per-flow watchdog (process exit, adapter change). Idle flows end in the tracker (dispatch thread).
+        IReadOnlyList<FlowLockInfo> locks;
         lock (_sync)
         {
             tracker.SetHints(hintConnections.Select(c => c.Hint));
-            lockInfo = tracker.CurrentLock;
-            if (lockInfo is not null)
-            {
-                if (!ReferenceEquals(lockInfo, st.LastLock))
-                {
-                    st.LastLock = lockInfo;
-                    st.LockPid = located.Candidates.FirstOrDefault(c => c.Hint.Key == lockInfo.Key)?.ProcessId;
-                }
-                string? reason = null;
-                if (tracker.LastLockedPacketUtc is { } last && now - last > _options.WatchdogTimeout)
-                    reason = $"no game data for {(int)_options.WatchdogTimeout.TotalSeconds} s";
-                else if (polled && st.LockPid is int pid && !_locator.IsProcessAlive(pid))
-                    reason = "the game process exited";
-                else if (ovr is not null && _sourceAdapters.TryGetValue(lockInfo.SourceId, out var la) && !AdapterSelector.MatchesOverride(la, ovr))
-                    reason = "the capture adapter was changed";
-                if (reason is not null)
-                {
-                    tracker.Unlock(reason);
-                    lockInfo = null;
-                    st.LastLock = null;
-                    st.LockPid = null;
-                }
-            }
-            tracker.Tick(now);
+            locks = tracker.ActiveLocks;
         }
 
-        // 4. What should be open?
-        IReadOnlyList<AdapterInfo> want;
+        var open = new HashSet<TcpFlowKey>(locks.Select(l => l.Key));
+        foreach (var k in st.FlowPids.Keys.Where(k => !open.Contains(k)).ToList()) st.FlowPids.Remove(k);
+        st.UnlockRequested.RemoveWhere(k => !open.Contains(k));
+        TimeSpan IdleFor(TcpFlowKey key)
+        {
+            DateTime? last;
+            lock (_sync) last = tracker.LastPacketOf(key);
+            return last is { } l ? now - l : TimeSpan.Zero;
+        }
+
+        foreach (var info in locks)
+        {
+            var conn = located.Candidates.FirstOrDefault(c => c.Hint.Key == info.Key);
+            if (conn is not null && !st.FlowPids.ContainsKey(info.Key)) st.FlowPids[info.Key] = conn.ProcessId;
+
+            string? reason = null;
+            if (polled && st.FlowPids.TryGetValue(info.Key, out int pid) && !_locator.IsProcessAlive(pid))
+                reason = "the game process exited";
+            else if (polled && conn is null && st.FlowPids.ContainsKey(info.Key) && located.ProcessFound
+                     && IdleFor(info.Key) >= _options.ClosedConnectionIdle)
+                reason = "its connection is gone from the game's connection table"; // reconnect via another adapter, resume
+            else if (ovr is not null && _sourceAdapters.TryGetValue(info.SourceId, out var la) && !AdapterSelector.MatchesOverride(la, ovr))
+                reason = "the capture adapter was changed";
+            if (reason is null || !st.UnlockRequested.Add(info.Key)) continue;
+            var key = info.Key;
+            dispatcher.Enqueue(t => t.Unlock(key, reason, DateTime.UtcNow));
+        }
+
+        locks = locks.Where(l => !st.UnlockRequested.Contains(l.Key)).ToList();
+
+        // 4. What should be open? The adapters of every locked flow and of every hinted connection.
+        var want = new List<AdapterInfo>();
+        void Want(AdapterInfo? a)
+        {
+            if (a is not null && !want.Any(w => string.Equals(w.Name, a.Name, StringComparison.OrdinalIgnoreCase))) want.Add(a);
+        }
+
+        foreach (var l in locks)
+            if (_sourceAdapters.TryGetValue(l.SourceId, out var la)) Want(la);
+        bool hintAdapterMissing = false;
+        foreach (var c in hintConnections)
+        {
+            var sel = AdapterSelector.Select(st.Adapters, c.Local.IPAddress, ovr);
+            if (sel.Adapter is not null) Want(sel.Adapter);
+            else hintAdapterMissing = true;
+        }
+
+        var servers = locks.Select(l => l.Server).Concat(hintConnections.Select(c => c.Remote)).Distinct().ToList();
         string filter;
         CaptureState state;
         string message;
@@ -312,42 +407,42 @@ public sealed class NpcapCaptureService : ICaptureService
         string? local = null, server = null;
         int? pidForStatus = located.Processes.Count > 0 ? located.Processes[0].ProcessId : null;
 
-        if (lockInfo is not null)
+        if (locks.Count > 0)
         {
-            _sourceAdapters.TryGetValue(lockInfo.SourceId, out statusAdapter);
-            want = statusAdapter is not null ? new[] { statusAdapter } : _readers.Values.Select(r => r.Adapter).ToList();
-            filter = CaptureFilters.ForServers(new[] { lockInfo.Server }.Concat(hintConnections.Select(c => c.Remote)), true,
-                _options.Tracker.GameServerPort);
+            var newest = locks[^1];
+            _sourceAdapters.TryGetValue(newest.SourceId, out statusAdapter);
+            if (want.Count == 0) want.AddRange(_readers.Values.Select(r => r.Adapter));
+            filter = CaptureFilters.ForServers(servers, true, _options.Tracker.GameServerPort);
             state = CaptureState.Capturing;
-            local = lockInfo.Client.ToString();
-            server = lockInfo.Server.ToString();
-            pidForStatus = st.LockPid ?? pidForStatus;
-            message = $"Capturing game traffic {server} -> {local} on {statusAdapter?.Description ?? "adapter"}.";
+            server = string.Join(" + ", locks.Select(l => l.Server.ToString()).Distinct());
+            local = string.Join(" + ", locks.Select(l => l.Client.ToString()).Distinct());
+            if (st.FlowPids.TryGetValue(newest.Key, out int pid)) pidForStatus = pid;
+            string where = want.Count <= 1 ? statusAdapter?.Description ?? want.FirstOrDefault()?.Description ?? "adapter" : $"{want.Count} adapters";
+            message = locks.Count == 1
+                ? $"Capturing game traffic {server} -> {local} on {where}."
+                : $"Capturing {locks.Count} game flows ({server}) on {where}.";
         }
-        else if (located.Best is { } best)
+        else if (hintConnections.Count > 0 && located.Best is { } best)
         {
-            var sel = AdapterSelector.Select(st.Adapters, best.Local.IPAddress, ovr);
-            local = best.Local.ToString();
-            server = best.Remote.ToString();
+            local = string.Join(" + ", hintConnections.Select(c => c.Local.ToString()).Distinct());
+            server = string.Join(" + ", hintConnections.Select(c => c.Remote.ToString()).Distinct());
             pidForStatus = best.ProcessId;
-            filter = CaptureFilters.ForServers(hintConnections.Select(c => c.Remote), true, _options.Tracker.GameServerPort);
-            if (sel.Adapter is not null)
+            filter = CaptureFilters.ForServers(servers, true, _options.Tracker.GameServerPort);
+            if (want.Count > 0)
             {
-                want = new[] { sel.Adapter };
-                statusAdapter = sel.Adapter;
+                statusAdapter = want[0];
                 state = CaptureState.Detecting;
                 message = $"AION 2 (pid {best.ProcessId}) is connected to {server} from {local}. " +
-                          $"Waiting for game traffic on {sel.Adapter.Description}...";
+                          $"Waiting for game traffic on {DescribeSet(want)}...";
             }
             else if (ovr is not null)
             {
-                want = Array.Empty<AdapterInfo>();
                 state = CaptureState.Error;
                 message = $"The selected capture adapter '{ovr}' was not found. Choose another adapter or switch to automatic.";
             }
             else
             {
-                want = AdapterSelector.SelectScanSet(st.Adapters, null, includeLoopback: true);
+                want.AddRange(AdapterSelector.SelectScanSet(st.Adapters, null, includeLoopback: true));
                 state = CaptureState.Detecting;
                 message = $"AION 2 is connected to {server} from {local}, but no capture adapter has the address " +
                           $"{best.Local.AddressString}. Watching {want.Count} adapters...";
@@ -355,8 +450,8 @@ public sealed class NpcapCaptureService : ICaptureService
         }
         else if (located.ProcessFound)
         {
-            want = AdapterSelector.SelectScanSet(st.Adapters, ovr, includeLoopback: true);
-            filter = CaptureFilters.AllTcp;
+            want.AddRange(AdapterSelector.SelectScanSet(st.Adapters, ovr, includeLoopback: true));
+            filter = CaptureFilters.Detection();
             state = want.Count > 0 ? CaptureState.Detecting : CaptureState.Error;
             message = want.Count > 0
                 ? $"AION 2 is running (pid {located.Processes[0].ProcessId}) but its game connection was not found yet. " +
@@ -365,7 +460,7 @@ public sealed class NpcapCaptureService : ICaptureService
         }
         else
         {
-            want = _options.ScanWithoutProcess ? AdapterSelector.SelectScanSet(st.Adapters, ovr, includeLoopback: false) : Array.Empty<AdapterInfo>();
+            if (_options.ScanWithoutProcess) want.AddRange(AdapterSelector.SelectScanSet(st.Adapters, ovr, includeLoopback: false));
             filter = CaptureFilters.GamePort(_options.Tracker.GameServerPort);
             state = CaptureState.WaitingForGame;
             message = want.Count > 0
@@ -373,8 +468,14 @@ public sealed class NpcapCaptureService : ICaptureService
                 : "Waiting for AION 2. Start the game.";
         }
 
+        if (locks.Count > 0 && hintAdapterMissing && ovr is null)
+        {
+            // A hinted game connection whose local address no adapter owns (VPN/loopback relay): keep scanning for it too.
+            foreach (var a in AdapterSelector.SelectScanSet(st.Adapters, null, includeLoopback: true)) Want(a);
+        }
+
         // 5. Open/close adapters.
-        ApplyReaders(want, filter, now);
+        ApplyReaders(want, filter, now, dispatcher);
         var failures = want.Where(a => !_readers.ContainsKey(a.Name) && _openErrors.ContainsKey(a.Name)).ToList();
         if (want.Count > 0 && failures.Count == want.Count)
         {
@@ -384,6 +485,7 @@ public sealed class NpcapCaptureService : ICaptureService
                       "\"Restrict Npcap driver's access to Administrators only\", run the meter as administrator or reinstall Npcap " +
                       "without that option.";
         }
+
         if (statusAdapter is null && _readers.Count == 1) statusAdapter = _readers.Values.First().Adapter;
 
         // 6. Status.
@@ -406,6 +508,7 @@ public sealed class NpcapCaptureService : ICaptureService
                 RecordingPath = _recordingPath,
             };
         }
+
         Publish(status, force: false);
     }
 
@@ -424,19 +527,22 @@ public sealed class NpcapCaptureService : ICaptureService
         }
     }
 
-    private void ApplyReaders(IReadOnlyList<AdapterInfo> want, string filter, DateTime now)
+    private void ApplyReaders(IReadOnlyList<AdapterInfo> want, string filter, DateTime now, CaptureDispatcher dispatcher)
     {
+        for (int i = _retiring.Count - 1; i >= 0; i--)
+        {
+            if (now < _retiring[i].DisposeAt) continue;
+            _retiring[i].Reader.Dispose();
+            _retiring.RemoveAt(i);
+        }
+
         var names = new HashSet<string>(want.Select(a => a.Name), StringComparer.OrdinalIgnoreCase);
         foreach (var name in _readers.Keys.ToList())
         {
             var r = _readers[name];
             if (!names.Contains(name) || !r.IsRunning)
             {
-                if (!r.IsRunning && r.Error is not null)
-                {
-                    _openErrors[name] = r.Error;
-                    _openRetryAfter[name] = now + _options.OpenRetryInterval;
-                }
+                if (!r.IsRunning && r.Error is not null) NoteOpenFailure(r.Adapter, r.Error, now);
                 _readers.Remove(name);
                 r.Dispose();
             }
@@ -446,53 +552,84 @@ public sealed class NpcapCaptureService : ICaptureService
         {
             if (_readers.TryGetValue(adapter.Name, out var existing))
             {
-                existing.SetFilter(filter);
+                if (!CaptureFilters.Equivalent(existing.Filter, filter)) SwapFilter(existing, filter, now, dispatcher);
                 continue;
             }
+
             if (_openRetryAfter.TryGetValue(adapter.Name, out var retry) && now < retry) continue;
             if (!_sourceIds.TryGetValue(adapter.Name, out int id))
             {
                 id = _sourceIds.Count + 1;
                 _sourceIds[adapter.Name] = id;
             }
+
             _sourceAdapters[id] = adapter;
             try
             {
-                _readers[adapter.Name] = DeviceReader.Open(adapter, id, filter, _options, OnFrame);
+                _readers[adapter.Name] = DeviceReader.Open(adapter, id, filter, _options, dispatcher.EnqueuePacket);
+                if (_openFailures.Remove(adapter.Name)) AppLog.Info("Capture", $"{adapter.Description} opened after earlier failures");
                 _openErrors.Remove(adapter.Name);
                 _openRetryAfter.Remove(adapter.Name);
             }
             catch (Exception ex)
             {
                 string msg = ex is TypeInitializationException { InnerException: { } inner } ? inner.Message : ex.Message;
-                _openErrors[adapter.Name] = msg;
-                _openRetryAfter[adapter.Name] = now + _options.OpenRetryInterval;
-                AppLog.Warn("Capture", $"Cannot open {adapter.Description}: {msg}");
+                NoteOpenFailure(adapter, msg, now);
             }
         }
     }
 
-    private void OnFrame(int sourceId, DateTime timestampUtc, int linkType, ReadOnlySpan<byte> frame)
+    /// <summary>
+    /// Changing the filter of a live handle (BIOCSETF) throws away what it has buffered, which is exactly the connect-time
+    /// burst of a new game connection. So a handle with the new filter is opened first, and the old one keeps reading for
+    /// <see cref="CaptureServiceOptions.FilterSwapOverlap"/> before it is closed.
+    /// </summary>
+    private void SwapFilter(DeviceReader existing, string filter, DateTime now, CaptureDispatcher dispatcher)
     {
-        lock (_sync)
+        DeviceReader replacement;
+        try
         {
-            var tracker = _tracker;
-            if (tracker is null) return;
-            try
-            {
-                tracker.OnPacket(timestampUtc, linkType, frame, sourceId);
-            }
-            catch (Exception ex)
-            {
-                AppLog.Error("Capture", "Packet processing failed", ex);
-            }
+            replacement = DeviceReader.Open(existing.Adapter, existing.SourceId, filter, _options, dispatcher.EnqueuePacket);
         }
+        catch (Exception ex)
+        {
+            AppLog.Warn("Capture", $"{existing.Adapter.Description}: cannot open a second handle ({ex.Message}); changing the filter in place");
+            existing.SetFilter(filter);
+            return;
+        }
+
+        _readers[existing.Adapter.Name] = replacement;
+        _retiring.Add((existing, now + _options.FilterSwapOverlap));
+    }
+
+    /// <summary>Exponential retry backoff; a warning is logged for the first failure and when the error changes only (an
+    /// adapter that cannot be opened must not write a log line every few seconds, around the clock).</summary>
+    private void NoteOpenFailure(AdapterInfo adapter, string message, DateTime now)
+    {
+        bool changed = !_openErrors.TryGetValue(adapter.Name, out var previous) || previous != message;
+        int failures = _openFailures.GetValueOrDefault(adapter.Name) + 1;
+        _openFailures[adapter.Name] = failures;
+        _openErrors[adapter.Name] = message;
+        _openRetryAfter[adapter.Name] = now + RetryDelay(failures, _options.OpenRetryInterval, _options.MaxOpenRetryInterval);
+        if (changed) AppLog.Warn("Capture", $"Cannot open {adapter.Description}: {message}");
+        else AppLog.Debug("Capture", $"Cannot open {adapter.Description} (attempt {failures}): {message}");
+    }
+
+    /// <summary>Delay before the next attempt after <paramref name="failures"/> consecutive failures (1 = first).</summary>
+    internal static TimeSpan RetryDelay(int failures, TimeSpan first, TimeSpan max)
+    {
+        if (first <= TimeSpan.Zero) return TimeSpan.Zero;
+        double factor = Math.Pow(2, Math.Clamp(failures - 1, 0, 30));
+        double ms = Math.Min(first.TotalMilliseconds * factor, Math.Max(first.TotalMilliseconds, max.TotalMilliseconds));
+        return TimeSpan.FromMilliseconds(ms);
     }
 
     private void CloseAllReaders()
     {
         foreach (var r in _readers.Values) r.Dispose();
         _readers.Clear();
+        foreach (var (r, _) in _retiring) r.Dispose();
+        _retiring.Clear();
     }
 
     private void Publish(CaptureStatus status, bool force)
@@ -514,6 +651,7 @@ public sealed class NpcapCaptureService : ICaptureService
             _lastPublished = status;
             _lastPublishUtc = now;
         }
+
         try
         {
             StatusChanged?.Invoke(status);

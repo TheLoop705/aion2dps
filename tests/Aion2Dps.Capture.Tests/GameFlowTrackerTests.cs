@@ -157,9 +157,12 @@ public class GameFlowTrackerTests
     }
 
     [Fact]
-    public void SecondQualifyingFlow_DoesNotStealAnActiveLock()
+    public void SecondQualifyingFlow_IsLockedConcurrently_PlainSinkFollowsTheNewestFlow()
     {
-        var tracker = new GameFlowTracker(new CollectingSink());
+        // LIVE-FINDINGS NEW 1: both game connections are followed. A plain (single-stream) sink can only take one of
+        // them: the newest flow owns it (SingleSinkFlowAdapter), the other flow's bytes are counted as dropped.
+        var sink = new CollectingSink();
+        var tracker = new GameFlowTracker(sink);
         var a = new SyntheticConnection("10.0.0.2:50000", "193.202.112.99:13328");
         var b = new SyntheticConnection("10.0.0.2:50001", "193.202.112.200:13328");
         var t = T0;
@@ -169,15 +172,27 @@ public class GameFlowTrackerTests
             tracker.OnPacket(t, LinkTypes.Ethernet, b.ServerSend(GameBytes.Heartbeat(i)));
             t = t.AddMilliseconds(50);
         }
-        Assert.Equal(a.Server, tracker.CurrentLock!.Server);
-        // a goes silent for > 5 s: b takes over.
+        Assert.Equal(2, tracker.ActiveFlowCount);
+        Assert.Equal(2, tracker.LockCount);
+        Assert.Equal(2, tracker.MaxConcurrentFlows);
+        Assert.Equal(b.Server, tracker.CurrentLock!.Server);
+        Assert.Equal(new[] { a.Server, b.Server }, tracker.ActiveLocks.Select(l => l.Server));
+        Assert.Equal(new[] { DiscontinuityReason.NewConnection }, sink.Discontinuities);
+        var adapter = Assert.IsType<SingleSinkFlowAdapter>(tracker.Factory);
+        Assert.Equal(3 * 11, adapter.DroppedBytes); // a's heartbeats 3..5 after b took the sink
+        Assert.Equal(12 * 11, tracker.BytesDelivered); // reassembled per flow
+        Assert.Equal(9 * 11, sink.Data.Length);        // what the single sink received
+
+        // a goes silent: it stays open until the idle timeout, then b remains.
         t = t.AddSeconds(6);
         for (int i = 0; i < 3; i++)
         {
             tracker.OnPacket(t, LinkTypes.Ethernet, b.ServerSend(GameBytes.Heartbeat(100 + i)));
             t = t.AddMilliseconds(50);
         }
-        Assert.Equal(b.Server, tracker.CurrentLock!.Server);
+        Assert.Equal(2, tracker.ActiveFlowCount);
+        tracker.Tick(t.AddSeconds(91));
+        Assert.Equal(0, tracker.ActiveFlowCount);
         Assert.Equal(2, tracker.LockCount);
     }
 

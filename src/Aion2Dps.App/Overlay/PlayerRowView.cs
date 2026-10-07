@@ -28,6 +28,7 @@ internal sealed class PlayerRowView : Grid
     private readonly TextBlock _dead = Ui.Icon("", ThemeKeys.Negative, 9);
     private readonly TextBlock _crit = Ui.Text("", ThemeKeys.Crit, mono: true);
     private readonly TextBlock _max = Ui.Text("", ThemeKeys.TextMuted, mono: true);
+    private readonly TextBlock _gearScore = Ui.Text("", ThemeKeys.TextMuted, mono: true);
     private readonly TextBlock _primary = Ui.Text("", ThemeKeys.Text, weight: FontWeights.SemiBold, mono: true);
     private readonly TextBlock _secondary = Ui.Text("", ThemeKeys.TextMuted, mono: true);
     private readonly TextBlock _pct = Ui.Text("", ThemeKeys.TextMuted, mono: true);
@@ -52,7 +53,7 @@ internal sealed class PlayerRowView : Grid
         _you.Margin = new Thickness(5, 0, 0, 0);
         _dead.Margin = new Thickness(4, 0, 0, 0);
         _dead.ToolTip = "Dead";
-        foreach (var t in new[] { _crit, _max, _primary, _secondary, _pct, _rank })
+        foreach (var t in new[] { _crit, _max, _gearScore, _primary, _secondary, _pct, _rank })
             t.TextAlignment = TextAlignment.Right;
         _rank.TextAlignment = TextAlignment.Center;
 
@@ -91,7 +92,7 @@ internal sealed class PlayerRowView : Grid
     public void Configure(OverlayViewOptions options)
     {
         if (_options is { } o && o.RowSize == options.RowSize && o.BarStyle == options.BarStyle && o.ShowCritRate == options.ShowCritRate
-            && o.ShowMaxHit == options.ShowMaxHit && o.ShowTotal == options.ShowTotal && o.ShowContribution == options.ShowContribution
+            && o.ShowMaxHit == options.ShowMaxHit && o.ShowGearScore == options.ShowGearScore && o.ShowTotal == options.ShowTotal && o.ShowContribution == options.ShowContribution
             && o.ShowRank == options.ShowRank && o.ShowClassEmblem == options.ShowClassEmblem && o.View == options.View)
         {
             _options = options;
@@ -142,7 +143,7 @@ internal sealed class PlayerRowView : Grid
             _content.Children.Add(element);
         }
 
-        foreach (var t in new[] { _rank, _name, _crit, _max, _primary, _secondary, _pct })
+        foreach (var t in new[] { _rank, _name, _crit, _max, _gearScore, _primary, _secondary, _pct })
             t.FontSize = m.FontSize;
         _primary.FontSize = m.NumberSize + (micro ? 0 : 0.5);
         _you.Visibility = Visibility.Collapsed;
@@ -171,6 +172,7 @@ internal sealed class PlayerRowView : Grid
         Col(-1, nameHost);
 
         double numW = options.RowSize switch { RowSize.Normal => 56, RowSize.Compact => 52, _ => 46 };
+        if (options.ShowGearScore) Col(numW - 8, _gearScore);
         if (!micro && options.ShowCritRate) Col(numW - 10, _crit);
         if (!micro && options.ShowMaxHit) Col(numW, _max);
         Col(numW, _primary);
@@ -199,6 +201,8 @@ internal sealed class PlayerRowView : Grid
         _name.Opacity = r.IsDead ? 0.6 : 1;
         Set(_crit, r.Hits > 0 ? Fmt.Percent(r.CritRate) : Fmt.Dash);
         Set(_max, r.MaxHit > 0 ? Fmt.Abbrev(r.MaxHit) : Fmt.Dash);
+        Set(_gearScore, r.GearScore is { } gs ? gs.ToString(CultureInfo.InvariantCulture) : Fmt.Dash);
+        _gearScore.ToolTip = r.GearScore is { } gear ? $"Gear score: {gear.ToString(CultureInfo.InvariantCulture)}" : "Gear score unknown";
         Set(_primary, Fmt.Abbrev(d.Primary));
         Set(_secondary, Fmt.Abbrev(d.Secondary));
         Set(_pct, d.Pct is { } p && p > 0 ? Fmt.Percent(p) : Fmt.Dash);
@@ -238,6 +242,7 @@ internal sealed class PlayerRowView : Grid
         sp.Children.Add(head);
         var lines = new List<(string, string)>
         {
+            ("Gear score", r.GearScore is { } gs ? Fmt.Exact((long)gs) : Fmt.Dash),
             ("Damage", Fmt.Exact(r.Damage)),
             ("DPS", Fmt.Exact(r.Dps)),
             ("Contribution", r.Contribution > 0 ? Fmt.Percent(r.Contribution, 2) : Fmt.Dash),

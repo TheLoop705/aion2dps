@@ -69,6 +69,9 @@ public sealed class SettingsPage : DashboardPage
         meter.Children.Add(Ui.Field("Default mode", Ui.Combo(new[] { (MeterMode.BossOnly, "Boss only"), (MeterMode.AllTargets, "All targets") }, o.DefaultMode,
             v => { o.DefaultMode = v; context.Services.Engine.Mode = v; Save(); }, 200)));
         meter.Children.Add(Ui.Field("Rows shown", SliderWithLabel(1, 24, o.MaxRows, 1, v => $"{v:0}", v => { o.MaxRows = (int)v; Save(); })));
+        meter.Children.Add(Ui.Field("Clear finished fights after", SliderWithLabel(0, 120, g.EndedDisplaySeconds, 5,
+            v => v <= 0 ? "Keep until next fight" : $"{v:0} s", v => { g.EndedDisplaySeconds = v; Save(); }),
+            "Clears the live counter after combat ends. Finished fights stay in History. Set to 0 to keep results until the next fight."));
         meter.Children.Add(Ui.Check("Party members only: you + your party roster (solo: just you). Also on the overlay's PARTY chip and Ctrl+Alt+P", g.PartyOnly, v => { g.PartyOnly = v; Save(); }));
         meter.Children.Add(Ui.Check("Save trash fights to history", g.SaveTrashFights, v => { g.SaveTrashFights = v; Save(); }));
         left.Children.Add(Ui.Card("Meter", meter));

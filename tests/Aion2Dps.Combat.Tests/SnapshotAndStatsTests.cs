@@ -135,6 +135,70 @@ public class SnapshotAndStatsTests
     }
 
     [Fact]
+    public void Snapshot_gear_score_uses_the_latest_roster_and_keeps_missing_scores_unknown()
+    {
+        var s = Script.Standard();
+        s.Hit(1, Script.Me, Script.Boss, 100);
+        s.Hit(1, Script.Ally, Script.Boss, 100, Script.SorSkill);
+        Assert.Null(Script.Row(s.Snap(1), Script.Me).GearScore);
+        Assert.Null(Script.Row(s.Snap(1), Script.Ally).GearScore);
+
+        s.Send(new PartyRosterEvent
+        {
+            Time = Script.At(2),
+            Members = new[]
+            {
+                new PartyMember { Name = "Me", GearScore = 2480 },
+                new PartyMember { Name = "Ally" },
+            },
+        });
+        var before = s.Snap(2);
+        Assert.Equal(2480u, Script.Row(before, Script.Me).GearScore);
+        Assert.Null(Script.Row(before, Script.Ally).GearScore);
+
+        s.Send(new PartyRosterEvent
+        {
+            Time = Script.At(3),
+            Members = new[] { new PartyMember { Name = "Me", GearScore = 2510 } },
+        });
+        var after = s.Snap(3);
+        Assert.Equal(2510u, Script.Row(after, Script.Me).GearScore);
+        Assert.Null(Script.Row(after, Script.Ally).GearScore);
+        Assert.Equal(2480u, Script.Row(before, Script.Me).GearScore);
+        Assert.Equal(before.TotalDamage, after.TotalDamage);
+    }
+
+    [Fact]
+    public void Snapshot_gear_score_appears_after_late_player_info_resolves_an_ambiguous_roster_member()
+    {
+        var s = Script.Standard();
+        s.Roster(0, ("Me", 6), ("First", 18), ("Second", 18));
+        s.Hit(1, 950, Script.Boss, 100, 13_010_000);
+        var before = Script.Row(s.Snap(1), 950);
+        Assert.Equal("Player 950", before.Name);
+        Assert.Null(before.GearScore);
+
+        s.Player(2, 950, "Second", 18);
+        var after = Script.Row(s.Snap(2), 950);
+        Assert.Equal("Second", after.Name);
+        Assert.Equal(1002u, after.GearScore);
+        Assert.Equal(before.Damage, after.Damage);
+        Assert.Null(before.GearScore);
+    }
+
+    [Fact]
+    public void Snapshot_gear_score_does_not_reuse_a_removed_roster_members_score()
+    {
+        var s = Script.Standard();
+        s.Roster(0, ("Me", 6), ("Ally", 26));
+        s.Hit(1, Script.Ally, Script.Boss, 100, Script.SorSkill);
+        Assert.Equal(1001u, Script.Row(s.Snap(1), Script.Ally).GearScore);
+
+        s.Roster(2, ("Me", 6));
+        Assert.Null(Script.Row(s.Snap(2), Script.Ally).GearScore);
+    }
+
+    [Fact]
     public void Party_only_filter_shows_local_and_roster()
     {
         var s = Script.Standard();

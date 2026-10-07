@@ -166,4 +166,26 @@ public class SpawnTests
     [InlineData(0x0C, false)]
     [InlineData(0x0D, false)]
     public void Summon_kinds(byte kind, bool summon) => Assert.Equal(summon, PacketDecoder.IsSummonKind(kind));
+
+    [Fact]
+    public void Aura_refresh_kind_2F_keeps_summon_classification_and_caster_name()
+    {
+        // Global Draupnir: the same Chanter aura changes kind 1F -> 2F on a position refresh.
+        // Reuse the public aura layout, without captured player identity or location data.
+        var initial = DivineAura.Replace("C0902C00", "CA902C00", StringComparison.Ordinal); // NPC 2920650.
+        var refreshed = initial.Replace("C3CD011F", "C3CD012F", StringComparison.Ordinal)
+            .Replace("CA902C004002", "CA902C000002", StringComparison.Ordinal)
+            .Replace("070206FE100000", "070201", StringComparison.Ordinal); // Refresh omits owner-id marker.
+        var before = Run.Single<SpawnEvent>(initial);
+        var after = Run.Single<SpawnEvent>(refreshed);
+
+        Assert.Equal(before.Entity, after.Entity);
+        Assert.Equal(before.NpcCode, after.NpcCode);
+        Assert.Equal(2920650u, after.NpcCode);
+        Assert.Equal(before.CasterName, after.CasterName);
+        Assert.Equal(4350u, before.OwnerId);
+        Assert.Null(after.OwnerId);
+        Assert.Equal(0x2F, after.KindByte);
+        Assert.True(after.IsSummonLike);
+    }
 }

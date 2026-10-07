@@ -5,6 +5,41 @@ namespace Aion2Dps.Protocol.Tests;
 /// <summary>Real <c>05 38</c> ticks (PROTOCOL.md §8.3, stacys SelfCheckAion2.cs:320-333, 390-395, 987-995).</summary>
 public class DotTests
 {
+    [Theory]
+    [InlineData("960F4AA3E30158A36C9209F4037BB4CB0016811800", 1942u, 500)]
+    [InlineData("D17F4AA3E30158A36C9209F403C88D030116811800", 16337u, 500)]
+    [InlineData("D85B4AA3E30158A36C9209FB02FC08AD0016811800", 11736u, 379)]
+    public void Retaliation_tick_4A_uses_effect_skill_instead_of_player_trigger(string body, uint target, long amount)
+    {
+        // Lakshmi's attack effect reacts to a player skill: the final 0x40 field names the NPC's ability.
+        var (events, diag) = Run.Body(Opcodes.DotTick, body);
+        var d = Assert.IsType<DotEvent>(Assert.Single(events));
+        Assert.Equal(target, d.Target);
+        Assert.Equal(29091u, d.Actor);
+        Assert.Equal(160591011u, d.EffectId);
+        Assert.Equal(0x4A, d.Flags);
+        Assert.Equal(amount, d.Amount);
+        Assert.Equal(1605910u, d.SkillId);
+        Assert.Equal(SkillKind.Npc, SkillIds.GetKind(d.SkillId!.Value));
+        Assert.True(d.IsDamageTick);
+        Assert.Equal(0, diag.DecodeErrors);
+    }
+
+    [Theory]
+    [InlineData("960F4AA3E30158A36C9209F4037BB4CB00")]
+    [InlineData("960F4AA3E30158A36C9209F4037BB4CB0016")]
+    [InlineData("960F4AA3E30158A36C9209F4037BB4CB001681")]
+    [InlineData("960F4AA3E30158A36C9209F4037BB4CB00168118")]
+    [InlineData("960F4AA3E30158A36C9209F4037BB4CB0017811800")]
+    [InlineData("960F4AA3E30158A36C9209F4037BB4CB001681180000")]
+    [InlineData("960FCAA3E30158A36C9209F4037BB4CB0016811800")]
+    public void Retaliation_tick_rejects_truncated_mismatched_or_unknown_fields(string body)
+    {
+        var (events, diag) = Run.Body(Opcodes.DotTick, body);
+        Assert.Empty(events);
+        Assert.Equal(1, diag.DecodeErrors);
+    }
+
     [Fact]
     public void Damage_tick_0A_has_amount_and_exact_skill()
     {

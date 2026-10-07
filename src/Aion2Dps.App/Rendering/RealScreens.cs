@@ -131,6 +131,7 @@ public static class RealScreens
             var mid = engine.GetSnapshot(clock);
             var opts = new OverlayViewOptions { RowSize = RowSize.Compact, Version = Infrastructure.AppPaths.Version };
             files.Add(RenderOverlay("sim-boss-midfight", mid, capture.Status, opts, dir));
+            files.Add(RenderOverlay("sim-boss-midfight-gearscore", mid, capture.Status, opts with { ShowGearScore = true }, dir));
             files.Add(RenderOverlay("sim-boss-midfight-normal", mid, capture.Status, opts with { RowSize = RowSize.Normal, ShowCritRate = true, ShowMaxHit = true }, dir, ThemeCatalog.Glacier));
             files.Add(RenderOverlay("sim-boss-midfight-total", mid, capture.Status, opts with { View = MeterView.Total }, dir, ThemeCatalog.Daybreak));
             var midRecord = engine.GetCurrentEncounter();
@@ -141,6 +142,13 @@ public static class RealScreens
             files.Add(RenderOverlay("sim-boss-ended", ended, capture.Status, opts, dir));
             Drain();
             var last = saved.LastOrDefault(r => r.Kind == EncounterKind.Boss) ?? throw new InvalidOperationException("The simulated boss kill was not completed.");
+            engine.Options.EndedDisplaySeconds = 15;
+            var cleared = engine.GetSnapshot(clock);
+            if (cleared.State != MeterState.WaitingForCombat || cleared.TotalDamage != 0 || cleared.Rows.Count != 0
+                || engine.GetCurrentEncounter()?.Id != last.Id)
+                throw new InvalidOperationException("Finished-fight display did not clear while retaining its record.");
+            files.Add(RenderOverlay("sim-boss-cleared", cleared, capture.Status, opts, dir));
+            engine.Options.EndedDisplaySeconds = 0;
             files.Add(RenderBreakdown("sim-breakdown-dps", last, services.GameData, BreakdownTab.Dps, dir));
             files.Add(RenderBreakdown("sim-breakdown-accuracy", last, services.GameData, BreakdownTab.Accuracy, dir));
             files.Add(RenderBreakdown("sim-breakdown-defense", last, services.GameData, BreakdownTab.Defense, dir));

@@ -12,7 +12,7 @@ you use the Character page.
 ## Features
 
 * **Overlay**: borderless, click-through-capable, never takes focus. Boss name, HP bar and timer, ranked rows with
-  DPS / total / contribution (optional crit %, max hit), DPS / TOTAL / TAKEN / HEAL views, boss-only / all-targets /
+  DPS / total / contribution (optional gear score, crit %, max hit), DPS / TOTAL / TAKEN / HEAL views, boss-only / all-targets /
   PvP modes, target cycling, training stopwatch (30 s–5 min), copy-to-chat summary, KILL / WIPE badges, an HP-check
   warning when decoded damage does not explain the boss's HP loss, and clear states for "Npcap missing",
   "waiting for game", "detecting" and "waiting for combat".
@@ -21,6 +21,7 @@ you use the Character page.
   ctrl+click two rows to compare players side by side.
 * **History**: every boss kill and wipe is saved to a local SQLite database (`%APPDATA%\Aion2Dps\history.db`) with
   the full encounter (every hit), grouped by instance and boss, with a full report per fight.
+  Simultaneous bosses share an encounter with separate HP checks and damage breakdowns for each boss.
 * **Trends**: best / median / last DPS and fastest kill per boss, with a per-fight DPS chart.
 * **Character**: your character as detected from login data, plus lookup of any character's gear, stats and
   daevanion boards through the official AION 2 site (Global, Korea, Taiwan).
@@ -41,7 +42,8 @@ SHA-256 checksum, installs to `%LOCALAPPDATA%\Programs\Aion2Dps`, creates a Star
 The release includes the .NET runtime. Run the same command to update after closing the meter; settings and fight
 history in `%APPDATA%\Aion2Dps` are preserved. You can also download the release ZIP and extract it anywhere.
 
-Version 0.2.0 publishes the current meter; the planned hardening work is deferred.
+Version 0.2.1 hardens capture during dungeon transitions, corrects summon identity and shield damage accounting,
+and checks boss HP loss against damage and effective healing. The installer uses the latest published GitHub release.
 
 ## Requirements
 
@@ -84,6 +86,12 @@ without showing any window) and `--render-demo-screens <dir>` (the design catalo
 
 Settings, logs and the fight history live in `%APPDATA%\Aion2Dps`; recordings go to `Documents\Aion2Dps\captures`.
 
+To show gear score in the overlay, open **Appearance → Rows & columns → Columns → Gear score**. Scores appear as
+**GS** when available from the game; unknown scores show **—**. Clicking a player also shows GS in their breakdown.
+
+Finished fights remain on the live meter for **15 seconds**, then its counters clear. The fight stays in History.
+Adjust **Settings → Meter → Clear finished fights after**; set it to **0** to keep results until the next fight.
+
 ## Command-line tool
 
 `aion2dps-cli` (`src\Aion2Dps.Cli\bin\Debug\net10.0-windows\aion2dps-cli.exe`) runs the same pipeline without UI:
@@ -93,8 +101,8 @@ Settings, logs and the fight history live in `%APPDATA%\Aion2Dps`; recordings go
 | `replay <file> [--speed N] [--json out.json]` | Decodes a `.pcap` / `.pcapng` / hex log through flow detection, TCP reassembly, the protocol decoder and the combat engine; prints every completed encounter (kind, boss, outcome, duration, per-player damage / DPS / share / crit / healing / damage taken, HP check) and optionally writes the full encounter records as JSON |
 | `census <file>` | Opcode census (count, bytes, decoded, failed per opcode) and decoder statistics (resyncs, bundle errors, decode errors, recent errors with hex) |
 | `simulate <scenario> --out file.pcap [--seed N]` | Writes a simulator scenario (`BossKill`, `BossWipeThenKill`, `TrashPull`, `PvpSkirmish`, `TrainingDummy`) as a pcap with handshake, client packets and a TLS decoy flow |
-| `selftest [--seeds N]` | Runs every scenario through the full pipeline twice (in-memory stream and pcap replay) plus a storage round trip, compares with the exact ground truth; exit code 0 = pass, 1 = fail |
-| `live [--seconds N] [--adapter NAME] [--record file.pcapng]` | Live capture; prints capture status and the meter every second (exit code 2 with install instructions when Npcap is missing) |
+| `selftest [--seeds N]` | Runs every scenario through an in-memory stream, single-flow pcap and concurrent world/instance pcap, plus a storage round trip; compares with exact ground truth; exit code 0 = pass, 1 = fail |
+| `live [--seconds N] [--adapter NAME] [--record file.pcapng] [--stop-file path] [--json out.json]` | Live capture of world and instance connections; prints the meter every second. Creating the stop file stops capture gracefully; JSON exports completed encounters (exit code 2 with install instructions when Npcap is missing) |
 | `adapters` | Lists Npcap capture adapters |
 | `locate` | Shows the AION 2 processes, their game connections and the adapter that would be used |
 

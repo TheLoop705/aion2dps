@@ -301,14 +301,19 @@ public static class PacketEncoders
     public static byte[] EncodeHpUpdate(HpUpdateEvent e) =>
         new WireWriter(16).Varint((ulong)e.Entity).Varint(e.Hp).Varint(e.HpMax).ToArray();
 
-    /// <summary><c>2A 38</c> buff applied (§8.13). Layout verified on the real bundle frames: the single 00 byte sits after the
-    /// source skill (before the floats), not between the u32 0 and the expiry as the §8.13 table lists it.</summary>
+    /// <summary><c>2A 38</c> buff applied (§8.13), the layout verified on 4,866 real Global frames: target, count
+    /// (<see cref="BuffEncodeOptions.Byte1"/>, 1), then one entry = flags (<see cref="BuffEncodeOptions.Byte2"/>; bit 0x02 =
+    /// source skill present), stack, buff u32, duration u64 ms (all FF when permanent), expiry u64, caster, level u8,
+    /// [source skill u32], tail u8, 3 × f32.</summary>
     public static byte[] EncodeBuffApplied(BuffAppliedEvent e, BuffEncodeOptions? options = null)
     {
         var o = options ?? BuffEncodeOptions.Default;
         var w = new WireWriter(48);
-        w.Varint((ulong)e.Target).U8(o.Byte1).U8(o.Byte2).Varint((ulong)e.Stack).U32(e.BuffId).U32(e.DurationMs).U32(0)
-            .U64(e.ExpiryUnixMs).Varint((ulong)e.Caster).U8(0x0C).U32(e.SourceSkill).U8(0).F32(o.X).F32(o.Y).F32(o.Z);
+        ulong duration = e.DurationMs == uint.MaxValue ? ulong.MaxValue : e.DurationMs;
+        w.Varint((ulong)e.Target).U8(o.Byte1).U8(o.Byte2).Varint((ulong)e.Stack).U32(e.BuffId).U64(duration)
+            .U64(e.ExpiryUnixMs).Varint((ulong)e.Caster).U8(o.Level);
+        if ((o.Byte2 & 0x02) != 0) w.U32(e.SourceSkill);
+        w.U8(o.Tail).F32(o.X).F32(o.Y).F32(o.Z);
         return w.ToArray();
     }
 

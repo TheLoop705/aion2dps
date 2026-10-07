@@ -108,6 +108,7 @@ public sealed class AppHost : IDisposable
         var opt = _services.Engine.Options;
         opt.IdleTimeoutSeconds = g.IdleTimeoutSeconds;
         opt.BossIdleTimeoutSeconds = g.BossIdleTimeoutSeconds;
+        opt.EndedDisplaySeconds = g.EndedDisplaySeconds;
         opt.LivePlayerClock = g.LivePlayerClock;
         opt.PartyOnly = g.PartyOnly;
         opt.SaveTrashFights = g.SaveTrashFights;

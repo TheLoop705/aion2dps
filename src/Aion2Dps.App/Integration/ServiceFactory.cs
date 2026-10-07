@@ -14,7 +14,8 @@ namespace Aion2Dps.App.Integration;
 /// <param name="GameData">Localized lookups.</param>
 /// <param name="Engine">Combat engine (also the end of the protocol pipeline).</param>
 /// <param name="Capture">Capture service; the App calls <c>Capture.Start(PipelineInput)</c> at start-up.</param>
-/// <param name="PipelineInput">Head of the protocol pipeline (FrameDecoder → PacketDecoder → Engine).</param>
+/// <param name="PipelineInput">Head of the protocol pipeline: an <see cref="IStreamSink"/> that is also an
+/// <see cref="IStreamSinkFactory"/> (one FrameDecoder per game flow → one PacketDecoder → Engine).</param>
 /// <param name="Diagnostics">Protocol counters/census for the dashboard (optional).</param>
 /// <param name="Store">Fight history.</param>
 public sealed record AppServices(
@@ -36,6 +37,9 @@ public sealed record AppServices(
 
     /// <summary>Optional extra start-up step run after <c>Capture.Start</c> (e.g. kick off a replay task).</summary>
     public Action? AfterStart { get; init; }
+
+    /// <summary>The multi-flow protocol pipeline behind <see cref="PipelineInput"/> (per-flow counters), or null for the demo.</summary>
+    public MultiFlowProtocolPipeline? Pipeline { get; init; }
 
     /// <summary>Extra objects disposed with the services (replay sources, simulator, …).</summary>
     public IReadOnlyList<IDisposable> Extra { get; init; } = [];
@@ -82,7 +86,7 @@ public static class ServiceFactory
     public const string ReplayHistoryDatabase = "replay-history.db";
 
     /// <summary>
-    /// The real pipeline: GameDataStore → ProtocolPipeline (FrameDecoder → PacketDecoder) → CombatEngine, SqliteFightStore,
+    /// The real pipeline: GameDataStore → MultiFlowProtocolPipeline (FrameDecoder per flow → PacketDecoder) → CombatEngine, SqliteFightStore,
     /// and by <see cref="LaunchOptions.Mode"/>: live Npcap capture (default; reports NpcapMissing in the UI when Npcap
     /// is not installed), the wire simulator (<c>--sim</c>) or a pcap/pcapng replay (<c>--replay</c>).
     /// </summary>
@@ -107,6 +111,7 @@ public static class ServiceFactory
         return new AppServices(core.GameData, core.Engine, capture, core.Input, core.Pipeline.Diagnostics, store)
         {
             ModeLabel = "Live",
+            Pipeline = core.Pipeline,
         };
     }
 
@@ -122,6 +127,7 @@ public static class ServiceFactory
         return new AppServices(core.GameData, core.Engine, capture, core.Input, core.Pipeline.Diagnostics, store)
         {
             ModeLabel = "Simulator",
+            Pipeline = core.Pipeline,
         };
     }
 
@@ -135,16 +141,20 @@ public static class ServiceFactory
         {
             ModeLabel = "Replay: " + Path.GetFileName(path),
             Clock = capture.Now,
+            Pipeline = core.Pipeline,
         };
     }
 
-    /// <summary>The shared decoding chain. Capture gaps mark the active encounter; a replay restart clears the session.</summary>
-    private static (GameDataStore GameData, CombatEngine Engine, ProtocolPipeline Pipeline, IStreamSink Input) Core(string? gameDataDirectory, EngineOptions? options = null)
+    /// <summary>
+    /// The shared decoding chain: one <see cref="MultiFlowProtocolPipeline"/> (a frame decoder per game flow, one packet
+    /// decoder) into one engine, so the world and the dungeon-instance connections (LIVE-FINDINGS NEW 1) feed the same
+    /// meter. A capture gap of any flow marks the active encounter; a replay restart clears the session.
+    /// </summary>
+    private static (GameDataStore GameData, CombatEngine Engine, MultiFlowProtocolPipeline Pipeline, IStreamSink Input) Core(string? gameDataDirectory, EngineOptions? options = null)
     {
         var gameData = gameDataDirectory is null ? GameDataStore.LoadDefault() : new GameDataStore(gameDataDirectory);
         var engine = new CombatEngine(gameData, options ?? new EngineOptions());
-        var pipeline = new ProtocolPipeline(engine, OpcodeTable.LoadOrDefault());
-        var input = new DiscontinuityTap(pipeline.Input, reason =>
+        var pipeline = new MultiFlowProtocolPipeline(engine, OpcodeTable.LoadOrDefault(), onDiscontinuity: (_, reason) =>
         {
             switch (reason)
             {
@@ -156,7 +166,7 @@ public static class ServiceFactory
                     break;
             }
         });
-        return (gameData, engine, pipeline, input);
+        return (gameData, engine, pipeline, pipeline.Input);
     }
 
     private static IFightStore OpenStore(string path)

@@ -84,18 +84,24 @@ public sealed class EncounterReportView : UserControl
             _content.Children.Add(Ui.Banner("The capture had gaps during this fight, so some numbers may be incomplete."));
 
         var friendly = ChartData.Friendly(r).ToList();
-        string hpCheck = r.HpCheck is { } hc ? Fmt.Percent(hc.Ratio) : Fmt.Dash;
-        string hpKey = r.HpCheck is null ? ThemeKeys.TextMuted : r.HpCheck.Passed ? ThemeKeys.Positive : ThemeKeys.Warning;
-        string? hpTip = r.HpCheck is { } h
-            ? $"Decoded damage {Fmt.Exact(h.DecodedDamage)} vs HP lost {Fmt.Exact(h.HpLost)} + boss self-heal {Fmt.Exact(h.BossSelfHealing)}" + (h.Note is null ? "" : $" · {h.Note}")
+        bool multi = ChartData.IsMultiBoss(r);
+        // Multi-boss fights: the tile shows the check summed over all bosses; the badges under the title show each boss.
+        var check = multi ? r.OverallHpCheck ?? r.HpCheck : r.HpCheck;
+        string hpCheck = check is { } hc ? Fmt.Percent(hc.Ratio) : Fmt.Dash;
+        string hpKey = check is null ? ThemeKeys.TextMuted : check.Passed ? ThemeKeys.Positive : ThemeKeys.Warning;
+        string? hpTip = check is { } h
+            ? (multi ? "All bosses: " : "") + $"decoded damage {Fmt.Exact(h.DecodedDamage)} vs HP lost {Fmt.Exact(h.HpLost)} + boss self-heal {Fmt.Exact(h.BossSelfHealing)}" + (h.Note is null ? "" : $" · {h.Note}")
             : "No boss HP data to check against";
+        long bossesMax = multi ? r.Bosses.Sum(b => b.MaxHp ?? 0) : 0;
+        string? damageSub = multi && bossesMax > 0 ? $"{r.Bosses.Count} bosses' HP " + Fmt.Number(bossesMax)
+            : r.BossMaxHp is { } mh ? "boss HP " + Fmt.Number(mh) : null;
         _content.Children.Add(Ui.TileGrid(5,
         [
             Ui.Tile("Party DPS", Fmt.Dps(r.PartyDps), "damage / fight time", Fmt.Exact(r.PartyDps), ThemeKeys.Accent),
-            Ui.Tile("Damage", Fmt.Number(r.TotalDamage), r.BossMaxHp is { } mh ? "boss HP " + Fmt.Number(mh) : null, Fmt.Exact(r.TotalDamage)),
+            Ui.Tile("Damage", Fmt.Number(r.TotalDamage), damageSub, Fmt.Exact(r.TotalDamage)),
             Ui.Tile("Time", Fmt.Duration(r.DurationSeconds), "first to last hit", Fmt.Seconds(r.DurationSeconds)),
             Ui.Tile("Players", friendly.Count(c => c.Kind == CombatantKind.Player).ToString(), r.LocalPlayerName is { } lp ? "you: " + lp : null),
-            Ui.Tile("HP check", hpCheck, r.HpCheck is null ? "not available" : r.HpCheck.Passed ? "damage matches HP lost" : "check the capture", hpTip, hpKey),
+            Ui.Tile("HP check", hpCheck, check is null ? "not available" : check.Passed ? (multi ? "all bosses match" : "damage matches HP lost") : "check the capture", hpTip, hpKey),
         ]));
 
         DamageChart = new CumulativeDamageChart { Height = 270 };
@@ -103,13 +109,18 @@ public sealed class EncounterReportView : UserControl
         DamageChart.HighlightEntityId = null;
         _content.Children.Add(Ui.Card(DamageChart, "Cumulative damage", subtitle: "stacked per player · hover for values"));
 
-        if (r.BossHpTimeline.Count >= 2)
+        bool multiHp = multi && r.Bosses.Count(b => b.HpTimeline.Count >= 2) >= 2;
+        if (r.BossHpTimeline.Count >= 2 || multiHp)
         {
-            HpChart = new BossHpChart { Height = 150 };
-            HpChart.SetEncounter(r);
-            _content.Children.Add(Ui.Card(HpChart, "Boss HP", subtitle: r.ResetCount > 0 ? $"{r.ResetCount} earlier reset(s) on this boss" : null));
+            HpChart = new BossHpChart { Height = multiHp ? 170 : 150 };
+            HpChart.SetEncounter(r, gd);
+            string? sub = multiHp ? "one line per boss · hover for values"
+                : r.ResetCount > 0 ? $"{r.ResetCount} earlier reset(s) on this boss" : null;
+            _content.Children.Add(Ui.Card(HpChart, multiHp ? "Bosses' HP" : "Boss HP", subtitle: sub));
         }
         else HpChart = null;
+
+        if (multi) _content.Children.Add(BuildBossTable(r, gd));
 
         _content.Children.Add(BuildCombatantTable(r, friendly));
         _content.Children.Add(BuildPlayerCards(r, gd, friendly));
@@ -132,7 +143,68 @@ public sealed class EncounterReportView : UserControl
             ("resets", r.ResetCount > 0 ? r.ResetCount.ToString() : ""), ("", string.IsNullOrWhiteSpace(r.Note) ? "" : r.Note!));
         facts.Margin = new Thickness(0, 4, 0, 0);
         sp.Children.Add(facts);
+        if (ChartData.IsMultiBoss(r)) sp.Children.Add(BossCheckBadges(r, gd));
         return sp;
+    }
+
+    /// <summary>Multi-boss fight: one "Name · HP check" badge per boss (green = decoded damage matches that boss's HP loss).</summary>
+    private static FrameworkElement BossCheckBadges(EncounterRecord r, IGameData gd)
+    {
+        var wrap = new WrapPanel { Margin = new Thickness(0, 8, 0, 0) };
+        foreach (var b in r.Bosses)
+        {
+            string name = ChartData.BossName(b, gd);
+            string key = b.HpCheck is null ? ThemeKeys.TextMuted : b.HpCheck.Passed ? ThemeKeys.Positive : ThemeKeys.Warning;
+            string value = b.HpCheck is { } hc ? "HP check " + Fmt.Percent(hc.Ratio) : "HP check " + Fmt.Dash;
+            string tip = b.HpCheck is { } h
+                ? $"{name}: decoded damage {Fmt.Exact(h.DecodedDamage)} vs HP lost {Fmt.Exact(h.HpLost)} + self-heal {Fmt.Exact(h.BossSelfHealing)}" + (h.Note is null ? "" : $" · {h.Note}")
+                : $"{name}: no HP data to check against";
+            var badge = Ui.Badge($"{name} · {value}", key, tip: tip);
+            badge.Margin = new Thickness(0, 0, 8, 4);
+            wrap.Children.Add(badge);
+        }
+        return wrap;
+    }
+
+    /// <summary>Multi-boss fight: one row per boss (max HP, kill time, HP check, top contributor).</summary>
+    private FrameworkElement BuildBossTable(EncounterRecord r, IGameData gd)
+    {
+        string Who(uint id) => ChartData.Find(r, id) is { } c ? ChartData.DisplayName(c) : $"#{id}";
+        var cols = new List<TableColumn<BossResult>>
+        {
+            new("Boss", -1, b => BossCell(b, gd), b => ChartData.BossName(b, gd), HorizontalAlignment.Left),
+            new("Max HP", 80, b => Ui.Number(b.MaxHp is { } m ? Fmt.Number(m) : Fmt.Dash, b.MaxHp is { } mx ? Fmt.Exact(mx) : null), b => b.MaxHp ?? 0),
+            new("Engaged", 66, b => Ui.Number(Fmt.Duration(b.EngagedSeconds), "first hit, from the start of the encounter"), b => b.EngagedSeconds),
+            new("Result", 92, b => Ui.Number(BossOutcome(b), null, b.Killed ? ThemeKeys.Positive : ThemeKeys.TextMuted, FontWeights.SemiBold), b => b.KillTimeSeconds ?? double.MaxValue),
+            new("HP check", 70, b => Ui.Number(b.HpCheck is { } hc ? Fmt.Percent(hc.Ratio) : Fmt.Dash, b.HpCheck?.Note,
+                b.HpCheck is null ? ThemeKeys.TextMuted : b.HpCheck.Passed ? ThemeKeys.Positive : ThemeKeys.Warning), b => b.HpCheck?.Ratio ?? 0),
+            new("Top damage", 170, b => b.DamageByCombatant.FirstOrDefault() is { } top
+                ? Ui.Number($"{Who(top.EntityId)} · {(top.Contribution is { } c ? Fmt.Percent(c) : Fmt.Number(top.Damage))}",
+                    string.Join("\n", b.DamageByCombatant.Select(d => $"{Who(d.EntityId)}: {Fmt.Exact(d.Damage)}" + (d.Contribution is { } dc ? $" ({Fmt.Percent(dc)})" : ""))))
+                : Ui.Number(Fmt.Dash), b => b.DamageByCombatant.FirstOrDefault()?.Damage ?? 0),
+        };
+        var table = new GridTable<BossResult>(cols, -1) { RowHeight = 30 };
+        table.SetItems(r.Bosses);
+        return Ui.Card(table, "Bosses", subtitle: "fought at the same time · contribution counts damage to every boss of the fight");
+    }
+
+    private static string BossOutcome(BossResult b) =>
+        b.Killed ? b.KillTimeSeconds is { } kt ? "Kill " + Fmt.Duration(kt) : "Kill"
+        : b.HpEnd is { } end && b.MaxHp is > 0 ? Fmt.Percent((double)end / b.MaxHp.Value, 0) + " left"
+        : b.Resets > 0 ? "Reset" : Fmt.Dash;
+
+    private static FrameworkElement BossCell(BossResult b, IGameData gd)
+    {
+        var dp = new DockPanel();
+        if (b.IsPrimary)
+        {
+            var badge = Ui.Badge("PRIMARY", ThemeKeys.Accent, tip: "Largest max HP: the fight is filed under this boss in the history");
+            badge.Margin = new Thickness(8, 0, 0, 0);
+            DockPanel.SetDock(badge, Dock.Right);
+            dp.Children.Add(badge);
+        }
+        dp.Children.Add(Ui.Text(ChartData.BossName(b, gd), 0, ThemeKeys.Text, FontWeights.SemiBold));
+        return dp;
     }
 
     private FrameworkElement BuildCombatantTable(EncounterRecord r, List<CombatantRecord> friendly)
@@ -145,7 +217,7 @@ public sealed class EncounterReportView : UserControl
             new("Player", -1, c => PlayerCell(c), c => ChartData.DisplayName(c), HorizontalAlignment.Left),
             new("Damage", 170, c => Ui.BarCell(Fmt.Number(c.Damage), (double)c.Damage / top, Fmt.Exact(c.Damage), c.Class), c => c.Damage),
             new("DPS", 70, c => Ui.Number(Fmt.Dps(c.Dps), $"{Fmt.Exact(c.Dps)} (active {Fmt.Dps(c.ActiveDps)})", ThemeKeys.Text, FontWeights.SemiBold), c => c.Dps),
-            new("Contrib", 66, c => Ui.Number(Fmt.Percent(c.Contribution), "Share of boss HP removed (or of party damage)"), c => c.Contribution),
+            new("Contrib", 66, c => Ui.Number(Fmt.Percent(c.Contribution), ChartData.IsMultiBoss(r) ? "Share of the bosses' combined max HP removed (damage to every boss of the fight)" : "Share of boss HP removed (or of party damage)"), c => c.Contribution),
             new("Crit", 56, c => Ui.Number(Fmt.Rate(c.Quality.Crits, c.Quality.Hits, 0), $"{c.Quality.Crits}/{c.Quality.Hits}"), c => Fmt.RateValue(c.Quality.Crits, c.Quality.Hits)),
             new("Deaths", 56, c => Ui.Number(c.Deaths > 0 ? c.Deaths.ToString() : Fmt.Dash, null, c.Deaths > 0 ? ThemeKeys.Negative : ThemeKeys.TextMuted), c => c.Deaths),
         };

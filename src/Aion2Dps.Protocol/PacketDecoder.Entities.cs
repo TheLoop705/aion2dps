@@ -16,7 +16,7 @@ public sealed partial class PacketDecoder
     private static ReadOnlySpan<byte> OwnerMarker => [0x07, 0x02, 0x06];
 
     /// <summary>Kind bytes of summons, spirits and skill entities (§8.5).</summary>
-    public static bool IsSummonKind(byte kind) => kind is 0x1F or 0x1D or 0x5D or 0x5F or 0x1C;
+    public static bool IsSummonKind(byte kind) => kind is 0x1F or 0x2F or 0x1D or 0x5D or 0x5F or 0x1C;
 
     private struct SpawnHead
     {
@@ -65,11 +65,14 @@ public sealed partial class PacketDecoder
         }
 
         if (!r.TryReadU32(out uint npc) || npc > 0x00FF_FFFF) return false;
-        if (!r.TryReadU8(out byte m1) || (m1 & 0xBF) != 0) return false; // 00 or 40
-        if (!r.TryReadU8(out byte m2) || m2 != 0x02) return false;
+        // m1: bits 0x40 (most summons) and 0x08 (moving NPCs: 12 more bytes after the 4 floats); m2: 02 or 03.
+        // Real Global census: 00/02 1037, 40/02 127, 08/02 23, 40/03 2, 48/02 1 of 1,190 spawns.
+        if (!r.TryReadU8(out byte m1) || (m1 & ~0x48) != 0) return false;
+        if (!r.TryReadU8(out byte m2) || m2 is not (0x02 or 0x03)) return false;
         head.NpcCode = npc;
         if (!r.TryReadF32(out head.X) || !r.TryReadF32(out head.Y) || !r.TryReadF32(out head.Z) || !r.TryReadF32(out _))
             return true; // head identified, positions missing
+        if ((m1 & 0x08) != 0 && !r.TrySkip(12)) return true;
         if (!r.TrySkip(2) || !r.TryReadU8(out byte m3) || m3 != 0x01) return true;
         if (r.TryReadVarUInt(out uint cur) && r.TryReadVarUInt(out uint max))
         {

@@ -22,7 +22,7 @@ internal static class SnapshotBuilder
         }
 
         var enc = core.Current;
-        if (enc == null)
+        if (enc == null || EndedDisplayExpired(enc, opts.EndedDisplaySeconds, now))
         {
             string status = core.TrainingArmed
                 ? $"Training ready ({core.TrainingDuration.TotalSeconds:0} s): hit a target to start"
@@ -47,7 +47,6 @@ internal static class SnapshotBuilder
         // local player is not known yet either, filtering would empty the meter, so everyone stays visible.
         bool rosterKnown = core.Party.HasRoster;
         bool partyFilter = opts.PartyOnly && (rosterKnown || local != null);
-        bool hpContribution = enc.Kind == EncounterKind.Boss && enc.BossMaxTrusted && enc.BossMaxHp is > 0;
 
         // ── rows ──
         var candidates = new List<(CombatantState C, LiveAccumulator A)>(enc.Combatants.Count);
@@ -87,13 +86,14 @@ internal static class SnapshotBuilder
                 EntityId = c.Id,
                 Name = c.Name,
                 Class = c.Class,
+                GearScore = c.Kind == CombatantKind.Player ? core.Party.Get(c.Name)?.GearScore : null,
                 Kind = c.Kind,
                 IsLocal = c.IsLocal,
                 IsPartyMember = c.IsPartyMember,
                 Rank = i + 1,
                 Damage = a.Damage,
                 Dps = dps,
-                Contribution = hpContribution ? (double)c.BossDamage / enc.BossMaxHp!.Value : share,
+                Contribution = enc.HpContribution(c) ?? share,
                 DamageShare = share,
                 RelativeToTop = top > 0 ? (double)a.Damage / top : 0,
                 CritRate = a.Hits > 0 ? (double)a.Crits / a.Hits : 0,
@@ -115,12 +115,16 @@ internal static class SnapshotBuilder
         // ── targets ──
         var ordered = core.OrderedTargets(enc);
         var targets = new List<TargetInfo>(ordered.Count);
+        var bosses = new List<TargetInfo>(enc.Bosses.Count);
         TargetInfo? selected = null;
+        uint? wanted = core.SelectedTargetId ?? core.DefaultTargetId(enc);
+        uint? primaryId = enc.PrimaryBossId;
         foreach (var t in ordered)
         {
-            var info = ToTargetInfo(gd, t);
+            var info = ToTargetInfo(gd, t, enc.Boss(t.Id), primaryId);
             targets.Add(info);
-            if (core.SelectedTargetId == t.Id) selected = info;
+            if (info.IsEncounterBoss) bosses.Add(info);
+            if (wanted == t.Id) selected = info;
         }
         selected ??= targets.Count > 0 ? targets[0] : null;
 
@@ -171,11 +175,18 @@ internal static class SnapshotBuilder
             MapName = mapName,
             LocalPlayer = local,
             PingMs = ping,
-            HpCheckRatio = enc.HpCheck.Ratio,
+            HpCheckRatio = enc.Primary?.HpCheck.Ratio,
+            OverallHpCheckRatio = enc.Bosses.Count > 0 ? HpCheckTracker.CombinedRatio(enc.Bosses.Select(b => b.HpCheck)) : null,
+            Bosses = bosses,
         };
     }
 
-    private static TargetInfo ToTargetInfo(IGameData gd, TargetState t)
+    private static bool EndedDisplayExpired(Encounter enc, double delay, DateTime now) =>
+        enc is { Ended: true, Finalized: true, EndedAt: { } endedAt }
+        && double.IsFinite(delay) && delay > 0
+        && (now - endedAt).TotalSeconds >= delay;
+
+    private static TargetInfo ToTargetInfo(IGameData gd, TargetState t, BossState? boss, uint? primaryId)
     {
         string name = t.IsPlayer
             ? t.PlayerName ?? $"Player {t.Id}"
@@ -194,12 +205,15 @@ internal static class SnapshotBuilder
             HpFraction = hp is long h && t.MaxHp is long m && m > 0 ? Math.Clamp((double)h / m, 0, 1) : null,
             DamageTaken = t.DamageTaken,
             IsDead = t.Killed,
+            IsEncounterBoss = boss != null,
+            IsPrimaryBoss = boss != null && primaryId == t.Id,
+            HpCheckRatio = boss?.HpCheck.Ratio,
         };
     }
 
     private static string StatusText(CombatCore core, Encounter enc, IGameData gd, bool ended, DateTime clockNow)
     {
-        string boss = enc.BossNpcCode is uint code ? gd.GetNpcName(code) : "Boss";
+        string boss = enc.BossTitle(gd);
         if (!ended)
         {
             return enc.Kind switch
