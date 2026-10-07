@@ -15,12 +15,20 @@ namespace Aion2Dps.App.Overlay;
 /// (<see cref="Anchor"/>) is kept across switches; while the shrink feature is on, a window that would overflow the
 /// monitor's work area is shifted up/left temporarily and returns to the anchor when it shrinks again.
 /// </para>
+/// <para>
+/// While the user moves (header / compact bar) or resizes (grip) the window, nothing else repositions it: the
+/// work-area fit and any presentation switch wait until the drag ends. Shifting the window under a resize Thumb would
+/// keep the Thumb still on screen, and Thumb reports its drag relative to itself, so every mouse move would re-add the
+/// whole distance (runaway width); collapsing the dragged element would cancel the drag halfway.
+/// </para>
 /// </summary>
 public sealed class OverlayWindow : Window
 {
     private const double MinExpandedWidth = 300, MaxExpandedWidth = 1000, DragThreshold = 3;
     private IntPtr _hwnd;
     private bool _dragging;
+    private bool _resizing;
+    private (bool Compact, bool KeepInWorkArea)? _pendingPresentation;
     private bool _moved;
     private FrameworkElement? _pressHandle;
     private Point _dragStart;
@@ -60,15 +68,21 @@ public sealed class OverlayWindow : Window
             handle.MouseLeftButtonUp += OnHandleUp;
             handle.LostMouseCapture += (_, _) => EndDrag();
         }
+        View.ResizeGrip.DragStarted += (_, _) => _resizing = true;
         View.ResizeGrip.DragDelta += (_, e) =>
         {
             if (_locked || _compact) return;
             Width = _expandedWidth = Math.Clamp(Width + e.HorizontalChange, MinExpandedWidth, MaxExpandedWidth);
         };
-        View.ResizeGrip.DragCompleted += (_, _) => BoundsChanged?.Invoke();
+        View.ResizeGrip.DragCompleted += (_, _) =>
+        {
+            _resizing = false;
+            AfterUserDrag();
+            BoundsChanged?.Invoke();
+        };
         MouseEnter += (_, _) => UpdateAdjustBar();
         MouseLeave += (_, _) => UpdateAdjustBar();
-        SizeChanged += (_, _) => { if (_keepInWorkArea) Place(); };
+        SizeChanged += (_, _) => OnLaidOutSizeChanged();
     }
 
     public OverlayView View { get; }
@@ -90,6 +104,18 @@ public sealed class OverlayWindow : Window
     /// <summary>The full overlay's width (the user's choice; the compact bar's width is not remembered).</summary>
     public double ExpandedWidth => _expandedWidth;
 
+    /// <summary>Test seam: the work area used for the fit (default: the monitor the window is on).</summary>
+    internal Func<Rect>? WorkAreaOverride { get; set; }
+
+    /// <summary>Test seam: the laid-out window size (default: ActualWidth × ActualHeight; a never-shown window has none).</summary>
+    internal Func<Size>? SizeOverride { get; set; }
+
+    /// <summary>The window's laid-out size changed (SizeChanged): keep it inside the work area.</summary>
+    internal void OnLaidOutSizeChanged()
+    {
+        if (_keepInWorkArea) Place();
+    }
+
     private static (double Left, double Top) InitialPosition(OverlaySettings s)
     {
         double vl = SystemParameters.VirtualScreenLeft, vt = SystemParameters.VirtualScreenTop;
@@ -107,6 +133,13 @@ public sealed class OverlayWindow : Window
     /// </summary>
     public void SetPresentation(bool compact, bool keepInWorkArea)
     {
+        if (_dragging || _resizing)
+        {
+            // Applied when the drag ends (AfterUserDrag): see the class remarks.
+            _pendingPresentation = (compact, keepInWorkArea);
+            return;
+        }
+        _pendingPresentation = null;
         bool fitChanged = keepInWorkArea != _keepInWorkArea;
         _keepInWorkArea = keepInWorkArea;
         if (compact == _compact && View.IsCompact == compact)
@@ -136,10 +169,11 @@ public sealed class OverlayWindow : Window
     /// <summary>Puts the window at its anchor, shifted inside the work area when needed (never while dragging).</summary>
     private void Place()
     {
-        if (_dragging) return;
+        if (_dragging || _resizing) return;
         var target = _anchor;
-        if (_keepInWorkArea && _hwnd != IntPtr.Zero && ActualWidth > 0 && ActualHeight > 0)
-            target = OverlayGeometry.FitInside(_anchor, new Size(ActualWidth, ActualHeight), WorkArea());
+        var size = SizeOverride?.Invoke() ?? new Size(ActualWidth, ActualHeight);
+        if (_keepInWorkArea && (_hwnd != IntPtr.Zero || WorkAreaOverride is not null) && size.Width > 0 && size.Height > 0)
+            target = OverlayGeometry.FitInside(_anchor, size, WorkArea());
         if (Math.Abs(Left - target.X) > 0.5) Left = target.X;
         if (Math.Abs(Top - target.Y) > 0.5) Top = target.Y;
     }
@@ -147,6 +181,7 @@ public sealed class OverlayWindow : Window
     /// <summary>Work area (taskbar excluded) of the monitor the overlay is on, in device-independent pixels.</summary>
     private Rect WorkArea()
     {
+        if (WorkAreaOverride is { } overrideArea) return overrideArea();
         try
         {
             var monitor = NativeMethods.MonitorFromWindow(_hwnd, NativeMethods.MONITOR_DEFAULTTONEAREST);
@@ -253,8 +288,15 @@ public sealed class OverlayWindow : Window
     {
         if (!_dragging) return;
         _dragging = false;
-        if (!_moved) return;
-        _anchor = new Point(Left, Top);
-        BoundsChanged?.Invoke();
+        if (_moved) _anchor = new Point(Left, Top);
+        AfterUserDrag();
+        if (_moved) BoundsChanged?.Invoke();
+    }
+
+    /// <summary>A move/resize ended: apply a presentation switch that waited for it, then fit the work area once.</summary>
+    private void AfterUserDrag()
+    {
+        if (_pendingPresentation is { } pending) SetPresentation(pending.Compact, pending.KeepInWorkArea);
+        if (_keepInWorkArea) Place();
     }
 }

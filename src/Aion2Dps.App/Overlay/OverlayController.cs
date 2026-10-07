@@ -26,6 +26,7 @@ public sealed class OverlayController : IDisposable
     private CaptureStatus _capture;
     private readonly HashSet<Guid> _toasted = new();
     private readonly OverlayPresentationTracker _presentation = new();
+    private readonly OverlayInteractionTracker _interaction = new();
     private double? _lastFightDps;
     private bool _refreshing;
 
@@ -50,6 +51,9 @@ public sealed class OverlayController : IDisposable
     public event Action<TimeSpan>? TrainingFinished;
 
     public OverlayView? View => _window?.View;
+
+    /// <summary>When the running/armed training countdown ends (null = none). For tests.</summary>
+    internal DateTime? TrainingEndsUtc => _trainingEndsUtc;
 
     /// <summary>The current presentation (compact bar or full overlay).</summary>
     public OverlayPresentation Presentation => _presentation.Current;
@@ -77,6 +81,7 @@ public sealed class OverlayController : IDisposable
             Wire(_window.View);
             _window.BoundsChanged += SaveBounds;
             _window.CompactBarClicked += Expand;
+            _window.MouseLeave += (_, _) => _interaction.Touch(DateTime.UtcNow);
             _window.SourceInitialized += (_, _) => ApplyLockState();
         }
         Refresh();
@@ -206,6 +211,9 @@ public sealed class OverlayController : IDisposable
     public void Reset()
     {
         _services.Engine.Reset();
+        // Engine.Reset disarms (or discards) a training run, so its countdown goes too (as in StopTraining):
+        // otherwise the overlay keeps counting down and the end fires a misleading "Training run not saved".
+        _trainingEndsUtc = null;
         _pinned = null;
         _lastFightDps = null;
         Flash("Meter reset");
@@ -330,8 +338,10 @@ public sealed class OverlayController : IDisposable
             };
             var settings = _settings.Current;
             _window.View.Update(snap, status, OverlayViewOptions.From(settings, AppPaths.Version));
+            // Pointer / menu use is wall-clock UI state (the snapshot clock may be a replay clock).
+            bool interacting = _interaction.Update(_window.IsMouseOver, _window.View.MenuOpen, now);
             var presentation = _presentation.Update(snap.State, snap.EncounterId, clock,
-                settings.Overlay.ShrinkWhenIdle, settings.General.EndedDisplaySeconds, _window.View.ToastVisible);
+                settings.Overlay.ShrinkWhenIdle, settings.General.EndedDisplaySeconds, _window.View.ToastVisible, interacting);
             _window.SetPresentation(presentation == OverlayPresentation.Compact, settings.Overlay.ShrinkWhenIdle);
         }
         catch (Exception ex)

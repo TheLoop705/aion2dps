@@ -65,8 +65,8 @@ public sealed record CompactBarModel
                 detail = "The last fight's result is kept; expand to see it.";
                 break;
             default:
-                bool training = status.TrainingRemaining is not null || s.StatusText.StartsWith("Training ready", StringComparison.OrdinalIgnoreCase);
-                if (training)
+                // Only the engine knows whether a run is armed (a reset disarms it); the overlay's countdown is just a hint.
+                if (IsTrainingArmed(s))
                 {
                     (text, dot, detail) = ("Training ready", ThemeKeys.Accent, "Hit a target to start the training run.");
                     if (status.TrainingRemaining is { } rem)
@@ -102,6 +102,10 @@ public sealed record CompactBarModel
             Tooltip = $"{detail}\nClick to expand the overlay · drag to move.",
         };
     }
+
+    /// <summary>The engine reports an armed training run (SnapshotBuilder: "Training ready (60 s): hit a target to start").</summary>
+    internal static bool IsTrainingArmed(MeterSnapshot s) =>
+        s.State == MeterState.WaitingForCombat && s.StatusText.StartsWith("Training ready", StringComparison.OrdinalIgnoreCase);
 
     private static double? LocalDps(MeterSnapshot s) =>
         s.Rows.FirstOrDefault(r => r.IsLocal && r.Damage > 0) is { } me ? me.Dps : null;

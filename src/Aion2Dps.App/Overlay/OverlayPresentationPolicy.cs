@@ -26,6 +26,12 @@ public readonly record struct OverlayPresentationInput
     public bool CollapsedByUser { get; init; }
     /// <summary>A toast (personal best, training notice) is showing: it needs the expanded overlay to be legible.</summary>
     public bool ToastVisible { get; init; }
+    /// <summary>
+    /// The user is using the overlay: the pointer is on it (or left it less than
+    /// <see cref="OverlayInteractionTracker.Grace"/> ago) or one of its menus is open. Only delays an automatic shrink
+    /// of the full overlay (see <see cref="OverlayPresentationTracker"/>); never expands anything by itself.
+    /// </summary>
+    public bool Interacting { get; init; }
 }
 
 /// <summary>
@@ -79,6 +85,12 @@ public static class OverlayPresentationPolicy
 /// around forever, and the bar is back to small after the next fight without the user having to remember to collapse.
 /// Manual collapse during a fight or its linger keeps the bar small until a new fight starts.
 /// </para>
+/// <para>
+/// An automatic shrink (linger over, the engine cleared the fight, a toast ended) waits while the user is interacting
+/// with the full overlay, so the window never shrinks out from under the cursor and a click meant for a row, button or
+/// menu does not land in the game. The collapse button and turning the setting off still apply at once, and automatic
+/// expansion is never delayed.
+/// </para>
 /// </summary>
 public sealed class OverlayPresentationTracker
 {
@@ -96,7 +108,8 @@ public sealed class OverlayPresentationTracker
     public DateTime? EndedSinceUtc => _endedSince;
 
     /// <summary>Feeds one refresh; returns (and remembers) the presentation to show.</summary>
-    public OverlayPresentation Update(MeterState state, Guid? encounterId, DateTime nowUtc, bool shrinkWhenIdle, double endedDisplaySeconds, bool toastVisible)
+    public OverlayPresentation Update(MeterState state, Guid? encounterId, DateTime nowUtc, bool shrinkWhenIdle, double endedDisplaySeconds,
+        bool toastVisible, bool interacting = false)
     {
         _lastEncounter = encounterId;
         if (state == MeterState.Ended)
@@ -135,8 +148,14 @@ public sealed class OverlayPresentationTracker
             Pinned = Pinned,
             CollapsedByUser = CollapsedByUser,
             ToastVisible = toastVisible,
+            Interacting = interacting,
         };
-        Current = OverlayPresentationPolicy.Decide(_last);
+        var decided = OverlayPresentationPolicy.Decide(_last);
+        // Hold the full overlay while the user is on it (see the class remarks). The explicit collapse sets Current to
+        // Compact itself, so it is never held; with the setting off Decide never returns Compact.
+        if (decided == OverlayPresentation.Compact && Current == OverlayPresentation.Expanded && interacting && !CollapsedByUser)
+            decided = OverlayPresentation.Expanded;
+        Current = decided;
         return Current;
     }
 
@@ -162,6 +181,32 @@ public sealed class OverlayPresentationTracker
             _collapsedFor = _lastEncounter;
         }
         Current = OverlayPresentation.Compact;
+    }
+}
+
+/// <summary>
+/// Whether the user is interacting with the overlay, with a short grace after the pointer leaves (moving the mouse
+/// off the edge for a moment, or a pointer that was over it between two refresh ticks). Pure: the caller passes the clock.
+/// </summary>
+public sealed class OverlayInteractionTracker
+{
+    /// <summary>How long after the pointer left (or a menu closed) the overlay still counts as in use.</summary>
+    public static readonly TimeSpan Grace = TimeSpan.FromSeconds(1);
+
+    private DateTime? _lastActiveUtc;
+
+    /// <summary>Records that the user was interacting at <paramref name="nowUtc"/> (e.g. on MouseLeave).</summary>
+    public void Touch(DateTime nowUtc) => _lastActiveUtc = nowUtc;
+
+    /// <summary>Feeds one refresh; true while the pointer is on the overlay, a menu is open, or within the grace.</summary>
+    public bool Update(bool pointerOver, bool menuOpen, DateTime nowUtc)
+    {
+        if (pointerOver || menuOpen)
+        {
+            _lastActiveUtc = nowUtc;
+            return true;
+        }
+        return _lastActiveUtc is { } last && nowUtc - last < Grace;
     }
 }
 

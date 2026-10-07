@@ -95,8 +95,9 @@ Adjust **Settings → Meter → Clear finished fights after**; set it to **0** t
 Out of combat the overlay shrinks to a slim one-row status bar (capture state, zone, your last DPS). It expands on
 its own for every fight, including PvP and training runs, and stays expanded while the result is shown: for the
 **Clear finished fights after** time, or 15 seconds when that is **0**. Click the bar to expand it until the next
-fight. The chevron button in the toolbar shrinks it again. Turn this off under **Settings → Overlay → Shrink overlay
-when not in combat**.
+fight. The chevron button in the toolbar shrinks it again. While your mouse is on the expanded overlay (or one of
+its menus is open) it waits to shrink until you move away, so a click never lands in the game. Turn this off under
+**Settings → Overlay → Shrink overlay when not in combat**.
 
 ## Command-line tool
 

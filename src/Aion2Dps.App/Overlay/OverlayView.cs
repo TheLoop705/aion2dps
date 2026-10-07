@@ -149,6 +149,12 @@ public sealed class OverlayView : UserControl
     public bool ToastVisible => _toastShowing;
 
     /// <summary>
+    /// A menu of the overlay (the training stopwatch menu) is open. Its popup is a separate window, so the overlay's
+    /// own IsMouseOver is false while the user picks an item; the controller treats it as interaction.
+    /// </summary>
+    public bool MenuOpen { get; private set; }
+
+    /// <summary>
     /// Switches between the full meter and the compact bar in place (same element tree, no re-creation; the window
     /// background, corner radius and frame are shared, so both look like the same overlay).
     /// </summary>
@@ -1069,6 +1075,8 @@ public sealed class OverlayView : UserControl
                 menu.Items.Add(item);
             }
         }
+        menu.Opened += (_, _) => MenuOpen = true;
+        menu.Closed += (_, _) => MenuOpen = false;
         menu.IsOpen = true;
     }
 }
