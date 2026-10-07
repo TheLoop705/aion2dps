@@ -42,6 +42,92 @@ public static class ScreenCatalog
         ];
     }
 
+    /// <summary>The compact (out-of-combat) bar's review states.</summary>
+    public static IReadOnlyList<OverlayCase> CompactCases()
+    {
+        var opts = new OverlayViewOptions { Version = "0.1.0", RowSize = RowSize.Compact };
+        var capturing = PreviewData.Status();
+        static MeterSnapshot NoZone(MeterSnapshot s) => s with { MapName = null, MapId = null };
+        return
+        [
+            new("waiting", () => NoZone(PreviewData.WaitingForCombat()), capturing, opts),
+            new("waiting-zone", PreviewData.WaitingForCombat, capturing, opts),
+            new("waiting-zone-lastfight", () => PreviewData.WaitingForCombat() with { MapName = "Hollow Court" }, capturing with { LastFightDps = 612_400 }, opts),
+            new("waiting-lastfight", () => NoZone(PreviewData.WaitingForCombat()), capturing with { LastFightDps = 612_400 }, opts),
+            new("long-zone", () => PreviewData.WaitingForCombat() with { MapName = "Sanctuary of the Fallen Starlit Archon (Hard)" }, capturing, opts),
+            new("npcap-missing", () => NoZone(PreviewData.WaitingForCombat()) with { State = MeterState.Idle }, PreviewData.Status(CaptureState.NpcapMissing), opts),
+            new("waiting-for-game", () => NoZone(PreviewData.WaitingForCombat()) with { State = MeterState.Idle }, PreviewData.Status(CaptureState.WaitingForGame), opts),
+            new("training-ready", () => PreviewData.WaitingForCombat() with { StatusText = "Training ready (60 s): hit a target to start", MapName = "Verdant Reach" },
+                capturing with { TrainingRemaining = TimeSpan.FromSeconds(52) }, opts),
+            new("ended-kill", PreviewData.EndedKill, capturing with { LastFightDps = 588_000 }, opts),
+            new("flash", PreviewData.WaitingForCombat, capturing with { Flash = "Meter reset" }, opts),
+            new("waiting-normal", PreviewData.WaitingForCombat, capturing, opts with { RowSize = RowSize.Normal }),
+            new("waiting-micro", PreviewData.WaitingForCombat, capturing, opts with { RowSize = RowSize.Micro }),
+        ];
+    }
+
+    /// <summary>Builds a compact-bar overlay for <paramref name="c"/> inside a themed root (not yet rendered).</summary>
+    public static (OverlayView View, Border Root) BuildCompact(OverlayCase c, ThemeDefinition theme, Brush? backdrop = null, Thickness? padding = null)
+    {
+        var view = new OverlayView { AnimationsEnabled = false };
+        view.SetCompact(true);
+        var root = OffscreenRenderer.Themed(view, theme, new AppearanceSettings { ThemeId = theme.Id, BarStyle = theme.DefaultBarStyle }, backdrop, padding);
+        view.Update(c.Snapshot(), c.Status, c.Options with { BarStyle = theme.DefaultBarStyle });
+        return (view, root);
+    }
+
+    /// <summary>The compact bar's size (DIP) for <paramref name="c"/>: what the window sizes itself to.</summary>
+    public static Size MeasureCompact(OverlayCase c, ThemeDefinition theme)
+    {
+        var (view, root) = BuildCompact(c, theme);
+        root.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        root.Arrange(new Rect(root.DesiredSize));
+        root.UpdateLayout();
+        return new Size(Math.Ceiling(view.ActualWidth), Math.Ceiling(view.ActualHeight));
+    }
+
+    /// <summary>The expanded overlay's size (DIP) for <paramref name="c"/> at the default 380 DIP width.</summary>
+    public static Size MeasureExpanded(OverlayCase c, ThemeDefinition theme)
+    {
+        var view = new OverlayView { AnimationsEnabled = false, Width = 380 };
+        var root = OffscreenRenderer.Themed(view, theme);
+        view.Update(c.Snapshot(), c.Status, c.Options with { BarStyle = theme.DefaultBarStyle });
+        root.Measure(new Size(380, double.PositiveInfinity));
+        root.Arrange(new Rect(root.DesiredSize));
+        root.UpdateLayout();
+        return new Size(Math.Ceiling(view.ActualWidth), Math.Ceiling(view.ActualHeight));
+    }
+
+    /// <summary>Renders one compact-bar case in a theme (bar on the scene backdrop, 16 DIP margin); returns the file path.</summary>
+    public static string RenderCompact(OverlayCase c, ThemeDefinition theme, string dir)
+    {
+        var (_, root) = BuildCompact(c, theme, OffscreenRenderer.SceneBackdrop(), new Thickness(16));
+        root.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        double width = Math.Ceiling(root.DesiredSize.Width);
+        return OffscreenRenderer.RenderToPng(root, width, Path.Combine(dir, $"overlay-compact-{c.Name}-{theme.Id}.png"));
+    }
+
+    /// <summary>
+    /// Compact bar and the expanded overlay of the same out-of-combat state side by side (top-left aligned, as on
+    /// screen when the window switches), to judge "much smaller" at a glance.
+    /// </summary>
+    public static string RenderCompactComparison(OverlayCase compact, OverlayCase expanded, ThemeDefinition theme, string dir)
+    {
+        var (_, compactRoot) = BuildCompact(compact, theme);
+        var full = new OverlayView { AnimationsEnabled = false, Width = 380 };
+        var fullRoot = OffscreenRenderer.Themed(full, theme, new AppearanceSettings { ThemeId = theme.Id, BarStyle = theme.DefaultBarStyle });
+        full.Update(expanded.Snapshot(), expanded.Status, expanded.Options with { BarStyle = theme.DefaultBarStyle });
+        var row = new StackPanel { Orientation = Orientation.Horizontal };
+        compactRoot.VerticalAlignment = VerticalAlignment.Top;
+        fullRoot.VerticalAlignment = VerticalAlignment.Top;
+        fullRoot.Margin = new Thickness(24, 0, 0, 0);
+        row.Children.Add(compactRoot);
+        row.Children.Add(fullRoot);
+        var root = new Border { Child = row, Background = OffscreenRenderer.SceneBackdrop(), Padding = new Thickness(16) };
+        root.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        return OffscreenRenderer.RenderToPng(root, Math.Ceiling(root.DesiredSize.Width), Path.Combine(dir, $"overlay-compact-vs-expanded-{compact.Name}-{theme.Id}.png"));
+    }
+
     public static OverlayView BuildOverlay(OverlayCase c)
     {
         var v = new OverlayView { AnimationsEnabled = false, Width = 380 };
@@ -131,6 +217,19 @@ public static class ScreenCatalog
         foreach (var t in themeList.Where(t => t.Id != ThemeCatalog.Obsidian.Id))
             foreach (var c in cases.Where(c => c.Name is "live-boss" or "pvp" or "micro-raid" or "npcap-missing"))
                 files.Add(RenderOverlay(c, t, dir));
+
+        // Compact (out-of-combat) bar: every case in the three reference themes, the main case in all themes,
+        // plus side-by-side comparisons with the expanded overlay.
+        var compactCases = CompactCases();
+        var refThemes = new[] { ThemeCatalog.Obsidian, ThemeCatalog.Glacier, ThemeCatalog.Daybreak };
+        foreach (var t in refThemes)
+            foreach (var c in compactCases)
+                files.Add(RenderCompact(c, t, dir));
+        foreach (var t in themeList.Where(t => refThemes.All(r => r.Id != t.Id)))
+            files.Add(RenderCompact(compactCases.First(c => c.Name == "waiting-zone"), t, dir));
+        var waitingExpanded = cases.First(c => c.Name == "waiting-for-combat");
+        foreach (var t in refThemes)
+            files.Add(RenderCompactComparison(compactCases.First(c => c.Name == "waiting-zone-lastfight"), waitingExpanded, t, dir));
 
         var ctx = DemoContext();
         foreach (var page in new[] { "Meter", "History", "Trends", "Character", "Appearance", "Settings", "About" })

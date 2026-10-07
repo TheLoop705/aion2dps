@@ -148,6 +148,11 @@ public static class RealScreens
                 || engine.GetCurrentEncounter()?.Id != last.Id)
                 throw new InvalidOperationException("Finished-fight display did not clear while retaining its record.");
             files.Add(RenderOverlay("sim-boss-cleared", cleared, capture.Status, opts, dir));
+            // Out of combat the live overlay shrinks to the compact bar (with the last fight's DPS as a hint).
+            double? lastDps = ended.Rows.FirstOrDefault(r => r.IsLocal && r.Damage > 0)?.Dps;
+            files.Add(RenderCompact("sim-waiting", cleared, new OverlayStatus { Capture = capture.Status, LastFightDps = lastDps }, opts, dir));
+            files.Add(RenderCompact("sim-waiting", cleared, new OverlayStatus { Capture = capture.Status, LastFightDps = lastDps }, opts, dir, ThemeCatalog.Glacier));
+            files.Add(RenderCompact("sim-waiting", cleared, new OverlayStatus { Capture = capture.Status, LastFightDps = lastDps }, opts, dir, ThemeCatalog.Daybreak));
             engine.Options.EndedDisplaySeconds = 0;
             files.Add(RenderBreakdown("sim-breakdown-dps", last, services.GameData, BreakdownTab.Dps, dir));
             files.Add(RenderBreakdown("sim-breakdown-accuracy", last, services.GameData, BreakdownTab.Accuracy, dir));
@@ -212,6 +217,12 @@ public static class RealScreens
         theme ??= ThemeCatalog.Obsidian;
         var c = new ScreenCatalog.OverlayCase(name, () => snapshot, new OverlayStatus { Capture = status }, options);
         return ScreenCatalog.RenderOverlay(c, theme, dir);
+    }
+
+    private static string RenderCompact(string name, MeterSnapshot snapshot, OverlayStatus status, OverlayViewOptions options, string dir, ThemeDefinition? theme = null)
+    {
+        var c = new ScreenCatalog.OverlayCase(name, () => snapshot, status, options);
+        return ScreenCatalog.RenderCompact(c, theme ?? ThemeCatalog.Obsidian, dir);
     }
 
     private static string RenderBreakdown(string name, EncounterRecord record, IGameData gameData, BreakdownTab tab, string dir, uint? entity = null)

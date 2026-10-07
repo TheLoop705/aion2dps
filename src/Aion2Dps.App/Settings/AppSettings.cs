@@ -44,6 +44,8 @@ public sealed class OverlaySettings
     /// <summary>Mouse clicks pass through to the game (only while locked).</summary>
     public bool ClickThrough { get; set; }
     public bool Visible { get; set; } = true;
+    /// <summary>Out of combat the overlay shrinks to a slim one-row status bar; it expands for fights (and on click).</summary>
+    public bool ShrinkWhenIdle { get; set; } = true;
     public RowSize RowSize { get; set; } = RowSize.Compact;
     public MeterView View { get; set; } = MeterView.Dps;
     public BarMode BarMode { get; set; } = BarMode.RelativeToTop;
