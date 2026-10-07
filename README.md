@@ -37,10 +37,29 @@ Run this in PowerShell on Windows 10/11 x64:
 irm https://raw.githubusercontent.com/TheLoop705/aion2dps/main/install.ps1 | iex
 ```
 
-The installer downloads the [latest release](https://github.com/TheLoop705/aion2dps/releases/latest), verifies its
-SHA-256 checksum, installs to `%LOCALAPPDATA%\Programs\Aion2Dps`, creates a Start Menu shortcut and starts the meter.
-The release includes the .NET runtime. Run the same command to update after closing the meter; settings and fight
-history in `%APPDATA%\Aion2Dps` are preserved. You can also download the release ZIP and extract it anywhere.
+The installer does everything in one go:
+
+1. **Npcap.** If it is missing, the installer downloads the official installer from npcap.com and verifies its
+   Nmap Software LLC signature. It then opens it with the right options preselected ("WinPcap API-compatible Mode" on,
+   "Restrict to Administrators" off). You confirm one UAC prompt and click through Npcap's own installer. Npcap's free
+   license does not allow silent installs or redistribution, so it can't be fully automatic.
+2. **Aion2Dps.** It downloads the [latest release](https://github.com/TheLoop705/aion2dps/releases/latest), verifies
+   its SHA-256 checksum and installs it for your user to `%LOCALAPPDATA%\Programs\Aion2Dps`. No admin rights are
+   needed, and the release includes the .NET runtime.
+3. It adds Start menu and desktop shortcuts and an *Apps & features* entry, then starts the meter.
+
+Run the same command again to update. A running meter is closed automatically, and settings and fight history in
+`%APPDATA%\Aion2Dps` are kept. To uninstall, use *Settings → Apps*, or:
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/TheLoop705/aion2dps/main/install.ps1))) -Uninstall
+```
+
+Other options: `-Version 0.2.0`, `-InstallDir <path>`, `-SkipNpcap`, `-NoShortcut`, `-NoDesktopShortcut`,
+`-NoLaunch`, and `-Purge` (with `-Uninstall`, also deletes settings and history). For the one-liner, set the matching
+environment variable first, e.g. `$env:AION2DPS_SKIP_NPCAP = 1`.
+
+You can also download the release ZIP and extract it anywhere; then install Npcap yourself (see Requirements).
 
 Version 0.2.1 hardens capture during dungeon transitions, corrects summon identity and shield damage accounting,
 and checks boss HP loss against damage and effective healing. The installer uses the latest published GitHub release.
@@ -49,9 +68,9 @@ and checks boss HP loss against damage and effective healing. The installer uses
 
 * Windows 10/11 x64
 * [.NET 10 SDK](https://dotnet.microsoft.com/download) only if building from source
-* [Npcap](https://npcap.com/#download) for live capture, installed with **"WinPcap API-compatible Mode"** checked.
-  Leave "Restrict Npcap driver's access to Administrators only" unchecked so the meter runs without admin rights.
-  Replays, the simulator and the demo work without Npcap.
+* [Npcap](https://npcap.com/#download) for live capture. The installer above sets it up. For a manual install, check
+  **"WinPcap API-compatible Mode"** and leave "Restrict Npcap driver's access to Administrators only" unchecked so the
+  meter runs without admin rights. Replays, the simulator and the demo work without Npcap.
 
 ## Build and test
 
