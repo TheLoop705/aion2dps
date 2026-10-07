@@ -83,6 +83,17 @@ public sealed class SettingsPage : DashboardPage
             "A boss returning to full HP always starts a new attempt (wipe)."));
         left.Children.Add(Ui.Card("Idle timeouts", idle));
 
+        // Overlay
+        var overlay = new StackPanel();
+        overlay.Children.Add(Ui.Check("Shrink overlay when not in combat", o.ShrinkWhenIdle, v => { o.ShrinkWhenIdle = v; Save(); }));
+        var shrinkHint = Ui.Text("Out of combat the overlay becomes a slim status bar. It expands for every fight (also PvP and training runs), " +
+                                 "keeps the result readable for the \"Clear finished fights after\" time (15 s when results are kept), then shrinks again. " +
+                                 "Click the bar to expand it until the next fight.", ThemeKeys.TextMuted, 11.5);
+        shrinkHint.TextWrapping = TextWrapping.Wrap;
+        shrinkHint.Margin = new Thickness(24, 2, 0, 0);
+        overlay.Children.Add(shrinkHint);
+        right.Children.Add(Ui.Card("Overlay", overlay));
+
         // Hotkeys
         right.Children.Add(Ui.Card("Hotkeys", _hotkeys, "Global hotkeys. Some games swallow them while focused; the overlay buttons always work."));
         right.Children.Add(Ui.Card("Hotkey options", Ui.Check("Enable global hotkeys (restart to apply)", g.EnableGlobalHotkeys, v => { g.EnableGlobalHotkeys = v; Save(); })));

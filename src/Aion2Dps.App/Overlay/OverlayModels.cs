@@ -24,6 +24,8 @@ public sealed record OverlayViewOptions
     public bool ClickThrough { get; init; }
     /// <summary>Only the local player and party-roster members are listed (engine option, mirrored here for the chip).</summary>
     public bool PartyOnly { get; init; }
+    /// <summary>"Shrink overlay when not in combat" (shows the collapse button in the toolbar).</summary>
+    public bool ShrinkWhenIdle { get; init; } = true;
     public string Version { get; init; } = "";
 
     public static OverlayViewOptions From(AppSettings s, string version) => new()
@@ -46,6 +48,7 @@ public sealed record OverlayViewOptions
         Locked = s.Overlay.Locked,
         ClickThrough = s.Overlay.ClickThrough,
         PartyOnly = s.General.PartyOnly,
+        ShrinkWhenIdle = s.Overlay.ShrinkWhenIdle,
         Version = version,
     };
 }
@@ -60,6 +63,8 @@ public sealed record OverlayStatus
     public string? Flash { get; init; }
     /// <summary>Entity id of the row pinned for ctrl+click comparison.</summary>
     public uint? PinnedEntityId { get; init; }
+    /// <summary>The local player's DPS in the last fight (compact bar hint; null = unknown).</summary>
+    public double? LastFightDps { get; init; }
 }
 
 /// <summary>Per-row-size metrics.</summary>

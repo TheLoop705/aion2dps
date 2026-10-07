@@ -45,6 +45,11 @@ public sealed class OverlayView : UserControl
     private readonly Button _sizeChip;
     private readonly Button _trainingButton;
     private readonly Button _lockButton;
+    private readonly Button _collapseButton;
+    private readonly DockPanel _dock = new() { LastChildFill = true };
+    private readonly CompactBarView _compactBar = new() { Visibility = Visibility.Collapsed };
+    private Grid _root = null!;
+    private bool _toastShowing;
     private readonly Border _toast = new() { Visibility = Visibility.Collapsed, Margin = new Thickness(6, 5, 6, 1), Padding = new Thickness(9, 6, 9, 6) };
     private readonly TextBlock _toastTitle = Ui.Text("", ThemeKeys.AccentText, 11.5, FontWeights.Bold);
     private readonly TextBlock _toastBody = Ui.Text("", ThemeKeys.AccentText, 11);
@@ -88,6 +93,8 @@ public sealed class OverlayView : UserControl
         _partyChip = Ui.Chip("PARTY", "", () => PartyFilterToggled?.Invoke());
         _trainingButton = Ui.IconButton(Ui.IconStopwatch, "Training stopwatch", OpenTrainingMenu);
         _lockButton = Ui.IconButton(Ui.IconUnlock, "Lock overlay position (Ctrl+Alt+L also enables click-through)", () => LockToggled?.Invoke());
+        _collapseButton = Ui.IconButton(IconCollapse, "Shrink to the compact bar (expands again for the next fight)", () => CollapseRequested?.Invoke(), 10);
+        _compactBar.ExpandRequested += () => ExpandRequested?.Invoke();
         _toastTimer = new DispatcherTimer(DispatcherPriority.Normal, Dispatcher) { Interval = TimeSpan.FromSeconds(8) };
         _toastTimer.Tick += (_, _) => HideToast();
 
@@ -124,6 +131,36 @@ public sealed class OverlayView : UserControl
     /// <summary>Row clicked (row, ctrl held).</summary>
     public event Action<PlayerRow, bool>? RowClicked;
     public event Action<double>? OpacityChanged;
+    /// <summary>The compact bar's chevron was clicked (the window raises the same for a click on the bar itself).</summary>
+    public event Action? ExpandRequested;
+    /// <summary>The toolbar's collapse button was clicked.</summary>
+    public event Action? CollapseRequested;
+
+    /// <summary>Segoe MDL2 "ChevronUp" (collapse to the compact bar).</summary>
+    public const string IconCollapse = "";
+
+    /// <summary>The slim out-of-combat bar (drag handle and click-to-expand target while compact).</summary>
+    public CompactBarView CompactBar => _compactBar;
+
+    /// <summary>True while the compact bar is shown instead of the full meter.</summary>
+    public bool IsCompact { get; private set; }
+
+    /// <summary>A toast is showing (or fading in); the full overlay is needed to read it.</summary>
+    public bool ToastVisible => _toastShowing;
+
+    /// <summary>
+    /// Switches between the full meter and the compact bar in place (same element tree, no re-creation; the window
+    /// background, corner radius and frame are shared, so both look like the same overlay).
+    /// </summary>
+    public void SetCompact(bool compact)
+    {
+        if (compact == IsCompact) return;
+        IsCompact = compact;
+        _dock.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
+        _compactBar.Visibility = compact ? Visibility.Visible : Visibility.Collapsed;
+        _root.HorizontalAlignment = compact ? HorizontalAlignment.Left : HorizontalAlignment.Stretch;
+        if (compact) AdjustBarVisible = false;
+    }
 
     /// <summary>Element that starts a window drag (the header band).</summary>
     public FrameworkElement DragHandle => _header;
@@ -150,12 +187,12 @@ public sealed class OverlayView : UserControl
 
     private UIElement BuildLayout()
     {
-        var root = new Grid();
+        var root = _root = new Grid();
         _bg.Ref(Border.BackgroundProperty, ThemeKeys.WindowBackground).Ref(Border.CornerRadiusProperty, ThemeKeys.CornerRadius);
         _frame.Ref(Border.BorderBrushProperty, ThemeKeys.Border).Ref(Border.CornerRadiusProperty, ThemeKeys.CornerRadius);
         root.Children.Add(_bg);
 
-        var dock = new DockPanel { LastChildFill = true };
+        var dock = _dock;
         // Header
         _header.Ref(Border.BackgroundProperty, AppThemeKeys.HeaderBackground);
         _header.Cursor = Cursors.SizeAll;
@@ -193,6 +230,7 @@ public sealed class OverlayView : UserControl
         dock.Children.Add(body);
 
         root.Children.Add(dock);
+        root.Children.Add(_compactBar);
         root.Children.Add(_frame);
         return root;
     }
@@ -274,6 +312,7 @@ public sealed class OverlayView : UserControl
         tools.Children.Add(Ui.IconButton(Ui.IconCopy, "Copy summary to clipboard for chat (Ctrl+Alt+C)", () => CopyRequested?.Invoke()));
         tools.Children.Add(_lockButton);
         tools.Children.Add(Ui.IconButton(Ui.IconSettings, "Open dashboard settings", () => SettingsRequested?.Invoke()));
+        tools.Children.Add(_collapseButton);
         tools.Children.Add(Ui.IconButton(Ui.IconHide, "Hide overlay (Ctrl+Alt+O)", () => HideRequested?.Invoke()));
         DockPanel.SetDock(tools, Dock.Right);
         line3.Children.Add(tools);
@@ -378,6 +417,7 @@ public sealed class OverlayView : UserControl
             ? options.ClickThrough ? "Locked + click-through (Ctrl+Alt+L to release)" : "Unlock overlay"
             : "Lock overlay position (Ctrl+Alt+L also enables click-through)";
         _header.Cursor = options.Locked ? Cursors.Arrow : Cursors.SizeAll;
+        _collapseButton.Visibility = options.ShrinkWhenIdle ? Visibility.Visible : Visibility.Collapsed;
         _sizeChip.Content = options.RowSize switch { RowSize.Normal => "N", RowSize.Compact => "C", _ => "M" };
         // Lit (accent text) while only party members are shown, dimmed while everyone hitting the same enemies is listed.
         _partyChip.Visibility = pvp ? Visibility.Collapsed : Visibility.Visible;
@@ -416,6 +456,7 @@ public sealed class OverlayView : UserControl
         if (showState) UpdateStatePanel(phase, snapshot, status, pvp);
 
         UpdateFooter(snapshot, status, phase, pvp);
+        _compactBar.Update(CompactBarModel.Build(snapshot, status), options.RowSize);
     }
 
     private void UpdateHeader(MeterSnapshot s, OverlayStatus status, OverlayPhase phase, bool pvp)
@@ -984,6 +1025,7 @@ public sealed class OverlayView : UserControl
     {
         _toastTitle.Text = title;
         _toastBody.Text = message;
+        _toastShowing = true;
         _toast.Visibility = Visibility.Visible;
         _toast.BeginAnimation(OpacityProperty, null);
         if (AnimationsEnabled)
@@ -1000,9 +1042,10 @@ public sealed class OverlayView : UserControl
     public void HideToast()
     {
         _toastTimer.Stop();
+        _toastShowing = false;
         if (!AnimationsEnabled) { _toast.Visibility = Visibility.Collapsed; return; }
         var fade = new DoubleAnimation(0, TimeSpan.FromMilliseconds(300));
-        fade.Completed += (_, _) => _toast.Visibility = Visibility.Collapsed;
+        fade.Completed += (_, _) => { if (!_toastShowing) _toast.Visibility = Visibility.Collapsed; };
         _toast.BeginAnimation(OpacityProperty, fade);
     }
 

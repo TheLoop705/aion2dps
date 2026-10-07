@@ -7,7 +7,9 @@ namespace Aion2Dps.App.Overlay;
 
 /// <summary>
 /// Drives the overlay: refreshes it ~4×/s from <see cref="ICombatEngine.GetSnapshot"/>, routes its buttons to the
-/// engine/settings, runs the training countdown, ctrl+click compare and the copy-to-chat action.
+/// engine/settings, runs the training countdown, ctrl+click compare and the copy-to-chat action. Out of combat it
+/// shrinks the overlay to the compact bar (<see cref="OverlayPresentationTracker"/>; setting "Shrink overlay when not in
+/// combat").
 /// </summary>
 public sealed class OverlayController : IDisposable
 {
@@ -23,6 +25,9 @@ public sealed class OverlayController : IDisposable
     private uint? _pinned;
     private CaptureStatus _capture;
     private readonly HashSet<Guid> _toasted = new();
+    private readonly OverlayPresentationTracker _presentation = new();
+    private double? _lastFightDps;
+    private bool _refreshing;
 
     public OverlayController(AppServices services, SettingsStore settings, Action<string?> openDashboard)
     {
@@ -46,6 +51,24 @@ public sealed class OverlayController : IDisposable
 
     public OverlayView? View => _window?.View;
 
+    /// <summary>The current presentation (compact bar or full overlay).</summary>
+    public OverlayPresentation Presentation => _presentation.Current;
+
+    /// <summary>Expands the compact bar to the full overlay until the next fight (click on the bar / its chevron).</summary>
+    public void Expand()
+    {
+        _presentation.Expand();
+        Refresh();
+    }
+
+    /// <summary>Shrinks the full overlay to the compact bar (toolbar button); a fight in progress keeps it small until the next one.</summary>
+    public void Collapse()
+    {
+        _presentation.Collapse();
+        _window?.View.HideToast();
+        Refresh();
+    }
+
     public void Show()
     {
         if (_window is null)
@@ -53,6 +76,7 @@ public sealed class OverlayController : IDisposable
             _window = new OverlayWindow(_settings.Current.Overlay);
             Wire(_window.View);
             _window.BoundsChanged += SaveBounds;
+            _window.CompactBarClicked += Expand;
             _window.SourceInitialized += (_, _) => ApplyLockState();
         }
         Refresh();
@@ -134,6 +158,8 @@ public sealed class OverlayController : IDisposable
         };
         v.RowClicked += OnRowClicked;
         v.PartyFilterToggled += TogglePartyOnly;
+        v.ExpandRequested += Expand;
+        v.CollapseRequested += Collapse;
     }
 
     /// <summary>Flips "party members only" (overlay chip, tray menu, Ctrl+Alt+P), persists it and applies it to the engine.</summary>
@@ -170,9 +196,10 @@ public sealed class OverlayController : IDisposable
     {
         if (_window is null) return;
         var o = _settings.Current.Overlay;
-        o.Left = Math.Round(_window.Left);
-        o.Top = Math.Round(_window.Top);
-        o.Width = Math.Round(_window.Width);
+        // The anchor (not a temporary work-area shift) and the expanded width (not the compact bar's).
+        o.Left = Math.Round(_window.Anchor.X);
+        o.Top = Math.Round(_window.Anchor.Y);
+        o.Width = Math.Round(_window.ExpandedWidth);
         _settings.NotifyChanged();
     }
 
@@ -180,6 +207,7 @@ public sealed class OverlayController : IDisposable
     {
         _services.Engine.Reset();
         _pinned = null;
+        _lastFightDps = null;
         Flash("Meter reset");
         Refresh();
     }
@@ -260,6 +288,7 @@ public sealed class OverlayController : IDisposable
     {
         if (_window is null) return;
         _window.View.ShowToast(title, message);
+        if (!_refreshing) Refresh(); // a toast expands the compact bar while it shows
     }
 
     /// <summary>Shows a toast at most once per encounter id (null key = always).</summary>
@@ -271,7 +300,8 @@ public sealed class OverlayController : IDisposable
 
     public void Refresh()
     {
-        if (_window is null) return;
+        if (_window is null || _refreshing) return;
+        _refreshing = true;
         try
         {
             var now = DateTime.UtcNow;
@@ -287,15 +317,30 @@ public sealed class OverlayController : IDisposable
                     TrainingFinished?.Invoke(_trainingLength);
                 }
             }
-            var snap = _services.Engine.GetSnapshot(_services.Now());
+            var clock = _services.Now();
+            var snap = _services.Engine.GetSnapshot(clock);
             if (snap.PersonalBestMessage is { Length: > 0 } pb && snap.EncounterId is { } eid)
                 ShowToastOnce(eid, "New personal best!", pb);
-            var status = new OverlayStatus { Capture = _capture, TrainingRemaining = remaining, Flash = _flash, PinnedEntityId = _pinned };
-            _window.View.Update(snap, status, OverlayViewOptions.From(_settings.Current, AppPaths.Version));
+            if (snap.State is MeterState.InCombat or MeterState.Ended && snap.Rows.FirstOrDefault(r => r.IsLocal && r.Damage > 0) is { } me
+                && double.IsFinite(me.Dps))
+                _lastFightDps = me.Dps;
+            var status = new OverlayStatus
+            {
+                Capture = _capture, TrainingRemaining = remaining, Flash = _flash, PinnedEntityId = _pinned, LastFightDps = _lastFightDps,
+            };
+            var settings = _settings.Current;
+            _window.View.Update(snap, status, OverlayViewOptions.From(settings, AppPaths.Version));
+            var presentation = _presentation.Update(snap.State, snap.EncounterId, clock,
+                settings.Overlay.ShrinkWhenIdle, settings.General.EndedDisplaySeconds, _window.View.ToastVisible);
+            _window.SetPresentation(presentation == OverlayPresentation.Compact, settings.Overlay.ShrinkWhenIdle);
         }
         catch (Exception ex)
         {
             AppLog.Error("Overlay", "Refresh failed", ex);
+        }
+        finally
+        {
+            _refreshing = false;
         }
     }
 
