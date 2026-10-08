@@ -131,7 +131,7 @@ public sealed class SettingsStore
         var g = s.General;
         g.IdleTimeoutSeconds = double.IsFinite(g.IdleTimeoutSeconds) ? Math.Clamp(g.IdleTimeoutSeconds, 3, 600) : 10;
         g.BossIdleTimeoutSeconds = double.IsFinite(g.BossIdleTimeoutSeconds) ? Math.Clamp(g.BossIdleTimeoutSeconds, 5, 600) : 30;
-        g.EndedDisplaySeconds = double.IsFinite(g.EndedDisplaySeconds) ? Math.Clamp(g.EndedDisplaySeconds, 0, 120) : 15;
+        g.EndedDisplaySeconds = double.IsFinite(g.EndedDisplaySeconds) ? Math.Clamp(g.EndedDisplaySeconds, 0, 120) : 60;
         var a = s.Appearance;
         if (string.IsNullOrWhiteSpace(a.ThemeId) || Theming.ThemeCatalog.Find(a.ThemeId) is null) a.ThemeId = Theming.ThemeCatalog.DefaultId;
         if (a.CornerRadius is { } cr) a.CornerRadius = double.IsFinite(cr) ? Math.Clamp(cr, 0, 16) : null;

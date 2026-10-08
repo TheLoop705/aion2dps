@@ -52,11 +52,13 @@ public static class Program
         Console.WriteLine("""
             aion2dps-cli — offline tools for the Aion2Dps meter
 
-              replay <file> [--speed N] [--json out.json] [--local-name Name[:Class]]
+              replay <file> [--speed N] [--json out.json] [--local-name Name[:Class]] [--boss-only]
                                                             Decode a .pcap/.pcapng/hex log through the full pipeline and
                                                             print every completed encounter (speed 0 = as fast as possible);
                                                             --local-name = the character a live meter remembers from an
-                                                            earlier session (names a local player inferred mid-session)
+                                                            earlier session (names a local player inferred mid-session);
+                                                            --boss-only = the meter's "Track boss fights only" setting
+                                                            (no trash encounters)
               census <file>                                 Opcode census and decoder error statistics of a capture file
               simulate <scenario> --out file.pcap [--seed N] Write a simulator scenario as a pcap file
                                                             (scenarios: BossKill, BossWipeThenKill, TrashPull, PvpSkirmish,
@@ -131,7 +133,7 @@ public static class Program
 
         int index = 0;
         OfflinePipeline? pipe = null;
-        var options = new EngineOptions { SaveTrashFights = true, KnownLocalCharacter = known };
+        var options = new EngineOptions { SaveTrashFights = true, KnownLocalCharacter = known, BossFightsOnly = HasFlag(args, "--boss-only") };
         pipe = new OfflinePipeline(options, onCompleted: r => Printer.Encounter(Console.Out, r, pipe!.GameData, ++index));
         using var cts = CtrlC();
         var sw = Stopwatch.StartNew();

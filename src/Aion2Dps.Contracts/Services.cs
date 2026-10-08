@@ -16,6 +16,14 @@ public sealed class EngineOptions
     public bool SaveTrashFights { get; set; } = false;
     /// <summary>In a boss encounter, also count damage to non-boss adds between the first and last boss hit.</summary>
     public bool CountAddsInBossFight { get; set; } = false;
+    /// <summary>
+    /// Track boss fights only: damage to trash mobs never starts (or shows) an encounter. Encounters start on a boss
+    /// (game data, or max HP at or above <see cref="BossHpThreshold"/>), a training dummy, a training run or PvP. Damage
+    /// to adds during a boss fight follows <see cref="CountAddsInBossFight"/>. A finished fight is then not replaced by
+    /// trash hits: it stays on display for <see cref="EndedDisplaySeconds"/> or until the next boss fight starts.
+    /// False (engine default) = every fight is tracked, trash included.
+    /// </summary>
+    public bool BossFightsOnly { get; set; } = false;
     /// <summary>Live per-player DPS uses each player's own first hit as the clock start (late joiners not penalised).
     /// When false, the shared encounter clock is used.</summary>
     public bool LivePlayerClock { get; set; } = true;

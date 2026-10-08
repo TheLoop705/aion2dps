@@ -13,23 +13,23 @@ namespace Aion2Dps.App.Tests;
 public class EndedDisplaySettingsTests
 {
     [Fact]
-    public void Existing_settings_without_a_display_delay_use_fifteen_seconds()
+    public void Settings_without_a_display_delay_use_sixty_seconds()
     {
         string directory = TempDirectory();
         try
         {
             string path = Path.Combine(directory, "settings.json");
             File.WriteAllText(path, "{\"General\":{\"LivePlayerClock\":true}}");
-            Assert.Equal(15, new AppSettings().General.EndedDisplaySeconds);
-            Assert.Equal(15, SettingsStore.LoadFrom(path).General.EndedDisplaySeconds);
+            Assert.Equal(60, new AppSettings().General.EndedDisplaySeconds);
+            Assert.Equal(60, SettingsStore.LoadFrom(path).General.EndedDisplaySeconds);
         }
         finally { Directory.Delete(directory, true); }
     }
 
     [Theory]
-    [InlineData(double.NaN, 15)]
-    [InlineData(double.PositiveInfinity, 15)]
-    [InlineData(double.NegativeInfinity, 15)]
+    [InlineData(double.NaN, 60)]
+    [InlineData(double.PositiveInfinity, 60)]
+    [InlineData(double.NegativeInfinity, 60)]
     [InlineData(-5, 0)]
     [InlineData(125, 120)]
     [InlineData(20, 20)]

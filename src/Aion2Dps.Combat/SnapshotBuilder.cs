@@ -22,7 +22,9 @@ internal static class SnapshotBuilder
         }
 
         var enc = core.Current;
-        if (enc == null || EndedDisplayExpired(enc, opts.EndedDisplaySeconds, now))
+        // Boss fights only: a trash encounter left from before the setting was turned on is never shown.
+        if (enc == null || EndedDisplayExpired(enc, opts.EndedDisplaySeconds, now)
+            || (opts.BossFightsOnly && enc.Kind == EncounterKind.Trash))
         {
             string status = core.TrainingArmed
                 ? $"Training ready ({core.TrainingDuration.TotalSeconds:0} s): hit a target to start"

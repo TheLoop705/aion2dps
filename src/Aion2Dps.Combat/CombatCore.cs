@@ -1243,6 +1243,13 @@ internal sealed class CombatCore
         bool core = IsCoreActor(hit.Actor);
         // A bystander may still engage a real boss (world/field bosses): those encounters end with the boss.
         bool bystanderBoss = bossLike && !dummy && !TrainingArmed;
+        // Boss fights only: a hit on a trash mob never starts an encounter (a training run still counts everything).
+        bool ignoredTrash = Options.BossFightsOnly && !bossLike && !dummy && !TrainingArmed;
+        if (Options.BossFightsOnly && enc is { Kind: EncounterKind.Trash, Ended: false })
+        {
+            // A trash encounter started before the setting was turned on ends here.
+            End(enc, EncounterOutcome.Timeout, enc.LastActivity);
+        }
 
         // Killing blows that land just after the death still count (feature spec §1.1), also when a newer encounter
         // (an add hit right after the kill) has become current meanwhile.
@@ -1266,15 +1273,19 @@ internal sealed class CombatCore
         {
             if (!qualifiesStart || target.Dead) return; // damage to a corpse never reopens
             if (!core && !bystanderBoss) return;
+            // Boss fights only: trash neither starts an encounter nor replaces the finished fight still on display.
+            if (ignoredTrash) return;
             enc = StartEncounter(hit.Time, tn, bossLike, dummy, pvp: false);
         }
         else
         {
             if (deadTooLong) return;
+            // Boss fights only: trash mobs hit during a PvP fight are not part of it.
+            if (ignoredTrash && enc.Kind == EncounterKind.Pvp) return;
             if (TrashTooLong(enc))
             {
                 End(enc, EncounterOutcome.Timeout, enc.LastActivity);
-                if (!qualifiesStart || target.Dead || (!core && !bystanderBoss)) return;
+                if (!qualifiesStart || target.Dead || (!core && !bystanderBoss) || ignoredTrash) return;
                 enc = StartEncounter(hit.Time, tn, bossLike, dummy, pvp: false);
             }
             else if (!core && enc.Kind != EncounterKind.Boss && !enc.Targets.ContainsKey(target.Id) && !bystanderBoss)

@@ -82,6 +82,56 @@ public sealed class MultiBossRealCaptureTests
         Assert.InRange(kromede.HpCheck!.Ratio, 0.99, 1.01);
     }
 
+    [Fact]
+    public void Boss_fights_only_keeps_the_boss_encounters_identical_and_drops_trash()
+    {
+        var path = CapturePath();
+        if (path is null)
+        {
+            _out.WriteLine("Expedition capture not present on this machine: skipped.");
+            return;
+        }
+
+        List<EncounterRecord> Run(bool bossOnly)
+        {
+            var h = new Harness(new EngineOptions { SaveTrashFights = true, BossFightsOnly = bossOnly });
+            DateTime last = default;
+            var stats = PcapReplaySource.Replay(path, h.Input, 0, utc =>
+            {
+                if ((utc - last).TotalMilliseconds < 250) return;
+                last = utc;
+                h.Engine.Tick(utc);
+            });
+            h.Drain(stats.LastPacketUtc ?? last);
+            return h.Records;
+        }
+
+        var all = Run(bossOnly: false);
+        var bossOnly = Run(bossOnly: true);
+        Assert.Contains(all, r => r.Kind == EncounterKind.Trash);
+        Assert.DoesNotContain(bossOnly, r => r.Kind == EncounterKind.Trash);
+
+        var expected = all.Where(r => r.Kind != EncounterKind.Trash).ToList();
+        Assert.Equal(expected.Count, bossOnly.Count);
+        for (int i = 0; i < expected.Count; i++)
+        {
+            var a = expected[i];
+            var b = bossOnly[i];
+            Assert.Equal(a.Kind, b.Kind);
+            Assert.Equal(a.Outcome, b.Outcome);
+            Assert.Equal(a.StartUtc, b.StartUtc);
+            Assert.Equal(a.EndUtc, b.EndUtc);
+            Assert.Equal(a.TotalDamage, b.TotalDamage);
+            Assert.Equal(a.Hits.Count, b.Hits.Count);
+            Assert.Equal(a.HpCheck?.Ratio, b.HpCheck?.Ratio);
+            Assert.Equal(a.OverallHpCheck?.Ratio, b.OverallHpCheck?.Ratio);
+            Assert.Equal(a.Bosses.Select(x => (x.NpcCode, x.MaxHp, x.Killed, x.HpCheck?.Ratio)),
+                b.Bosses.Select(x => (x.NpcCode, x.MaxHp, x.Killed, x.HpCheck?.Ratio)));
+            Assert.Equal(a.Combatants.Select(c => (c.Name, c.Damage, c.Healing, c.DamageTaken)),
+                b.Combatants.Select(c => (c.Name, c.Damage, c.Healing, c.DamageTaken)));
+        }
+    }
+
     private void Describe(EncounterRecord r, IGameData gd)
     {
         _out.WriteLine("");
