@@ -31,6 +31,9 @@ public sealed class GameDataStore : IGameData
     private readonly FrozenDictionary<uint, string> _icons;
     private readonly FrozenSet<uint> _openWorldMaps;
     private readonly FrozenDictionary<uint, FrozenDictionary<string, string>> _openWorldMapNames;
+    private readonly FrozenDictionary<uint, uint> _fieldBossBlocks;
+    /// <summary>Bosses (dummies excluded) per NPC-code block (code / 1000), in code order: slot place → NPC code.</summary>
+    private readonly FrozenDictionary<uint, uint[]> _bossesByBlock;
     private readonly FrozenDictionary<ushort, FrozenDictionary<string, string>> _servers;
 
     private readonly Lock _gate = new();
@@ -63,6 +66,11 @@ public sealed class GameDataStore : IGameData
         _openWorldMaps = DataFiles.ReadIdSet(DataPath("open_world_maps.json"), "maps");
         _openWorldMapNames = DataFiles.ReadFieldBossMapNames(DataPath("field_boss_maps.json"));
         _servers = DataFiles.ReadServers(DataPath("servers.json"));
+        _fieldBossBlocks = DataFiles.ReadFieldBossBlocks(DataPath("field_boss_maps.json"));
+        _bossesByBlock = _english.Npcs.Values
+            .Where(n => n.IsBoss && !n.IsDummy)
+            .GroupBy(n => n.Code / 1000)
+            .ToFrozenDictionary(g => g.Key, g => g.Select(n => n.Code).Order().ToArray());
 
         _language = (int)language;
         _current = StateFor(language);
@@ -233,13 +241,25 @@ public sealed class GameDataStore : IGameData
         if (cur.Tables.Maps.TryGetValue(mapId, out var name)) return name;
         if (_english.Tables.Maps.TryGetValue(mapId, out name)) return name;
         if (_openWorldMapNames.TryGetValue(mapId, out var names)) return Pick(names, cur.Language);
+        // A world layer of an overworld map (111004 → 1110 Altgard): open_world_maps.json lists the layers whose base map
+        // is an overworld map, and their ids are the base id × 100 + layer.
+        if (_openWorldMaps.Contains(mapId) && mapId >= 100_000 && _openWorldMapNames.TryGetValue(mapId / 100, out names)
+            && _openWorldMaps.Contains(mapId / 100))
+            return Pick(names, cur.Language);
         return null;
     }
 
     /// <inheritdoc />
+    public uint? GetFieldBossBlock(uint mapId) => _fieldBossBlocks.TryGetValue(mapId, out uint b) ? b : null;
+
+    /// <inheritdoc />
+    public uint? GetFieldBossNpcCode(uint block, int place) =>
+        place >= 1 && _bossesByBlock.TryGetValue(block, out var codes) && place <= codes.Length ? codes[place - 1] : null;
+
+    /// <inheritdoc />
     public bool IsInstanceMap(uint mapId) => mapId is >= 600_000 and <= 699_999;
 
-    /// <summary>True for overworld maps listed in <c>open_world_maps.json</c>.</summary>
+    /// <inheritdoc />
     public bool IsOpenWorldMap(uint mapId) => _openWorldMaps.Contains(mapId);
 
     /// <inheritdoc />

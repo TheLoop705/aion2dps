@@ -26,6 +26,7 @@ public sealed class OverlayView : UserControl
     private readonly Border _endBadge = Ui.Pill("KILL", ThemeKeys.Positive, ThemeKeys.AccentText);
     private readonly Border _hpCheckBadge = Ui.Pill("HP ?", ThemeKeys.Warning, ThemeKeys.AccentText);
     private readonly Border _gapsBadge = Ui.Pill("GAPS", ThemeKeys.Warning, ThemeKeys.AccentText);
+    private readonly Border _partialBadge = Ui.Pill("PARTIAL", ThemeKeys.BarTrack, ThemeKeys.TextMuted);
     private readonly TextBlock _timer = Ui.Text("0:00", ThemeKeys.Text, 15, FontWeights.SemiBold, mono: true);
     private readonly Button _prevTarget;
     private readonly Button _nextTarget;
@@ -265,9 +266,10 @@ public sealed class OverlayView : UserControl
         right.Children.Add(_modeChip);
         DockPanel.SetDock(right, Dock.Right);
         line1.Children.Add(right);
-        _endBadge.Margin = _hpCheckBadge.Margin = _gapsBadge.Margin = new Thickness(5, 1, 0, 0);
+        _endBadge.Margin = _hpCheckBadge.Margin = _gapsBadge.Margin = _partialBadge.Margin = new Thickness(5, 1, 0, 0);
         _badges.Children.Add(_endBadge);
         _badges.Children.Add(_hpCheckBadge);
+        _badges.Children.Add(_partialBadge);
         _badges.Children.Add(_gapsBadge);
         _hpCheckBadge.ToolTip = "HP check: the decoded damage does not match the boss's HP loss. Numbers may be incomplete.";
         _gapsBadge.ToolTip = "The capture had gaps during this fight; numbers may be incomplete.";
@@ -473,6 +475,7 @@ public sealed class OverlayView : UserControl
 
         _endBadge.Visibility = Visibility.Collapsed;
         _hpCheckBadge.Visibility = Visibility.Collapsed;
+        _partialBadge.Visibility = Visibility.Collapsed;
         _gapsBadge.Visibility = Visibility.Collapsed;
         _hpTradeTaken.Visibility = Visibility.Collapsed;
         _bossBars.Visibility = Visibility.Collapsed;
@@ -544,7 +547,14 @@ public sealed class OverlayView : UserControl
             _endBadge.Ref(Border.BackgroundProperty, key);
             _endBadge.Visibility = Visibility.Visible;
         }
-        if (live && !pvp && s.HpCheckRatio is { } ratio && Math.Abs(ratio - 1) > 0.03)
+        if (live && !pvp && s.PartialView)
+        {
+            // Open world: the server sends only your own direct hits. Not a decoding problem, so no HP-check warning.
+            _partialBadge.ToolTip = (s.PartialViewText ?? "Partial view: only your/party damage is visible") +
+                                    ".\n% = damage / boss max HP. Players seen only through DoT ticks or heals are grouped as \"Others\".";
+            _partialBadge.Visibility = Visibility.Visible;
+        }
+        else if (live && !pvp && s.HpCheckRatio is { } ratio && Math.Abs(ratio - 1) > 0.03)
         {
             ((TextBlock)_hpCheckBadge.Child).Text = "HP " + Fmt.Percent(ratio, 0);
             _hpCheckBadge.ToolTip = $"HP check: decoded damage explains {Fmt.Percent(ratio, 1)} of the boss's HP loss. " +
@@ -804,6 +814,13 @@ public sealed class OverlayView : UserControl
                 break;
         }
         var list = filtered.ToList();
+        if (s.PartialView && o.View is not (MeterView.Taken or MeterView.Heal))
+        {
+            // Partial view: you and your party first, then other players with direct hits, the "Others" row last; the
+            // percentage is always the share of the boss's max HP (a share of the visible damage means nothing here).
+            list = list.OrderBy(r => r.AggregateCount > 0 ? 2 : r.IsLocal || r.IsPartyMember ? 0 : 1).ToList();
+            pct = r => r.Contribution;
+        }
         int max = Math.Max(1, o.MaxRows);
         if (list.Count > max)
         {
@@ -817,7 +834,7 @@ public sealed class OverlayView : UserControl
         for (int i = 0; i < list.Count; i++)
         {
             var r = list[i];
-            double bar = o.BarMode == BarMode.ShareOfParty ? share(r) : topValue > 0 ? primary(r) / topValue : 0;
+            double bar = o.BarMode == BarMode.ShareOfParty && !s.PartialView ? share(r) : topValue > 0 ? primary(r) / topValue : 0;
             result.Add(new RowDisplay(r, i + 1, primary(r), secondary(r), pct(r), bar));
         }
         return result;
@@ -1015,6 +1032,13 @@ public sealed class OverlayView : UserControl
         {
             _footerStats.Text = "";
             _footerStats.ToolTip = null;
+            return;
+        }
+        if (s.PartialView)
+        {
+            var me = dpsRows.FirstOrDefault(r => r.IsLocal);
+            _footerStats.Text = me is null ? "partial view" : $"partial view · you {Fmt.Percent(me.Contribution, 1)} of boss HP";
+            _footerStats.ToolTip = (s.PartialViewText ?? "Partial view") + $"\nVisible damage {Fmt.Exact(s.TotalDamage)}";
             return;
         }
         double min = s.MinDps > 0 ? s.MinDps : dpsRows.Min(r => r.Dps);

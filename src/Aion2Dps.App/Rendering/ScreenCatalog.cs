@@ -32,6 +32,7 @@ public static class ScreenCatalog
             new("pvp-compact", () => PreviewData.Pvp(100), capturing, baseOpts with { PvpSort = PvpSort.Damage }),
             new("ended-kill", PreviewData.EndedKill, capturing, baseOpts),
             new("hp-check-warning", () => PreviewData.LiveBoss() with { HpCheckRatio = 0.87 }, capturing, baseOpts with { View = MeterView.Total }),
+            new("world-boss-partial", PreviewData.WorldBossPartial, capturing, baseOpts with { View = MeterView.Total }),
             new("taken-view", () => PreviewData.LiveBoss(), capturing, baseOpts with { View = MeterView.Taken }),
             new("training", () => PreviewData.LiveBoss(), capturing with { TrainingRemaining = TimeSpan.FromSeconds(42), Flash = "Training 1:00 started" }, baseOpts),
             new("npcap-missing", PreviewData.WaitingForCombat, PreviewData.Status(CaptureState.NpcapMissing), baseOpts),

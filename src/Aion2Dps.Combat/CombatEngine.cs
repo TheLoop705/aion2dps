@@ -12,6 +12,10 @@ public sealed class CombatEngine : ICombatEngine
     /// <summary><see cref="CombatantRecord.EntityId"/> / <see cref="PlayerRow.EntityId"/> of the "Unknown summons" bucket.</summary>
     public const uint UnknownSummonsEntityId = uint.MaxValue;
 
+    /// <summary><see cref="PlayerRow.EntityId"/> of the partial-view aggregate row (players seen only through DoT ticks
+    /// and heals, <see cref="PlayerRow.AggregateCount"/> &gt; 0).</summary>
+    public const uint OthersEntityId = uint.MaxValue - 1;
+
     private readonly object _gate = new();
     private readonly CombatCore _core;
 
@@ -54,10 +58,18 @@ public sealed class CombatEngine : ICombatEngine
 
     public event Action<EncounterRecord>? EncounterCompleted;
 
+    /// <summary>
+    /// Raised (outside the lock, on the capture thread) when the game names the local character with its own
+    /// <c>33 36</c> record. Hosts persist it and pass it back as <see cref="EngineOptions.KnownLocalCharacter"/> after a
+    /// restart, so a meter started mid-session can name the inferred local player.
+    /// </summary>
+    public event Action<KnownCharacter>? LocalCharacterIdentified;
+
     public void OnEvent(GameEvent gameEvent)
     {
         if (gameEvent is null) return;
         List<EncounterRecord>? done;
+        KnownCharacter? known;
         lock (_gate)
         {
             try
@@ -70,8 +82,23 @@ public sealed class CombatEngine : ICombatEngine
                 AppLog.Warn("Combat", $"Event {gameEvent.GetType().Name} failed: {ex.Message}");
             }
             done = _core.TakeCompleted();
+            known = _core.PendingKnownCharacter;
+            _core.PendingKnownCharacter = null;
         }
         Raise(done);
+        if (known != null) RaiseKnown(known);
+    }
+
+    private void RaiseKnown(KnownCharacter known)
+    {
+        try
+        {
+            LocalCharacterIdentified?.Invoke(known);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("Combat", "LocalCharacterIdentified handler failed", ex);
+        }
     }
 
     public MeterSnapshot GetSnapshot(DateTime nowUtc)

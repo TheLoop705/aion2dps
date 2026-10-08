@@ -86,16 +86,37 @@ public static class ChartData
     /// <summary>True when several bosses were fought at the same time in this encounter.</summary>
     public static bool IsMultiBoss(EncounterRecord record) => record.Bosses.Count >= 2;
 
-    /// <summary>Display name of one boss of the encounter.</summary>
-    public static string BossName(BossResult boss, IGameData gameData) =>
-        boss.NpcCode is { } code ? gameData.GetNpcName(code) : $"Target {boss.EntityId}";
+    /// <summary>Display name of one boss of the encounter; "World boss (45.6M HP)" when its spawn (NPC code) was missed.</summary>
+    public static string BossName(BossResult boss, IGameData gameData, bool openWorld = false) =>
+        boss.NpcCode is { } code ? gameData.GetNpcName(code) : BossLabel.Unnamed(boss.MaxHp, openWorld) ?? $"Target {boss.EntityId}";
+
+    /// <summary>True when the encounter was fought on an overworld map.</summary>
+    public static bool IsOpenWorld(EncounterRecord record, IGameData gameData) =>
+        record.MapId is { } m && gameData.IsOpenWorldMap(m);
+
+    /// <summary>
+    /// Partial view (<see cref="EncounterRecord.PartialView"/>): you and your party first, then other players with direct
+    /// hits; players seen only through DoT ticks or heals are returned separately (<paramref name="folded"/>).
+    /// Otherwise the friendly list unchanged.
+    /// </summary>
+    public static List<CombatantRecord> VisibleFriendly(EncounterRecord record, out List<CombatantRecord> folded)
+    {
+        var all = Friendly(record).ToList();
+        folded = new List<CombatantRecord>();
+        if (!record.PartialView) return all;
+        folded = all.Where(c => c.Kind == CombatantKind.Player && !c.IsLocal && !c.IsPartyMember && c.Quality.Hits == 0).ToList();
+        var hidden = folded.ToHashSet();
+        return all.Where(c => !hidden.Contains(c)).OrderBy(c => c.IsLocal || c.IsPartyMember ? 0 : 1).ThenByDescending(c => c.Damage).ToList();
+    }
 
     /// <summary>Boss display name (NPC table) — "Silver Blade Rotan + Black Smoke Murute" for a multi-boss fight, in
     /// engagement order — or a fallback by kind.</summary>
     public static string Title(EncounterRecord record, IGameData gameData)
     {
-        if (IsMultiBoss(record)) return string.Join(" + ", record.Bosses.Select(b => BossName(b, gameData)));
+        bool openWorld = IsOpenWorld(record, gameData);
+        if (IsMultiBoss(record)) return string.Join(" + ", record.Bosses.Select(b => BossName(b, gameData, openWorld)));
         if (record.BossNpcCode is { } code) return gameData.GetNpcName(code);
+        if (record.Kind == EncounterKind.Boss && BossLabel.Unnamed(record.BossMaxHp, openWorld) is { } unnamed) return unnamed;
         return record.Kind switch
         {
             EncounterKind.Pvp => "PvP session",

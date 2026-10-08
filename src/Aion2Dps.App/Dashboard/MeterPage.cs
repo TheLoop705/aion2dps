@@ -147,8 +147,10 @@ public sealed class MeterPage : DashboardPage
             UpdateCensus(d.GetCensus());
             UpdateErrors(d.GetRecentErrors());
         }
-        _proto["HP check"].Text = snap.HpCheckRatio is { } r ? $"{Fmt.Percent(r, 2)}  {(Math.Abs(r - 1) <= 0.01 ? "✓ matches boss HP" : "✗ mismatch")}" : Fmt.Dash;
-        _proto["HP check"].Ref(TextBlock.ForegroundProperty, snap.HpCheckRatio is { } r2 && Math.Abs(r2 - 1) > 0.03 ? ThemeKeys.Warning : ThemeKeys.Text);
+        _proto["HP check"].Text = snap.PartialView
+            ? $"partial view{(snap.HpCheckRatio is { } pr ? $"  ({Fmt.Percent(pr, 1)} of the boss HP loss is visible)" : "")}"
+            : snap.HpCheckRatio is { } r ? $"{Fmt.Percent(r, 2)}  {(Math.Abs(r - 1) <= 0.01 ? "✓ matches boss HP" : "✗ mismatch")}" : Fmt.Dash;
+        _proto["HP check"].Ref(TextBlock.ForegroundProperty, !snap.PartialView && snap.HpCheckRatio is { } r2 && Math.Abs(r2 - 1) > 0.03 ? ThemeKeys.Warning : ThemeKeys.Text);
     }
 
     private string Ago(DateTime utc) =>

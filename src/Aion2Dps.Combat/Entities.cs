@@ -64,7 +64,10 @@ internal sealed class PlayerEntity : Entity
     public uint PrevScalar;
     public DateTime PrevScalarTime;
 
-    public string DisplayName => Name.Length > 0 ? Name : $"Player {Id}";
+    /// <summary>The name, "You" for the unnamed local player (inferred from self-stat frames), else "Player 1234".</summary>
+    public string DisplayName => Name.Length > 0 ? Name : IsLocal ? LocalPlaceholderName : $"Player {Id}";
+
+    public const string LocalPlaceholderName = "You";
 
     public void NoteScalar(uint scalar, DateTime t)
     {
@@ -121,6 +124,8 @@ internal class NpcEntity : Entity
     public DateTime? LastDamagedAt;
     /// <summary>Created from a hit on an id we never saw spawn (no <c>41 36</c>): may really be a player.</summary>
     public bool Inferred;
+    /// <summary>The NPC code came from the field-boss list (position match), not from a spawn record.</summary>
+    public bool CodeFromFieldBossList;
 
     public virtual bool IsSummon => false;
 }
@@ -148,5 +153,8 @@ internal sealed class SummonEntity : NpcEntity
     public List<Hit>? PendingHits;
     public Encounter? PendingEncounter;
 }
+
+/// <summary>Partial view of a boss encounter (see <see cref="CombatCore.EvaluatePartialView"/>).</summary>
+internal readonly record struct PartialViewInfo(bool IsPartial, string? Reason, double? VisibleRatio);
 
 internal sealed record LocalIdentity(string Name, ushort ServerId, CharacterClass Class, uint Level, uint? EntityId, bool Authoritative);

@@ -67,6 +67,18 @@ public sealed class EncounterRecord
 
     /// <summary>Free-form notes (e.g. "training run 60 s").</summary>
     public string? Note { get; set; }
+
+    /// <summary>
+    /// True when the meter saw only part of the fight's damage: an open-world boss (the server sends only your own direct
+    /// hits; other players appear through DoT ticks and heals) or a boss whose HP loss is far larger than the decoded
+    /// damage. Shares of party damage and the HP check are then meaningless: show <see cref="CombatantRecord.Contribution"/>
+    /// (damage / boss max HP) instead and do not report the HP check as failed.
+    /// </summary>
+    public bool PartialView { get; set; }
+    /// <summary>Why <see cref="PartialView"/> is set (e.g. "open world", "decoded damage explains 5.4 % of the boss HP lost").</summary>
+    public string? PartialViewReason { get; set; }
+    /// <summary>Decoded damage / boss HP lost (0..1) when <see cref="PartialView"/> is set and the HP loss is measured.</summary>
+    public double? VisibleDamageRatio { get; set; }
 }
 
 public sealed class CombatantRecord

@@ -1,0 +1,445 @@
+{
+ "source": "worldboss-linx-2026-10-08.pcap (Global EU, open world, field boss Special Operations Leader Linx; recording started mid-fight)",
+ "decoder": "independent Python reference decoder refdec.py (04 38, 00 8D, 1B 92) and scratch parsers for 01 91 / 02 38 written from PROTOCOL.md",
+ "anonymisation": "no frame contains a player or legion name or any ASCII word of 5+ letters; entity ids are session-scoped",
+ "frames": [
+  {
+   "id": "wb-dmg-l6-local",
+   "note": "world boss: local player's layout-6 hit (mods 0x02, reduced), dmg_type 2: no crit on this boss in 1,693 hits",
+   "opcode": "0438",
+   "depth": 1,
+   "flow": "world",
+   "time": 0.0,
+   "body": "FDB0010600C06C181DD2006C020200006B5D135201000000DA64D6030100",
+   "frame": "240438FDB0010600C06C181DD2006C020200006B5D135201000000DA64D6030100",
+   "expect": {
+    "target": 22653,
+    "switch": 6,
+    "layout": 6,
+    "flag": 0,
+    "actor": 13888,
+    "skill_raw": 13770008,
+    "skill": 13770008,
+    "hit_tag": 108,
+    "dmg_type": 2,
+    "mods": 2,
+    "mod_value": 0,
+    "dir": 0,
+    "effect": 1377000811,
+    "hit_index": 1,
+    "scalar": 12890,
+    "amount": 470,
+    "extras": [],
+    "l4": null,
+    "absorbed": [],
+    "trailer_seq": 1,
+    "tail": null,
+    "effect_ok": true,
+    "placeholder": false
+   }
+  },
+  {
+   "id": "wb-dmg-l4-flag4",
+   "note": "world boss: local player's layout-4 hit with the flag-4 tail varint",
+   "opcode": "0438",
+   "depth": 1,
+   "flow": "world",
+   "time": 2.845,
+   "body": "FDB0010404C06C4085C60079020B0D8C4D01000000DA64C80501006F",
+   "frame": "220438FDB0010404C06C4085C60079020B0D8C4D01000000DA64C80501006F",
+   "expect": {
+    "target": 22653,
+    "switch": 4,
+    "layout": 4,
+    "flag": 4,
+    "actor": 13888,
+    "skill_raw": 13010240,
+    "skill": 13010240,
+    "hit_tag": 121,
+    "dmg_type": 2,
+    "mods": 0,
+    "mod_value": 0,
+    "dir": 0,
+    "effect": 1301024011,
+    "hit_index": 1,
+    "scalar": 12890,
+    "amount": 712,
+    "extras": [],
+    "l4": null,
+    "absorbed": [],
+    "trailer_seq": 1,
+    "tail": 111,
+    "effect_ok": true,
+    "placeholder": false
+   }
+  },
+  {
+   "id": "wb-dmg-crit-elsewhere",
+   "note": "same capture: another player's critical hit (dmg_type 3) on another target: crits decode as usual",
+   "opcode": "0438",
+   "depth": 1,
+   "flow": "world",
+   "time": 0.55,
+   "body": "D3C303040085B8039137D8000203AFB4755401000000C860E00E0100",
+   "frame": "220438D3C303040085B8039137D8000203AFB4755401000000C860E00E0100",
+   "expect": {
+    "target": 57811,
+    "switch": 4,
+    "layout": 4,
+    "flag": 0,
+    "actor": 56325,
+    "skill_raw": 14170001,
+    "skill": 14170001,
+    "hit_tag": 2,
+    "dmg_type": 3,
+    "mods": 0,
+    "mod_value": 0,
+    "dir": 0,
+    "effect": 1417000111,
+    "hit_index": 1,
+    "scalar": 12360,
+    "amount": 1888,
+    "extras": [],
+    "l4": null,
+    "absorbed": [],
+    "trailer_seq": 1,
+    "tail": null,
+    "effect_ok": true,
+    "placeholder": false
+   }
+  },
+  {
+   "id": "wb-dmg-flag10-l4-tail",
+   "note": "NPC hit, sw 0x44 (layout 4 + absorb block), flag 0x10: one varint after the trailer",
+   "opcode": "0438",
+   "depth": 1,
+   "flow": "world",
+   "time": 49.047,
+   "body": "F43A4410C1F10322251D0001025481620B01000000904E851B012FF5FE4B010001",
+   "frame": "270438F43A4410C1F10322251D0001025481620B01000000904E851B012FF5FE4B010001",
+   "expect": {
+    "target": 7540,
+    "switch": 68,
+    "layout": 4,
+    "flag": 16,
+    "actor": 63681,
+    "skill_raw": 1910050,
+    "skill": 1910050,
+    "hit_tag": 1,
+    "dmg_type": 2,
+    "mods": 0,
+    "mod_value": 0,
+    "dir": 0,
+    "effect": 191005012,
+    "hit_index": 1,
+    "scalar": 10000,
+    "amount": 3461,
+    "extras": [],
+    "l4": null,
+    "absorbed": [
+     1275000111
+    ],
+    "trailer_seq": 1,
+    "tail": 1,
+    "effect_ok": true,
+    "placeholder": false
+   }
+  },
+  {
+   "id": "wb-dmg-flag10-l6",
+   "note": "NPC hit, sw 0x46, flag 0x10, mods 0x80: no varint after the trailer",
+   "opcode": "0438",
+   "depth": 1,
+   "flow": "world",
+   "time": 153.054,
+   "body": "C15A4610E49F01829312000302800001D39E410701000000904EF7010177B7A36F0100",
+   "frame": "290438C15A4610E49F01829312000302800001D39E410701000000904EF7010177B7A36F0100",
+   "expect": {
+    "target": 11585,
+    "switch": 70,
+    "layout": 6,
+    "flag": 16,
+    "actor": 20452,
+    "skill_raw": 1217410,
+    "skill": 1217410,
+    "hit_tag": 3,
+    "dmg_type": 2,
+    "mods": 128,
+    "mod_value": 0,
+    "dir": 1,
+    "effect": 121741011,
+    "hit_index": 1,
+    "scalar": 10000,
+    "amount": 247,
+    "extras": [],
+    "l4": null,
+    "absorbed": [
+     1873000311
+    ],
+    "trailer_seq": 1,
+    "tail": null,
+    "effect_ok": true,
+    "placeholder": false
+   }
+  },
+  {
+   "id": "wb-cast-kind2-position",
+   "note": "02 38 by the world boss, kind 2: heading, x, y, z after the target",
+   "opcode": "0238",
+   "depth": 1,
+   "flow": "world",
+   "time": 1.305,
+   "body": "FDB0010056ED1600D402F43A3655FBC2AD900A4866BED6C700509346904E01E807",
+   "frame": "270238FDB0010056ED1600D402F43A3655FBC2AD900A4866BED6C700509346904E01E807",
+   "expect": {
+    "actor": 22653,
+    "skill_raw": 1502550,
+    "target": 7540,
+    "x": 141890.703125,
+    "y": -109948.796875,
+    "z": 18856.0
+   }
+  },
+  {
+   "id": "wb-fieldboss-list",
+   "note": "01 91 field-boss list of map 1110 (24 slots, optional byte on two slots, zero tail)",
+   "opcode": "0191",
+   "depth": 1,
+   "flow": "world",
+   "time": 0.0,
+   "body": "0000560400001800A5E306FE3611681CA101000001A0E30600D8AE4600A28AC700C8694600000000000000000199E30691939BC7645092C700ECDD4600A35118A1010000019AE306325C15C89ED7DCC700F909479AF23A18A101000001ADE306AAA242C85DF35D4800581C460000000000000000019BE306544326C84E308AC600F4BC46C7BE9F17A101000001AFE306B9451048A0978D4700D055450000000000000000019EE30600D004C7005A204700207E4693C31E18A1010000019CE3061DBC2FC8D56A96C50002C546FF4C50B217A1010000019FE3069C2A94466B3F02C7001C31460000000000000000019DE306DA1467C51152204700FC6446000000000000000001A1E30600A57447800A0DC800F0DB45000000000000000001A2E306000C7E47005230C80058BD45000000000000000001A9E306E0D4D34713801D4800C8D145000000000000000001A3E306EE710B48DD27D9C700409546000000000000000001A4E306413F42482DC5E5C700B69746000000000000000001A6E306AFE0F7471D71FB460040E444FF000000000000000001A7E306BC66F147A584BC4700B88545000000000000000001A8E306B38D3048612DE54700EC5546000000000000000001AAE306B5688847A87A194800140B46000000000000000001ABE30638429FC511181A480088A9C5000000000000000001ACE306CCF91048968E2D480094A746000000000000000001AEE30606BEBEC6EC7B184800E8B0C5000000000000000001B0E3067AA9E94710F7D3C7002CA6460000000000000000000000",
+   "frame": "C70401910000560400001800A5E306FE3611681CA101000001A0E30600D8AE4600A28AC700C8694600000000000000000199E30691939BC7645092C700ECDD4600A35118A1010000019AE306325C15C89ED7DCC700F909479AF23A18A101000001ADE306AAA242C85DF35D4800581C460000000000000000019BE306544326C84E308AC600F4BC46C7BE9F17A101000001AFE306B9451048A0978D4700D055450000000000000000019EE30600D004C7005A204700207E4693C31E18A1010000019CE3061DBC2FC8D56A96C50002C546FF4C50B217A1010000019FE3069C2A94466B3F02C7001C31460000000000000000019DE306DA1467C51152204700FC6446000000000000000001A1E30600A57447800A0DC800F0DB45000000000000000001A2E306000C7E47005230C80058BD45000000000000000001A9E306E0D4D34713801D4800C8D145000000000000000001A3E306EE710B48DD27D9C700409546000000000000000001A4E306413F42482DC5E5C700B69746000000000000000001A6E306AFE0F7471D71FB460040E444FF000000000000000001A7E306BC66F147A584BC4700B88545000000000000000001A8E306B38D3048612DE54700EC5546000000000000000001AAE306B5688847A87A194800140B46000000000000000001ABE30638429FC511181A480088A9C5000000000000000001ACE306CCF91048968E2D480094A746000000000000000001AEE30606BEBEC6EC7B184800E8B0C5000000000000000001B0E3067AA9E94710F7D3C7002CA6460000000000000000000000",
+   "expect": {
+    "map": 1110,
+    "count": 24,
+    "slots": [
+     {
+      "slot": 111013,
+      "alive": false,
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "time": 1791477944630
+     },
+     {
+      "slot": 111008,
+      "alive": true,
+      "x": 22380.0,
+      "y": -70980.0,
+      "z": 14962.0,
+      "time": 0
+     },
+     {
+      "slot": 111001,
+      "alive": true,
+      "x": -79655.1328125,
+      "y": -74912.78125,
+      "z": 28406.0,
+      "time": 1791409365760
+     },
+     {
+      "slot": 111002,
+      "alive": true,
+      "x": -152944.78125,
+      "y": -113071.234375,
+      "z": 35321.0,
+      "time": 1791407878810
+     },
+     {
+      "slot": 111021,
+      "alive": true,
+      "x": -199306.65625,
+      "y": 227277.453125,
+      "z": 10006.0,
+      "time": 0
+     },
+     {
+      "slot": 111003,
+      "alive": true,
+      "x": -170253.3125,
+      "y": -17688.15234375,
+      "z": 24186.0,
+      "time": 1791397707463
+     },
+     {
+      "slot": 111023,
+      "alive": true,
+      "x": 147734.890625,
+      "y": 72495.25,
+      "z": 3421.0,
+      "time": 0
+     },
+     {
+      "slot": 111006,
+      "alive": true,
+      "x": -34000.0,
+      "y": 41050.0,
+      "z": 16264.0,
+      "time": 1791406031763
+     },
+     {
+      "slot": 111004,
+      "alive": true,
+      "x": -179952.453125,
+      "y": -4813.35400390625,
+      "z": 25217.0,
+      "time": 1791398924364
+     },
+     {
+      "slot": 111007,
+      "alive": true,
+      "x": 18965.3046875,
+      "y": -33343.41796875,
+      "z": 11335.0,
+      "time": 0
+     },
+     {
+      "slot": 111005,
+      "alive": true,
+      "x": -3697.30322265625,
+      "y": 41042.06640625,
+      "z": 14655.0,
+      "time": 0
+     },
+     {
+      "slot": 111009,
+      "alive": true,
+      "x": 62629.0,
+      "y": -144426.0,
+      "z": 7038.0,
+      "time": 0
+     },
+     {
+      "slot": 111010,
+      "alive": true,
+      "x": 65036.0,
+      "y": -180552.0,
+      "z": 6059.0,
+      "time": 0
+     },
+     {
+      "slot": 111017,
+      "alive": true,
+      "x": 108457.75,
+      "y": 161280.296875,
+      "z": 6713.0,
+      "time": 0
+     },
+     {
+      "slot": 111011,
+      "alive": true,
+      "x": 142791.71875,
+      "y": -111183.7265625,
+      "z": 19104.0,
+      "time": 0
+     },
+     {
+      "slot": 111012,
+      "alive": true,
+      "x": 198909.015625,
+      "y": -117642.3515625,
+      "z": 19419.0,
+      "time": 0
+     },
+     {
+      "slot": 111014,
+      "alive": true,
+      "x": 126913.3671875,
+      "y": 32184.556640625,
+      "z": 1826.0,
+      "time": 0
+     },
+     {
+      "slot": 111015,
+      "alive": true,
+      "x": 123597.46875,
+      "y": 96521.2890625,
+      "z": 4279.0,
+      "time": 0
+     },
+     {
+      "slot": 111016,
+      "alive": true,
+      "x": 180790.796875,
+      "y": 117338.7578125,
+      "z": 13691.0,
+      "time": 0
+     },
+     {
+      "slot": 111018,
+      "alive": true,
+      "x": 69841.4140625,
+      "y": 157162.625,
+      "z": 8901.0,
+      "time": 0
+     },
+     {
+      "slot": 111019,
+      "alive": true,
+      "x": -5096.27734375,
+      "y": 157792.265625,
+      "z": -5425.0,
+      "time": 0
+     },
+     {
+      "slot": 111020,
+      "alive": true,
+      "x": 148455.1875,
+      "y": 177722.34375,
+      "z": 21450.0,
+      "time": 0
+     },
+     {
+      "slot": 111022,
+      "alive": true,
+      "x": -24415.01171875,
+      "y": 156143.6875,
+      "z": -5661.0,
+      "time": 0
+     },
+     {
+      "slot": 111024,
+      "alive": true,
+      "x": 119634.953125,
+      "y": -108526.125,
+      "z": 21270.0,
+      "time": 0
+     }
+    ]
+   }
+  },
+  {
+   "id": "wb-stats-kind0",
+   "note": "00 8D kind 0: the world boss's first HP reading (full, 45,634,088; no kind 7 and no spawn was captured)",
+   "opcode": "008D",
+   "depth": 1,
+   "flow": "world",
+   "time": 0.0,
+   "body": "FDB0010201002852B80200000000",
+   "frame": "14008DFDB0010201002852B80200000000",
+   "expect": {
+    "entity": 22653,
+    "format": 2,
+    "s32": {},
+    "s64": {
+     "0": 45634088
+    }
+   }
+  },
+  {
+   "id": "wb-hp-peer",
+   "note": "1B 92 HP/MP of a party member (party evidence without a roster)",
+   "opcode": "1B92",
+   "depth": 1,
+   "flow": "world",
+   "time": 0.396,
+   "body": "F368AD49AD498E0C00009A0D00000000000000000000DC050000F049020001",
+   "frame": "251B92F368AD49AD498E0C00009A0D00000000000000000000DC050000F049020001",
+   "expect": {
+    "entity": 13427,
+    "hp": 9389,
+    "hp_max": 9389
+   }
+  }
+ ]
+}

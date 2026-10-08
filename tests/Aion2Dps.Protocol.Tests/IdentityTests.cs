@@ -197,13 +197,11 @@ public class IdentityTests
     }
 
     [Fact]
-    public void Other_party_roster_and_field_boss_list_are_recognised_but_not_decoded()
+    public void Other_party_roster_is_recognised_but_not_decoded()
     {
         var (events, diag) = Run.Body(Opcodes.OtherPartyRoster, "0102");
         Assert.Empty(events);
         Assert.Equal(1, diag.GetStat(Opcodes.OtherPartyRoster).Decoded);
-        (events, diag) = Run.Body(Opcodes.FieldBossList, "000056040000");
-        Assert.Empty(events);
         Assert.Equal(0, diag.DecodeErrors);
     }
 }

@@ -146,6 +146,7 @@ internal static class EncounterRecordBuilder
         double duration = enc.DurationSeconds;
         var local = core.Entities.Local;
         var primary = enc.Primary;
+        var partial = core.EvaluatePartialView(enc);
 
         var rec = new EncounterRecord
         {
@@ -170,6 +171,9 @@ internal static class EncounterRecordBuilder
             OverallHpCheck = enc.Bosses.Count > 0 ? HpCheckTracker.Combine(enc.Bosses.Select(b => b.HpCheck).ToList()) : null,
             CaptureGaps = enc.CaptureGaps,
             Note = enc.Note,
+            PartialView = partial.IsPartial,
+            PartialViewReason = partial.Reason,
+            VisibleDamageRatio = partial.VisibleRatio,
         };
 
         int seconds = Math.Max(1, (int)Math.Floor((enc.EndUtc - start).TotalSeconds) + 1);
@@ -300,10 +304,12 @@ internal static class EncounterRecordBuilder
         rec.PartyDps = total / duration;
 
         // Contribution = damage to the encounter's bosses / sum of their max HP (bosses with a trusted max only).
+        // Partial view: a share of the visible damage means nothing, so any known max HP is the denominator.
+        bool Counts(BossState boss) => (boss.MaxTrusted || partial.IsPartial) && boss.MaxHp is > 0;
         long trustedMax = 0;
         if (enc.Kind == EncounterKind.Boss)
             foreach (var boss in enc.Bosses)
-                if (boss.MaxTrusted && boss.MaxHp is long mh && mh > 0) trustedMax += mh;
+                if (Counts(boss)) trustedMax += boss.MaxHp!.Value;
         var combatants = new List<CombatantRecord>(builders.Count);
         foreach (var b in builders.Values)
         {
@@ -317,12 +323,12 @@ internal static class EncounterRecordBuilder
                 {
                     long toTrusted = 0;
                     foreach (var boss in enc.Bosses)
-                        if (boss.MaxTrusted && boss.MaxHp is > 0) toTrusted += b.ByBoss.GetValueOrDefault(boss.Id);
+                        if (Counts(boss)) toTrusted += b.ByBoss.GetValueOrDefault(boss.Id);
                     r.Contribution = (double)toTrusted / trustedMax;
                 }
                 else
                 {
-                    r.Contribution = r.DamageShare;
+                    r.Contribution = partial.IsPartial ? 0 : r.DamageShare;
                 }
                 if (r.Kind == CombatantKind.Player) r.Buffs = core.Buffs.Compute(r.EntityId, start, duration);
             }
@@ -371,7 +377,7 @@ internal static class EncounterRecordBuilder
                 {
                     EntityId = b.R.EntityId,
                     Damage = dmg,
-                    Contribution = trusted ? (double)dmg / boss.MaxHp!.Value : null,
+                    Contribution = Counts(boss) ? (double)dmg / boss.MaxHp!.Value : null,
                 });
             }
             shares.Sort((x, y) => y.Damage != x.Damage ? y.Damage.CompareTo(x.Damage) : x.EntityId.CompareTo(y.EntityId));

@@ -7,8 +7,8 @@ internal static class SnapshotBuilder
     {
         var gd = core.GameData;
         var opts = core.Options;
-        uint? mapId = core.MapId;
-        string? mapName = mapId is uint m ? gd.GetMapName(m) : null;
+        uint? mapId = core.EffectiveMapId;
+        string? mapName = mapId is uint m ? gd.GetMapName(m) ?? (gd.IsOpenWorldMap(m) ? BossLabel.UnnamedMap(m, true) : null) : null;
         var local = core.LocalPlayerInfo;
         double? ping = core.Ping.Smoothed;
 
@@ -43,43 +43,62 @@ internal static class SnapshotBuilder
         if (enc.Kind == EncounterKind.Training && enc.TrainingEnd is { } te && clockNow > te) clockNow = te;
         double liveElapsed = Math.Max(1, (clockNow - start).TotalSeconds);
         bool useAll = core.Mode == MeterMode.AllTargets;
-        // Party only: local player + roster members. Without a roster (solo) only the local player is shown; if the
-        // local player is not known yet either, filtering would empty the meter, so everyone stays visible.
-        bool rosterKnown = core.Party.HasRoster;
-        bool partyFilter = opts.PartyOnly && (rosterKnown || local != null);
+        var partial = core.EvaluatePartialView(enc);
+        // Party only: local player + party (roster, or group HP updates). Without a party (solo) only the local player is
+        // shown; if the local player is not known yet either, filtering would empty the meter, so everyone stays visible.
+        bool partyKnown = core.Party.IsKnown;
+        bool partyFilter = opts.PartyOnly && (partyKnown || local != null);
 
         // ── rows ──
         var candidates = new List<(CombatantState C, LiveAccumulator A)>(enc.Combatants.Count);
+        var folded = new List<(CombatantState C, LiveAccumulator A)>();
         long total = 0;
         foreach (var c in enc.Combatants.Values)
         {
             if (c.IsEnemy || c.Kind == CombatantKind.EnemyPlayer) continue;
-            if (partyFilter && !(c.IsLocal || (rosterKnown && c.IsPartyMember))) continue;
+            if (partyFilter && !(c.IsLocal || (partyKnown && c.IsPartyMember))) continue;
             var acc = useAll ? c.All : c.Scoped;
             if (acc.Damage == 0 && c.Healing == 0 && c.DamageTaken == 0 && c.Deaths == 0 && !c.IsLocal) continue;
-            candidates.Add((c, acc));
             total += acc.Damage;
+            // Partial view: other players are seen only through their DoT ticks and heals (no direct hit): one row.
+            if (partial.IsPartial && !c.IsLocal && !c.IsPartyMember && c.Kind == CombatantKind.Player && acc.Hits == 0)
+                folded.Add((c, acc));
+            else
+                candidates.Add((c, acc));
         }
         candidates.Sort((a, b) =>
         {
+            if (partial.IsPartial)
+            {
+                int ga = a.C.IsLocal || a.C.IsPartyMember ? 0 : 1, gb = b.C.IsLocal || b.C.IsPartyMember ? 0 : 1;
+                if (ga != gb) return ga.CompareTo(gb);
+            }
             int r = b.A.Damage.CompareTo(a.A.Damage);
             return r != 0 ? r : a.C.Id.CompareTo(b.C.Id);
         });
 
-        long top = candidates.Count > 0 ? candidates[0].A.Damage : 0;
-        var rows = new List<PlayerRow>(candidates.Count);
+        long top = 0;
+        foreach (var (_, a) in candidates) top = Math.Max(top, a.Damage);
+        long foldedDamage = folded.Sum(f => f.A.Damage);
+        top = Math.Max(top, foldedDamage);
+        long? partialMax = partial.IsPartial ? PartialMaxHp(enc) : null;
+        var rows = new List<PlayerRow>(candidates.Count + 1);
         double minDps = double.MaxValue, maxDps = 0, sumDps = 0;
         int dpsCount = 0;
+        double Dps(LiveAccumulator a)
+        {
+            if (ended) return a.Damage / encDuration;
+            DateTime from = opts.LivePlayerClock && a.First is { } f ? f : start;
+            return a.Damage / Math.Max(1, (clockNow - from).TotalSeconds);
+        }
+        double Contribution(CombatantState c, LiveAccumulator a, double share) =>
+            partial.IsPartial
+                ? enc.HpContribution(c, anyKnownMax: true) ?? (partialMax is long pm && pm > 0 ? (double)a.Damage / pm : 0)
+                : enc.HpContribution(c) ?? share;
         for (int i = 0; i < candidates.Count; i++)
         {
             var (c, a) = candidates[i];
-            double dps;
-            if (ended) dps = a.Damage / encDuration;
-            else
-            {
-                DateTime from = opts.LivePlayerClock && a.First is { } f ? f : start;
-                dps = a.Damage / Math.Max(1, (clockNow - from).TotalSeconds);
-            }
+            double dps = Dps(a);
             double share = total > 0 ? (double)a.Damage / total : 0;
             rows.Add(new PlayerRow
             {
@@ -93,7 +112,7 @@ internal static class SnapshotBuilder
                 Rank = i + 1,
                 Damage = a.Damage,
                 Dps = dps,
-                Contribution = enc.HpContribution(c) ?? share,
+                Contribution = Contribution(c, a, share),
                 DamageShare = share,
                 RelativeToTop = top > 0 ? (double)a.Damage / top : 0,
                 CritRate = a.Hits > 0 ? (double)a.Crits / a.Hits : 0,
@@ -111,6 +130,30 @@ internal static class SnapshotBuilder
                 dpsCount++;
             }
         }
+        if (folded.Count > 0)
+        {
+            double contribution = 0, dps = 0;
+            foreach (var (c, a) in folded)
+            {
+                contribution += Contribution(c, a, 0);
+                dps += Dps(a);
+            }
+            rows.Add(new PlayerRow
+            {
+                EntityId = CombatEngine.OthersEntityId,
+                Name = $"Others ({folded.Count}, visible DoT/heal only)",
+                Kind = CombatantKind.Player,
+                Rank = rows.Count + 1,
+                Damage = foldedDamage,
+                Dps = dps,
+                Contribution = contribution,
+                DamageShare = total > 0 ? (double)foldedDamage / total : 0,
+                RelativeToTop = top > 0 ? (double)foldedDamage / top : 0,
+                Healing = folded.Sum(f => f.C.Healing),
+                DamageTaken = folded.Sum(f => f.C.DamageTaken),
+                AggregateCount = folded.Count,
+            });
+        }
 
         // ── targets ──
         var ordered = core.OrderedTargets(enc);
@@ -121,7 +164,7 @@ internal static class SnapshotBuilder
         uint? primaryId = enc.PrimaryBossId;
         foreach (var t in ordered)
         {
-            var info = ToTargetInfo(gd, t, enc.Boss(t.Id), primaryId);
+            var info = ToTargetInfo(gd, enc, t, enc.Boss(t.Id), primaryId);
             targets.Add(info);
             if (info.IsEncounterBoss) bosses.Add(info);
             if (wanted == t.Id) selected = info;
@@ -176,21 +219,39 @@ internal static class SnapshotBuilder
             LocalPlayer = local,
             PingMs = ping,
             HpCheckRatio = enc.Primary?.HpCheck.Ratio,
+            PartialView = partial.IsPartial,
+            PartialViewText = partial.IsPartial ? PartialViewText(partial) : null,
             OverallHpCheckRatio = enc.Bosses.Count > 0 ? HpCheckTracker.CombinedRatio(enc.Bosses.Select(b => b.HpCheck)) : null,
             Bosses = bosses,
         };
     }
+
+    /// <summary>Sum of the known max HP of the encounter's bosses (partial-view contribution denominator).</summary>
+    private static long? PartialMaxHp(Encounter enc)
+    {
+        long sum = 0;
+        foreach (var b in enc.Bosses)
+            if (b.MaxHp is long m and > 0) sum += m;
+        return sum > 0 ? sum : null;
+    }
+
+    /// <summary>Header/footer text of a partial view.</summary>
+    public static string PartialViewText(PartialViewInfo p) =>
+        p.VisibleRatio is double r
+            ? $"Partial view: only your/party damage is visible ({(r * 100).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)} % of the boss HP lost)"
+            : "Partial view: only your/party damage is visible";
 
     private static bool EndedDisplayExpired(Encounter enc, double delay, DateTime now) =>
         enc is { Ended: true, Finalized: true, EndedAt: { } endedAt }
         && double.IsFinite(delay) && delay > 0
         && (now - endedAt).TotalSeconds >= delay;
 
-    private static TargetInfo ToTargetInfo(IGameData gd, TargetState t, BossState? boss, uint? primaryId)
+    private static TargetInfo ToTargetInfo(IGameData gd, Encounter enc, TargetState t, BossState? boss, uint? primaryId)
     {
         string name = t.IsPlayer
             ? t.PlayerName ?? $"Player {t.Id}"
-            : t.NpcCode is uint code ? gd.GetNpcName(code) : $"Target {t.Id}";
+            : t.NpcCode is uint code ? gd.GetNpcName(code)
+            : boss != null ? enc.UnnamedBoss(gd, t.MaxHp) ?? $"Target {t.Id}" : $"Target {t.Id}";
         long? hp = t.Killed ? 0 : t.LastHp;
         return new TargetInfo
         {

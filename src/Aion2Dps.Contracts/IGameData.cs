@@ -46,5 +46,17 @@ public interface IGameData
 
     string? GetServerName(ushort serverId);
 
+    /// <summary>True for overworld maps (<c>open_world_maps.json</c>): only your own direct hits are sent there.</summary>
+    bool IsOpenWorldMap(uint mapId) => false;
+
+    /// <summary>NPC-code block (code / 1000) of a map's field bosses (<c>field_boss_maps.json</c>), or null.</summary>
+    uint? GetFieldBossBlock(uint mapId) => null;
+
+    /// <summary>
+    /// The field boss at <paramref name="place"/> (1-based, the slot's last two digits) of an NPC-code block: the
+    /// <paramref name="place"/>-th boss (training dummies excluded) of that block in code order; null when unknown.
+    /// </summary>
+    uint? GetFieldBossNpcCode(uint block, int place) => null;
+
     string GetClassName(CharacterClass characterClass);
 }

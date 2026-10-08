@@ -193,7 +193,11 @@ internal sealed class PlayerRowView : Grid
             _bar.SetResourceReference(Border.BackgroundProperty, ThemeKeys.ClassBrush(r.Class));
         }
         Set(_rank, d.Rank.ToString(CultureInfo.InvariantCulture));
-        Set(_name, r.Name.Length == 0 ? "Unknown" : r.Name);
+        // The local player inferred mid-session has no name yet ("You"): show the class next to the YOU badge instead.
+        string name = r.Name.Length == 0 ? "Unknown"
+            : r.IsLocal && r.Name == "You" && r.Class != CharacterClass.Unknown && _options?.RowSize != RowSize.Micro ? r.Class.ToString()
+            : r.Name;
+        Set(_name, name);
         if (_options?.RowSize == RowSize.Micro && r.IsLocal) Set(_name, "▸ " + r.Name);
         _you.Visibility = r.IsLocal && _options?.RowSize != RowSize.Micro ? Visibility.Visible : Visibility.Collapsed;
         _localStripe.Visibility = r.IsLocal ? Visibility.Visible : Visibility.Collapsed;

@@ -220,6 +220,35 @@ public sealed record CastEvent : GameEvent
     public uint Actor { get; init; }
     public uint SkillRaw { get; init; }
     public uint Target { get; init; }
+    /// <summary>Caster position (x, y, z) when the record carries one (kind byte 2: heading f32, then x, y, z f32 after
+    /// the target); null otherwise. Used to match an NPC whose spawn was missed against the field-boss list.</summary>
+    public float? X { get; init; }
+    public float? Y { get; init; }
+    public float? Z { get; init; }
+}
+
+/// <summary>
+/// <c>01 91</c> field-boss list (§8.16): <c>u16 0 | map u32 | count u8 | count × slot | 00 00 00</c>. Slot =
+/// <c>alive u8 (0/1) | slot varint (map × 100 + place) | [x y z f32 if alive] | [u8, some slots only] | time i64 Unix ms</c>.
+/// Sent every few seconds for the region's open-world map, also while the player is elsewhere.
+/// </summary>
+public sealed record FieldBossListEvent : GameEvent
+{
+    public uint MapId { get; init; }
+    public IReadOnlyList<FieldBossSlot> Slots { get; init; } = Array.Empty<FieldBossSlot>();
+}
+
+/// <summary>One field-boss slot of a <see cref="FieldBossListEvent"/>.</summary>
+public sealed record FieldBossSlot
+{
+    /// <summary>map × 100 + place (1-based place of the boss among the map's field bosses in NPC-code order).</summary>
+    public uint Slot { get; init; }
+    public bool Alive { get; init; }
+    /// <summary>Spawn time of a living boss or respawn time of a dead one (Unix ms); 0 when the game sends none.</summary>
+    public long TimeUnixMs { get; init; }
+    public float X { get; init; }
+    public float Y { get; init; }
+    public float Z { get; init; }
 }
 
 /// <summary><c>03 36</c> ping echo (§8.15). Global: client QPC-ms + 16,777,216,000.</summary>

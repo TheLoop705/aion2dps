@@ -298,6 +298,13 @@ internal sealed class EntityTracker
         return true;
     }
 
+    /// <summary>The inferred local player got a name (roster or remembered character): keep the identity in sync.</summary>
+    public void RenameInferredLocal(PlayerEntity p)
+    {
+        if (Local is { Authoritative: false } l && l.EntityId == p.Id)
+            Local = l with { Name = p.Name, ServerId = p.ServerId ?? l.ServerId, Class = p.Class };
+    }
+
     /// <summary>Non-teleport map load: ids are reissued. Keeps the local identity (keyed by name) and its current binding.</summary>
     public void ClearForZoneChange()
     {
