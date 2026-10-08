@@ -17,14 +17,19 @@ public sealed class SingleInstanceGuard : IDisposable
         _registration = ThreadPool.RegisterWaitForSingleObject(activate, (_, _) => onActivate(), null, Timeout.Infinite, executeOnlyOnce: false);
     }
 
-    /// <summary>Returns a guard when this is the first instance; otherwise signals the running instance and returns null.</summary>
-    public static SingleInstanceGuard? TryAcquire(string name, Action onActivateRequested)
+    /// <summary>
+    /// Returns a guard when this is the first instance; otherwise signals the running instance (unless
+    /// <paramref name="signalExisting"/> is false, e.g. a delayed Windows autostart that must not pop up the dashboard of a
+    /// meter the user already started) and returns null.
+    /// </summary>
+    public static SingleInstanceGuard? TryAcquire(string name, Action onActivateRequested, bool signalExisting = true)
     {
         var mutex = new Mutex(initiallyOwned: true, $"Local\\{name}.SingleInstance", out bool created);
         var evt = new EventWaitHandle(false, EventResetMode.AutoReset, $"Local\\{name}.Activate");
         if (!created)
         {
-            try { evt.Set(); } catch { /* ignore */ }
+            if (signalExisting)
+                try { evt.Set(); } catch { /* ignore */ }
             evt.Dispose();
             mutex.Dispose();
             return null;

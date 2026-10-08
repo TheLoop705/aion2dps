@@ -47,6 +47,13 @@ public sealed class OverlayController : IDisposable
     /// <summary>Raised when the overlay is shown/hidden (tray text) or locked/unlocked.</summary>
     public event Action? StateChanged;
 
+    /// <summary>
+    /// Raised when the user (or a user-triggered host action) shows (true) or hides (false) the overlay through
+    /// <see cref="Show"/> / <see cref="Hide"/> / <see cref="Toggle"/>; not for <see cref="ShowAutomatically"/> /
+    /// <see cref="HideAutomatically"/>.
+    /// </summary>
+    public event Action<bool>? UserVisibilityChanged;
+
     /// <summary>Raised when a training run ends (length) so the host can check that it produced a record.</summary>
     public event Action<TimeSpan>? TrainingFinished;
 
@@ -75,6 +82,15 @@ public sealed class OverlayController : IDisposable
 
     public void Show()
     {
+        ShowCore();
+        UserVisibilityChanged?.Invoke(true);
+    }
+
+    /// <summary>Shows the overlay for an automatic reason (AION 2 started); not reported as a user choice.</summary>
+    public void ShowAutomatically() => ShowCore();
+
+    private void ShowCore()
+    {
         if (_window is null)
         {
             _window = new OverlayWindow(_settings.Current.Overlay);
@@ -97,10 +113,25 @@ public sealed class OverlayController : IDisposable
 
     public void Hide()
     {
+        HideCore(persist: true);
+        UserVisibilityChanged?.Invoke(false);
+    }
+
+    /// <summary>
+    /// Hides the overlay for an automatic reason (AION 2 exited). The persisted "overlay visible" choice is kept, so this is
+    /// never mistaken for the user hiding it.
+    /// </summary>
+    public void HideAutomatically() => HideCore(persist: false);
+
+    private void HideCore(bool persist)
+    {
         _window?.Hide();
         _timer.Stop();
-        _settings.Current.Overlay.Visible = false;
-        _settings.NotifyChanged();
+        if (persist)
+        {
+            _settings.Current.Overlay.Visible = false;
+            _settings.NotifyChanged();
+        }
         StateChanged?.Invoke();
     }
 

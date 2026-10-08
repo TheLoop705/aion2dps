@@ -28,6 +28,11 @@ public sealed record LaunchOptions
     public bool NoOverlay { get; init; }
     /// <summary><c>--allow-multiple</c>: skip the single-instance guard (debugging).</summary>
     public bool AllowMultiple { get; init; }
+    /// <summary>
+    /// <c>--autostart</c>: started by Windows (the HKCU Run value). Starts quietly in the tray: no dashboard, and the overlay
+    /// waits for AION 2 (or follows "Show the overlay on start" when "only while AION 2 is running" is off).
+    /// </summary>
+    public bool Autostart { get; init; }
 
     public static LaunchOptions Parse(IReadOnlyList<string> args)
     {
@@ -48,6 +53,7 @@ public sealed record LaunchOptions
                 case "--render-demo-screens": o = o with { RenderDemoScreensDir = Next() ?? "screens-demo" }; break;
                 case "--no-overlay": o = o with { NoOverlay = true }; break;
                 case "--allow-multiple": o = o with { AllowMultiple = true }; break;
+                case "--autostart": o = o with { Autostart = true }; break;
             }
         }
         if (o.Mode == LaunchMode.Replay && string.IsNullOrWhiteSpace(o.ReplayPath)) o = o with { Mode = LaunchMode.Live };

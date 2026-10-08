@@ -100,6 +100,18 @@ public sealed class GeneralSettings
     public bool SaveTrashFights { get; set; }
     public bool LaunchOverlayOnStart { get; set; } = true;
     public bool OpenDashboardOnStart { get; set; } = true;
+    /// <summary>
+    /// Live capture: the overlay appears while the AION 2 client runs and hides a few seconds after it exits (default on;
+    /// files written before this setting existed get the default). Off = the overlay follows the options above as before.
+    /// </summary>
+    public bool ShowOverlayOnlyWhileGameRuns { get; set; } = true;
+    /// <summary>The one-time "runs in the tray" notice after the first Windows autostart was shown.</summary>
+    public bool AutostartNoticeShown { get; set; }
+    /// <summary>
+    /// The one-time "start with Windows on" default for installed copies was applied (or found an existing decision). After
+    /// that only the registry decides, so the user's untick sticks. Not a mirror of the registry state.
+    /// </summary>
+    public bool AutostartDefaultApplied { get; set; }
     /// <summary>Where recordings go; null = %USERPROFILE%/Documents/Aion2Dps/captures.</summary>
     public string? CaptureFolder { get; set; }
     public bool EnableGlobalHotkeys { get; set; } = true;

@@ -16,6 +16,8 @@ public sealed class DashboardContext
     public Action RestartCapture { get; init; } = () => { };
     public Action ToggleOverlay { get; init; } = () => { };
     public Func<bool> OverlayVisible { get; init; } = () => false;
+    /// <summary>"Start Aion2Dps with Windows" (the HKCU Run value); null = not available (previews, renders).</summary>
+    public AutostartRegistration? Autostart { get; init; }
 
     public string CaptureFolder => string.IsNullOrWhiteSpace(Settings.Current.General.CaptureFolder)
         ? AppPaths.DefaultCaptureDirectory
