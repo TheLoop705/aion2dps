@@ -33,7 +33,8 @@ public sealed partial class PacketDecoder : IFrameSink
         Ping,
         GlobalIdLink,
         BattleToggle,
-        /// <summary>Recognised opcode without a Contracts event (01 97, 06 38, 01 91): counted, not decoded.</summary>
+        FieldBossList,
+        /// <summary>Recognised opcode without a Contracts event (01 97, 06 38): counted, not decoded.</summary>
         Ignored,
     }
 
@@ -75,7 +76,7 @@ public sealed partial class PacketDecoder : IFrameSink
     private void BuildDispatch()
     {
         // Lowest priority first, so that a misconfigured duplicate resolves to the more important decoder.
-        Set(_ops.FieldBossList, Handler.Ignored);
+        Set(_ops.FieldBossList, Handler.FieldBossList);
         Set(_ops.PartyScope, Handler.Ignored);
         Set(_ops.OtherPartyRoster, Handler.Ignored);
         Set(_ops.BattleToggle, Handler.BattleToggle);
@@ -148,6 +149,7 @@ public sealed partial class PacketDecoder : IFrameSink
                 Handler.Ping => DecodePing(body),
                 Handler.GlobalIdLink => DecodeGlobalIdLink(body),
                 Handler.BattleToggle => DecodeBattleToggle(body),
+                Handler.FieldBossList => DecodeFieldBossList(body),
                 Handler.Ignored => true,
                 _ => true,
             };

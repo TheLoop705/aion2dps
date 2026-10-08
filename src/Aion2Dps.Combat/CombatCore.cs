@@ -46,6 +46,14 @@ internal sealed class CombatCore
     public SummonResolver Summons { get; }
     public BuffTracker Buffs { get; } = new();
     public PingTracker Ping { get; }
+    public FieldBossTracker FieldBosses { get; } = new();
+
+    /// <summary>The map of the last <c>21 36</c>, else the map of the region's field-boss list (meter started without a
+    /// map load).</summary>
+    public uint? EffectiveMapId => MapId ?? FieldBosses.MapHint;
+
+    /// <summary>A character named by its own <c>33 36</c>, waiting to be handed to the host (persisted across restarts).</summary>
+    public KnownCharacter? PendingKnownCharacter { get; set; }
 
     /// <summary>The latest encounter (active, or ended and still displayed). Null when the display was cleared.</summary>
     public Encounter? Current { get; private set; }
@@ -66,7 +74,9 @@ internal sealed class CombatCore
     public LocalPlayerInfo? LocalPlayerInfo =>
         Entities.Local is { Authoritative: true } l
             ? new LocalPlayerInfo(l.EntityId ?? 0, l.Name, l.ServerId, l.Class, l.Level)
-            : null;
+            : Entities.LocalEntity is { } p
+                ? new LocalPlayerInfo(p.Id, p.DisplayName, p.ServerId ?? 0, p.Class, p.Level ?? 0) { Inferred = true }
+                : null;
 
     public List<EncounterRecord>? TakeCompleted()
     {
@@ -91,7 +101,11 @@ internal sealed class CombatCore
             case DamageEvent e: OnDamage(e); break;
             case DotEvent e: OnDot(e); break;
             case EntityStatsEvent e: OnEntityStats(e); break;
-            case HpUpdateEvent e: OnHp(e.Entity, e.Hp, e.HpMax, e.Time); break;
+            case HpUpdateEvent e:
+                if (Entities.Get(e.Entity) is not NpcEntity && NotePartyHpPeer(e.Entity)) PlayersChanged(e.Time);
+                OnHp(e.Entity, e.Hp, e.HpMax, e.Time);
+                break;
+            case FieldBossListEvent e: OnFieldBossList(e); break;
             case SpawnEvent e: OnSpawn(e); break;
             case SelfInfoEvent e: OnSelfInfo(e); break;
             case PlayerInfoEvent e: OnPlayerInfo(e); break;
@@ -102,6 +116,7 @@ internal sealed class CombatCore
             case BuffAppliedEvent e: OnBuffApplied(e); break;
             case BuffRemovedEvent e: Buffs.OnRemoved(e); break;
             case CastEvent e:
+                if (e.X is float cx && e.Y is float cy && e.Z is float cz) OnPosition(e.Actor, cx, cy, cz);
                 Summons.OnCast(e.Actor, SkillIds.Normalize(e.SkillRaw), e.Time, 0);
                 ApplyReattribution(Summons.Reattribute(t, force: false));
                 break;
@@ -158,6 +173,7 @@ internal sealed class CombatCore
                          && !string.Equals(cur.Name, e.Name, StringComparison.Ordinal);
         if (switching) EndActive(EncounterOutcome.ZoneChange, e.Time);
         var (p, nameChanged, prevId) = Entities.SetLocal(e);
+        if (p.Name.Length > 0) PendingKnownCharacter = new KnownCharacter(p.Name, p.Class, p.ServerId ?? 0);
         if (nameChanged)
         {
             ClearZoneState();
@@ -181,6 +197,7 @@ internal sealed class CombatCore
     {
         Party.Replace(e);
         JoinRoster();
+        TryNameInferredLocal();
         PlayersChanged(e.Time);
     }
 
@@ -284,7 +301,7 @@ internal sealed class CombatCore
         c.Class = p.Class;
         c.IsLocal = p.IsLocal;
         c.IsEnemy = p.IsEnemy;
-        c.IsPartyMember = Party.IsMember(p.Name);
+        c.IsPartyMember = IsPartyPlayer(p);
         c.ServerId = p.ServerId ?? Party.Get(p.Name)?.ServerId;
     }
 
@@ -302,6 +319,130 @@ internal sealed class CombatCore
         pv.Class = p.Class;
         pv.ServerId = p.ServerId;
         pv.GuildName = p.GuildName;
+    }
+
+    /// <summary>A roster member, or (not the local player) an entity the server sends group HP updates for.</summary>
+    public bool IsPartyPlayer(PlayerEntity p) => Party.IsMember(p.Name) || (!p.IsLocal && Party.IsHpPeer(p.Id));
+
+    /// <summary><c>1B 92</c> is sent for your group's other members only: party evidence without a roster. Returns true
+    /// when the entity is new to the group.</summary>
+    private bool NotePartyHpPeer(uint id)
+    {
+        if (id == 0 || Entities.LocalId == id || Party.IsHpPeer(id)) return false;
+        Party.NoteHpPeer(id);
+        return Party.IsHpPeer(id);
+    }
+
+    /// <summary>
+    /// §10.2: the local player was inferred from self-stat frames (meter started mid-session) and has no name. Name it from
+    /// the party roster (the remembered character's name in the roster, or the only unbound member of its class) or from
+    /// the character remembered by the host when the class agrees. The identity stays inferred (not authoritative).
+    /// </summary>
+    private void TryNameInferredLocal()
+    {
+        if (Entities.Local is not { Authoritative: false } || Entities.LocalEntity is not { Name.Length: 0 } me) return;
+        var hint = Options.KnownLocalCharacter;
+        bool hintClassOk = hint != null && !string.IsNullOrWhiteSpace(hint.Name)
+                           && (hint.Class == CharacterClass.Unknown || me.Class == CharacterClass.Unknown || hint.Class == me.Class);
+        string? name = null;
+        PartyMember? member = null;
+        if (Party.HasRoster)
+        {
+            if (hintClassOk && Party.Get(hint!.Name) is { } hm && Entities.FindPlayerByName(hm.Name) == null)
+            {
+                member = hm;
+            }
+            else if (me.Class != CharacterClass.Unknown)
+            {
+                var unbound = Party.Members.Where(m => Entities.FindPlayerByName(m.Name) == null && MemberClass(m) == me.Class).ToList();
+                bool otherUnnamedOfClass = Entities.All.Any(e => e is PlayerEntity { IsLocal: false, IsEnemy: false, Name.Length: 0 } o && o.Class == me.Class);
+                if (unbound.Count == 1 && !otherUnnamedOfClass) member = unbound[0];
+            }
+            name = member?.Name;
+        }
+        // Without a roster, the remembered character needs a class seen on the wire (skill votes) that matches.
+        if (name == null && hintClassOk && me.Class != CharacterClass.Unknown && Entities.FindPlayerByName(hint!.Name) == null)
+        {
+            name = hint.Name;
+            if (hint.ServerId != 0) me.ServerId ??= hint.ServerId;
+        }
+        if (name == null) return;
+        Entities.SetName(me, name);
+        if (member != null) ApplyMember(me, member);
+        Entities.RenameInferredLocal(me);
+        RefreshIdentities(Current);
+    }
+
+    private void OnFieldBossList(FieldBossListEvent e)
+    {
+        FieldBosses.OnList(e);
+        if (MapId is not null) return;
+        if (Current is { Finalized: false, MapId: null } enc) enc.MapId = FieldBosses.MapHint;
+        if (_grace is { Finalized: false, MapId: null } g) g.MapId = FieldBosses.MapHint;
+    }
+
+    /// <summary>Caster position from a cast announcement: names a boss whose spawn was missed (field-boss list).</summary>
+    private void OnPosition(uint id, float x, float y, float z)
+    {
+        FieldBosses.NotePosition(id, x, y, z);
+        if (Entities.Get(id) is not NpcEntity { IsSummon: false } n) return;
+        if (n.NpcCode == 0)
+        {
+            if (IsBossLike(n)) TryIdentifyFieldBoss(n, x, y, z);
+        }
+        else if (n.Info is { IsBoss: true, IsDummy: false })
+        {
+            FieldBosses.Learn(GameData, n.NpcCode, x, y, z);
+        }
+    }
+
+    private void TryIdentifyFieldBoss(NpcEntity n, float x, float y, float z)
+    {
+        if (FieldBosses.Resolve(GameData, x, y, z) is not uint code) return;
+        n.NpcCode = code;
+        n.Info = GameData.GetNpc(code);
+        n.CodeFromFieldBossList = true;
+        ApplyNpcCode(Current, n);
+        ApplyNpcCode(_grace, n);
+    }
+
+    /// <summary>An NPC learned its code after it was engaged: update the encounter's target and boss (max HP untouched).</summary>
+    private static void ApplyNpcCode(Encounter? enc, NpcEntity n)
+    {
+        if (enc is not { Finalized: false }) return;
+        if (enc.Targets.TryGetValue(n.Id, out var ts))
+        {
+            ts.NpcCode = n.NpcCode;
+            if (n.Info is { IsBoss: true } && enc.IsBoss(n.Id)) ts.IsBoss = true;
+        }
+        if (enc.Boss(n.Id) is { } b) b.NpcCode = n.NpcCode;
+    }
+
+    /// <summary>
+    /// Partial view (only part of the fight's damage is visible): a boss encounter whose decoded damage explains less than
+    /// <see cref="EngineOptions.PartialViewRatio"/> of the HP its bosses lost (at least 2 % of their max HP lost), or,
+    /// while that is not measured yet, any boss encounter on an open-world map, where the server sends only your own
+    /// direct hits.
+    /// </summary>
+    public PartialViewInfo EvaluatePartialView(Encounter enc)
+    {
+        if (enc.Kind != EncounterKind.Boss || enc.Bosses.Count == 0) return default;
+        long lost = 0, damage = 0, max = 0;
+        foreach (var b in enc.Bosses)
+        {
+            lost += b.HpCheck.CountedHpLost + b.HpCheck.CountedHeal;
+            damage += b.HpCheck.CountedDamage;
+            if (b.MaxHp is long mx and > 0) max += mx;
+        }
+        bool openWorld = enc.MapId is uint m && GameData.IsOpenWorldMap(m);
+        if (max > 0 && lost > 0 && lost >= max * 0.02)
+        {
+            double ratio = (double)damage / lost;
+            return ratio < Options.PartialViewRatio
+                ? new PartialViewInfo(true, "decoded damage explains " + (ratio * 100).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " % of the boss HP lost", ratio)
+                : default;
+        }
+        return openWorld ? new PartialViewInfo(true, "open world: only your own direct hits are sent", null) : default;
     }
 
     // ═════════════════════════════ world events ═════════════════════════════
@@ -347,7 +488,11 @@ internal sealed class CombatCore
 
     private void OnEntityStats(EntityStatsEvent e)
     {
-        if (e.HasSelfStats && Entities.NoteSelfStats(e.Entity)) RefreshIdentities(Current);
+        if (e.HasSelfStats && Entities.NoteSelfStats(e.Entity))
+        {
+            TryNameInferredLocal();
+            RefreshIdentities(Current);
+        }
         // Real traffic: 8-byte stat kind 7 is the NPC's max HP. Instanced bosses spawn with their base hp_max and are
         // then rescaled for the party size (120,000 → 240,000 → … → 600,000) before current HP is set to match.
         if (!e.HasSelfStats && e.Stats64.TryGetValue(MaxHpStatKind, out long maxHp) && maxHp > 0)
@@ -631,7 +776,7 @@ internal sealed class CombatCore
         var enc = Current;
         if (enc is { Finalized: false })
         {
-            if (enc.Combatants.TryGetValue(p.Id, out var c) || p.IsLocal || Party.IsMember(p.Name))
+            if (enc.Combatants.TryGetValue(p.Id, out var c) || p.IsLocal || IsPartyPlayer(p))
             {
                 c ??= enc.GetCombatant(p.Id);
                 if (!c.Dead)
@@ -669,6 +814,8 @@ internal sealed class CombatCore
     {
         _shieldedIncoming.Clear();
         Entities.ClearForZoneChange();
+        Party.ClearHpPeers();
+        FieldBosses.ClearPositions();
         Summons.Clear();
         Buffs.Clear();
         _resetCounts.Clear();
@@ -986,6 +1133,7 @@ internal sealed class CombatCore
                 p.NoteScalar(scalar, t);
                 if (p.VoteClass(skill))
                 {
+                    if (p.IsLocal && p.Name.Length == 0) TryNameInferredLocal();
                     RefreshCombatantIfPresent(p.Id);
                     if (p.Name.Length == 0) JoinRoster();
                 }
@@ -1080,7 +1228,7 @@ internal sealed class CombatCore
     {
         if (Entities.LocalId is not uint me || actorId == me || actorId == CombatEngine.UnknownSummonsEntityId) return true;
         if (MapId is uint map && GameData.IsInstanceMap(map)) return true;
-        return Entities.Get(actorId) is PlayerEntity { Name.Length: > 0 } p && Party.IsMember(p.Name);
+        return Entities.Get(actorId) is PlayerEntity p && IsPartyPlayer(p);
     }
 
     private static bool TrashTooLong(Encounter enc) =>
@@ -1261,7 +1409,7 @@ internal sealed class CombatCore
     {
         var enc = Current;
         if (enc is not { Ended: false }) return;
-        if (!(target.IsLocal || Party.IsMember(target.Name) || enc.Combatants.ContainsKey(target.Id))) return;
+        if (!(target.IsLocal || IsPartyPlayer(target) || enc.Combatants.ContainsKey(target.Id))) return;
         hit.Kind = HitKind.Incoming;
         hit.Flags |= HitFlags.Incoming;
         if (Entities.Get(hit.Source) is NpcEntity { NpcCode: not 0 } src) enc.SourceNpcCodes[hit.Source] = src.NpcCode;
@@ -1277,7 +1425,7 @@ internal sealed class CombatCore
         if (src.Credited == CombatEngine.UnknownSummonsEntityId) return;
         if (amount <= 0 || amount > MaxAmount) return;
         var healer = Entities.Get(src.Credited) as PlayerEntity;
-        bool relevant = healer is { IsLocal: true } || (healer != null && Party.IsMember(healer.Name))
+        bool relevant = healer is { IsLocal: true } || (healer != null && IsPartyPlayer(healer))
                         || enc.Combatants.ContainsKey(src.Credited) || enc.Combatants.ContainsKey(targetId);
         if (!relevant) return;
         var hit = new Hit
@@ -1337,7 +1485,7 @@ internal sealed class CombatCore
         bool outgoing = a == local.Id;
         bool incoming = b == local.Id;
         var enemy = outgoing ? victim : Entities.Get(a) as PlayerEntity;
-        if (enemy == null || !(outgoing || incoming) || enemy.IsLocal || Party.IsMember(enemy.Name)
+        if (enemy == null || !(outgoing || incoming) || enemy.IsLocal || IsPartyPlayer(enemy)
             || !(enemy.IsEnemy || CanTurnEnemy(hit, src, enemy, local)))
         {
             // Not PvP. Friendly fire from a mechanic (charm, bomb credited to a player) is still damage taken.
@@ -1454,7 +1602,7 @@ internal sealed class CombatCore
             : dummy ? EncounterKind.Dummy
             : bossLike ? EncounterKind.Boss
             : EncounterKind.Trash;
-        var enc = new Encounter(t, kind, RefreshIdentity) { MapId = MapId };
+        var enc = new Encounter(t, kind, RefreshIdentity) { MapId = EffectiveMapId };
         if (kind == EncounterKind.Training)
         {
             TrainingArmed = false;
@@ -1484,6 +1632,7 @@ internal sealed class CombatCore
         };
         enc.Bosses.Add(b);
         enc.BossById[n.Id] = b;
+        if (n.NpcCode == 0 && FieldBosses.TryGetPosition(n.Id, out var pos)) TryIdentifyFieldBoss(n, pos.X, pos.Y, pos.Z);
         if (n.Hp is long cur)
         {
             b.Timeline.Add(t, cur);
@@ -1586,6 +1735,7 @@ internal sealed class CombatCore
         Current = null;
         Entities.ClearAll();
         Party.Clear();
+        FieldBosses.Clear();
         Summons.Clear();
         Buffs.Clear();
         Ping.Reset();

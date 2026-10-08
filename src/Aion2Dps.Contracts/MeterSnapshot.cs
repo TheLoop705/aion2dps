@@ -48,6 +48,16 @@ public sealed record MeterSnapshot
 
     /// <summary>Set once when a fight beat the local player's previous best on that boss (for a toast).</summary>
     public string? PersonalBestMessage { get; init; }
+
+    /// <summary>
+    /// Only part of the fight is visible (open-world boss, or HP loss far above the decoded damage; see
+    /// <see cref="EncounterRecord.PartialView"/>). Rows then carry Contribution = damage / boss max HP, the local player
+    /// and party come first, and players seen only through DoT ticks or heals are folded into one aggregate row
+    /// (<see cref="PlayerRow.AggregateCount"/>) or hidden in party-only mode. Do not show the HP check as a mismatch.
+    /// </summary>
+    public bool PartialView { get; init; }
+    /// <summary>Short explanation for the header/footer when <see cref="PartialView"/> is set.</summary>
+    public string? PartialViewText { get; init; }
 }
 
 public sealed record PlayerRow
@@ -76,6 +86,8 @@ public sealed record PlayerRow
     public long Healing { get; init; }
     public long DamageTaken { get; init; }
     public bool IsDead { get; init; }
+    /// <summary>&gt; 0 for the partial-view aggregate row ("Others (visible DoT/heal only)"): how many players it folds.</summary>
+    public int AggregateCount { get; init; }
 }
 
 public sealed record TargetInfo
@@ -116,4 +128,9 @@ public sealed record PvpRow
     public DateTime LastActivityUtc { get; init; }
 }
 
-public sealed record LocalPlayerInfo(uint EntityId, string Name, ushort ServerId, CharacterClass Class, uint Level);
+public sealed record LocalPlayerInfo(uint EntityId, string Name, ushort ServerId, CharacterClass Class, uint Level)
+{
+    /// <summary>True when the local player was inferred (self-stat frames, meter started mid-session) rather than named by
+    /// its own <c>33 36</c> record; <see cref="Name"/> may then come from the party roster or a remembered character.</summary>
+    public bool Inferred { get; init; }
+}

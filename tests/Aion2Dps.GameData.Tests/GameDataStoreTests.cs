@@ -219,6 +219,33 @@ public class GameDataStoreTests : IClassFixture<StoreFixture>
         Assert.False(string.IsNullOrWhiteSpace(ko.GetMapName(600021)));
     }
 
+    [Fact]
+    public void Open_world_layers_take_their_base_maps_name()
+    {
+        Assert.Equal("Altgard", _store.GetMapName(111004)); // world layer 4 of Altgard (open_world_maps.json)
+        Assert.True(_store.IsOpenWorldMap(111004));
+        Assert.Null(_store.GetMapName(320060)); // not an overworld map: no invented name
+        IGameData gd = _store;
+        Assert.True(gd.IsOpenWorldMap(1110)); // reachable through the interface (default member overridden)
+    }
+
+    [Fact]
+    public void Field_boss_slot_place_maps_to_the_blocks_bosses_in_code_order()
+    {
+        // Real: slot 111011 of map 1110 (block 2400) was the living Special Operations Leader Linx (2400419), the 11th
+        // boss of block 2400 once the training scarecrows are excluded.
+        Assert.Equal(2400u, _store.GetFieldBossBlock(1110));
+        Assert.Null(_store.GetFieldBossBlock(600021));
+        Assert.Equal(2_400_419u, _store.GetFieldBossNpcCode(2400, 11));
+        Assert.Equal(2_400_017u, _store.GetFieldBossNpcCode(2400, 1));
+        Assert.Null(_store.GetFieldBossNpcCode(2400, 0));
+        Assert.Null(_store.GetFieldBossNpcCode(2400, 99));
+        Assert.Null(_store.GetFieldBossNpcCode(9999, 1));
+        for (int place = 1; place <= 24; place++)
+            if (_store.GetFieldBossNpcCode(2400, place) is uint code)
+                Assert.True(_store.GetNpc(code) is { IsBoss: true, IsDummy: false });
+    }
+
     // ------------------------------------------------------------ servers and classes
 
     [Fact]

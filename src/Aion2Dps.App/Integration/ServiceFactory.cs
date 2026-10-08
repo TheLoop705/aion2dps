@@ -106,6 +106,7 @@ public static class ServiceFactory
     public static AppServices CreateLive(string dataDirectory, string? gameDataDirectory = null)
     {
         var core = Core(gameDataDirectory);
+        LastCharacterFile.Attach(core.Engine, dataDirectory);
         var store = OpenStore(Path.Combine(dataDirectory, HistoryDatabase));
         var capture = new NpcapCaptureService();
         return new AppServices(core.GameData, core.Engine, capture, core.Input, core.Pipeline.Diagnostics, store)

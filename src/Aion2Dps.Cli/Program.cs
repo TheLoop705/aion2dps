@@ -52,8 +52,11 @@ public static class Program
         Console.WriteLine("""
             aion2dps-cli — offline tools for the Aion2Dps meter
 
-              replay <file> [--speed N] [--json out.json]   Decode a .pcap/.pcapng/hex log through the full pipeline and
-                                                            print every completed encounter (speed 0 = as fast as possible)
+              replay <file> [--speed N] [--json out.json] [--local-name Name[:Class]]
+                                                            Decode a .pcap/.pcapng/hex log through the full pipeline and
+                                                            print every completed encounter (speed 0 = as fast as possible);
+                                                            --local-name = the character a live meter remembers from an
+                                                            earlier session (names a local player inferred mid-session)
               census <file>                                 Opcode census and decoder error statistics of a capture file
               simulate <scenario> --out file.pcap [--seed N] Write a simulator scenario as a pcap file
                                                             (scenarios: BossKill, BossWipeThenKill, TrashPull, PvpSkirmish,
@@ -118,15 +121,18 @@ public static class Program
 
     private static int Replay(string[] args)
     {
-        string? file = Positional(args, "--speed", "--json");
+        string? file = Positional(args, "--speed", "--json", "--local-name");
         if (file is null) return Usage(2, "replay: missing <file>.");
         if (!File.Exists(file)) { Console.Error.WriteLine($"File not found: {file}"); return 1; }
         double speed = DoubleOption(args, "--speed", 0);
         string? json = Option(args, "--json");
+        // The character a live meter would remember from an earlier session ("Name" or "Name:Class").
+        var known = ParseKnownCharacter(Option(args, "--local-name"));
 
         int index = 0;
         OfflinePipeline? pipe = null;
-        pipe = new OfflinePipeline(onCompleted: r => Printer.Encounter(Console.Out, r, pipe!.GameData, ++index));
+        var options = new EngineOptions { SaveTrashFights = true, KnownLocalCharacter = known };
+        pipe = new OfflinePipeline(options, onCompleted: r => Printer.Encounter(Console.Out, r, pipe!.GameData, ++index));
         using var cts = CtrlC();
         var sw = Stopwatch.StartNew();
         Console.WriteLine($"Replaying {Path.GetFileName(file)} (speed {(speed <= 0 ? "max" : speed + "x")}) …");
@@ -150,7 +156,9 @@ public static class Program
         if (stats.Servers is { } server) Console.WriteLine($"Game server(s) {server}");
         Printer.Flows(Console.Out, stats, pipe.Protocol);
         if (pipe.Engine.LocalPlayer is { } lp)
-            Console.WriteLine($"Local player: {lp.Name} ({pipe.GameData.GetClassName(lp.Class)}, level {lp.Level}, {pipe.GameData.GetServerName(lp.ServerId) ?? "server " + lp.ServerId})");
+            Console.WriteLine(lp.Inferred
+                ? $"Local player: {lp.Name} ({pipe.GameData.GetClassName(lp.Class)}, entity {lp.EntityId}; inferred from self-stat frames, no 33 36 identity record captured)"
+                : $"Local player: {lp.Name} ({pipe.GameData.GetClassName(lp.Class)}, level {lp.Level}, {pipe.GameData.GetServerName(lp.ServerId) ?? "server " + lp.ServerId})");
         if (stats.BytesDelivered == 0) Console.WriteLine("No AION 2 game traffic was found in this file.");
 
         if (json is not null)
@@ -161,6 +169,14 @@ public static class Program
         }
 
         return 0;
+    }
+
+    private static KnownCharacter? ParseKnownCharacter(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        var parts = value.Split(':', 2, StringSplitOptions.TrimEntries);
+        var cls = parts.Length > 1 && Enum.TryParse<CharacterClass>(parts[1], ignoreCase: true, out var c) ? c : CharacterClass.Unknown;
+        return new KnownCharacter(parts[0], cls, 0);
     }
 
     // ───────────────────────────── census ─────────────────────────────
@@ -197,7 +213,7 @@ public static class Program
             ("Bundle inner errors", d.BundleInnerErrors), ("Resyncs", d.Resyncs), ("Resync skipped bytes", d.ResyncSkippedBytes),
             ("Invalid frames", d.InvalidFrames), ("Padding bytes", d.PaddingBytes), ("Extra-byte frames", d.ExtraByteFrames),
             ("TLS records skipped", d.TlsRecordsSkipped), ("Embedded bundles", d.EmbeddedBundles), ("Decode errors", d.DecodeErrors),
-            ("Unhandled frames", d.UnhandledFrames), ("Damage records", d.DamageRecords), ("Events emitted", d.EventsEmitted),
+            ("Unhandled frames", d.UnhandledFrames), ("Damage records", d.DamageRecords), ("Damage trailing bytes", d.DamageTrailingBytes), ("Events emitted", d.EventsEmitted),
             ("Sink errors", d.SinkErrors), ("Engine event errors", pipe.Engine.EventErrors), ("Engine dropped records", pipe.Engine.DroppedRecords),
         ];
         foreach (var (label, value) in rows) Console.WriteLine($"  {label,-24} {Printer.N(value),14}");

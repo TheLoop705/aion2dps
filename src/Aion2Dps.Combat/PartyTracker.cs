@@ -22,6 +22,30 @@ internal sealed class PartyTracker
 
     public bool IsMember(string? name) => !string.IsNullOrEmpty(name) && _byName.ContainsKey(name);
 
+    private readonly HashSet<uint> _hpPeers = new();
+
+    /// <summary>
+    /// [real] <c>1B 92</c> (HP/MP) is sent only for the other members of your own group (4/4 party members in the
+    /// dungeon capture, 0 strangers; the world-boss capture: the same 4 ids for 6 minutes while ~40 players fought
+    /// nearby). Without a roster (meter started mid-session) this is the party evidence. Session ids; cleared on zone change.
+    /// </summary>
+    public void NoteHpPeer(uint entity)
+    {
+        if (entity != 0 && _hpPeers.Count < 64) _hpPeers.Add(entity);
+    }
+
+    public bool HasHpPeers => _hpPeers.Count > 0;
+
+    public bool IsHpPeer(uint entity) => _hpPeers.Contains(entity);
+
+    /// <summary>A roster member (by name) or, roster or not, an entity the server sends group HP updates for.</summary>
+    public bool IsMember(string? name, uint entity) => IsMember(name) || _hpPeers.Contains(entity);
+
+    /// <summary>The party is known from a roster or from group HP updates.</summary>
+    public bool IsKnown => HasRoster || HasHpPeers;
+
+    public void ClearHpPeers() => _hpPeers.Clear();
+
     public PartyMember? Get(string? name) => !string.IsNullOrEmpty(name) && _byName.TryGetValue(name, out var m) ? m : null;
 
     public void Clear()
@@ -30,5 +54,6 @@ internal sealed class PartyTracker
         _byName.Clear();
         PartyKey = 0;
         DungeonId = null;
+        _hpPeers.Clear();
     }
 }

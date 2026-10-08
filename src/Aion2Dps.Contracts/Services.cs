@@ -26,7 +26,21 @@ public sealed class EngineOptions
     /// <summary>Hide an ended encounter's overlay totals after this delay from its end time, once finalized.
     /// Zero (default), negative and non-finite values keep the final display. Encounter records remain available.</summary>
     public double EndedDisplaySeconds { get; set; } = 0;
+    /// <summary>
+    /// A boss encounter is a "partial view" when the decoded damage explains less than this share of the boss's HP loss
+    /// (trusted max HP, enough HP lost). Open-world bosses start out as partial views until the HP check proves otherwise:
+    /// the server sends only your own direct hits there (plus DoT ticks and heals of others).
+    /// </summary>
+    public double PartialViewRatio { get; set; } = 0.5;
+    /// <summary>
+    /// The character last seen as the local player (persisted by the host across meter restarts). When the meter starts
+    /// mid-session the local player is inferred from self-stat frames without a name; a hint of the same class names it.
+    /// </summary>
+    public KnownCharacter? KnownLocalCharacter { get; set; }
 }
+
+/// <summary>A character remembered from an earlier session (name keyed, ids are session scoped).</summary>
+public sealed record KnownCharacter(string Name, CharacterClass Class, ushort ServerId);
 
 /// <summary>
 /// Turns game events into encounters. Thread-safe: <see cref="IGameEventSink.OnEvent"/> is called on the capture thread,

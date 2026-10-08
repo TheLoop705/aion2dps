@@ -38,7 +38,7 @@ public sealed class BossHpChart : ChartBase
         var bosses = record.Bosses.Where(b => b.HpTimeline.Count >= 2).ToList();
         if (gameData is not null && bosses.Count >= 2)
         {
-            SetSeries(bosses.Select(b => new BossHpSeries(ChartData.BossName(b, gameData), b.HpTimeline, b.MaxHp, b.Killed ? b.KillTimeSeconds : null)).ToList(),
+            SetSeries(bosses.Select(b => new BossHpSeries(ChartData.BossName(b, gameData, ChartData.IsOpenWorld(record, gameData)), b.HpTimeline, b.MaxHp, b.Killed ? b.KillTimeSeconds : null)).ToList(),
                 record.DurationSeconds);
             return;
         }

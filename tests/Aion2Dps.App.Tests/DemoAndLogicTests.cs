@@ -187,6 +187,11 @@ public class StoreAndPersonalBestTests
     }
 }
 
+internal static class CombatEngineIds
+{
+    public const uint Others = Aion2Dps.Combat.CombatEngine.OthersEntityId;
+}
+
 public class OverlayLogicTests
 {
     private static MeterSnapshot Snap() => new()
@@ -217,6 +222,27 @@ public class OverlayLogicTests
         var rows = OverlayView.ComputeRows(Snap(), new OverlayViewOptions { View = MeterView.Total, BarMode = BarMode.ShareOfParty, MaxRows = 24 });
         Assert.Equal(1u, rows[0].Row.EntityId);
         Assert.All(rows, r => Assert.Equal(0.08, r.Bar, 6));
+    }
+
+    [Fact]
+    public void Partial_view_ranks_you_and_party_first_others_last_and_shows_boss_hp_share()
+    {
+        var snap = Snap() with
+        {
+            PartialView = true,
+            PartialViewText = "Partial view: only your/party damage is visible",
+            Rows = new[]
+            {
+                new PlayerRow { EntityId = 1, Name = "Stranger", Damage = 900_000, Dps = 9_000, DamageShare = 0.6, Contribution = 0.02, Hits = 40 },
+                new PlayerRow { EntityId = CombatEngineIds.Others, Name = "Others (39, visible DoT/heal only)", Damage = 500_000, Dps = 5_000, DamageShare = 0.3, Contribution = 0.011, AggregateCount = 39 },
+                new PlayerRow { EntityId = 2, Name = "Mate", Damage = 10_000, Dps = 100, DamageShare = 0.01, Contribution = 0.0002, IsPartyMember = true, Hits = 0 },
+                new PlayerRow { EntityId = 3, Name = "You", Damage = 300_000, Dps = 3_000, DamageShare = 0.2, Contribution = 0.042, IsLocal = true, Hits = 1692 },
+            },
+        };
+        var rows = OverlayView.ComputeRows(snap, new OverlayViewOptions { View = MeterView.Total, BarMode = BarMode.ShareOfParty, MaxRows = 24 });
+        Assert.Equal(new uint[] { 3, 2, 1, CombatEngineIds.Others }, rows.Select(r => r.Row.EntityId));
+        Assert.Equal(0.042, rows[0].Pct!.Value, 6); // share of the boss's max HP, never the 20 % of visible damage
+        Assert.Equal(300_000.0 / 900_000, rows[0].Bar, 6); // share-of-party bars fall back to relative bars
     }
 
     [Fact]

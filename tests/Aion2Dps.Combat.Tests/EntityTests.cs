@@ -46,8 +46,12 @@ public class EntityTests
             s.Send(new EntityStatsEvent { Time = Script.At(i * 0.1), Entity = 123, Format = 0x03, CurrentHp = 5000 });
         s.SpawnNpc(1, Script.Trash, FakeGameData.TrashCode, 50_000, 50_000);
         s.Hit(2, 123, Script.Trash, 100, Script.GlaSkill);
-        Assert.True(Script.Row(s.Snap(2), 123).IsLocal);
-        Assert.Null(s.Engine.LocalPlayer); // no authoritative name yet
+        var row = Script.Row(s.Snap(2), 123);
+        Assert.True(row.IsLocal);
+        Assert.Equal("You", row.Name); // never "Player 123" for yourself
+        var lp = Assert.IsType<LocalPlayerInfo>(s.Engine.LocalPlayer);
+        Assert.True(lp.Inferred); // no authoritative 33 36 yet
+        Assert.Equal(123u, lp.EntityId);
     }
 
     [Fact]

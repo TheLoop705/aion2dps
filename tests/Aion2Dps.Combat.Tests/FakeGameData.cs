@@ -12,6 +12,10 @@ internal sealed class FakeGameData : IGameData
     public const uint DummyCode = 2400032;
     public const uint HealSkill = 17010000;
     public const uint RecuperationSkill = 18050000;
+    /// <summary>Open-world field boss (place 2 of block 2400 on <see cref="OpenWorldMap"/>).</summary>
+    public const uint FieldBossCode = 2400419;
+    public const uint FieldBossCode1 = 2400017;
+    public const uint OpenWorldMap = 1110;
 
     public GameLanguage Language { get; set; }
 
@@ -30,6 +34,8 @@ internal sealed class FakeGameData : IGameData
         [TrashCode] = new NpcInfo(TrashCode, "Cave Rat", IsBoss: false, IsDummy: false, DungeonId: null),
         [AddCode] = new NpcInfo(AddCode, "Harcon Minion", IsBoss: false, IsDummy: false, DungeonId: 600021),
         [DummyCode] = new NpcInfo(DummyCode, "Training Scarecrow", IsBoss: false, IsDummy: true, DungeonId: null),
+        [FieldBossCode1] = new NpcInfo(FieldBossCode1, "Melted Danar", IsBoss: true, IsDummy: false, DungeonId: null),
+        [FieldBossCode] = new NpcInfo(FieldBossCode, "Special Operations Leader Linx", IsBoss: true, IsDummy: false, DungeonId: null),
     };
 
     public Dictionary<uint, uint> GroupOverrides { get; } = new();
@@ -55,10 +61,22 @@ internal sealed class FakeGameData : IGameData
     {
         600021 => "Fire Temple",
         600022 => "Fire Temple (Hard)",
+        OpenWorldMap => "Altgard",
         _ => null,
     };
 
     public bool IsInstanceMap(uint mapId) => mapId is >= 600000 and <= 699999;
+
+    public bool IsOpenWorldMap(uint mapId) => mapId is OpenWorldMap or 1010;
+
+    public uint? GetFieldBossBlock(uint mapId) => mapId == OpenWorldMap ? 2400 : null;
+
+    public uint? GetFieldBossNpcCode(uint block, int place) => (block, place) switch
+    {
+        (2400, 1) => FieldBossCode1,
+        (2400, 2) => FieldBossCode,
+        _ => null,
+    };
 
     public string? GetServerName(ushort serverId) => serverId == 1304 ? "Kaisinel" : null;
 

@@ -83,25 +83,35 @@ public sealed class EncounterReportView : UserControl
         if (r.CaptureGaps)
             _content.Children.Add(Ui.Banner("The capture had gaps during this fight, so some numbers may be incomplete."));
 
-        var friendly = ChartData.Friendly(r).ToList();
+        var friendly = ChartData.VisibleFriendly(r, out var folded);
+        if (r.PartialView)
+        {
+            string others = folded.Count > 0
+                ? $" {folded.Count} player(s) seen only through DoT ticks or heals ({Fmt.Number(folded.Sum(c => c.Damage))} damage) are not listed."
+                : "";
+            _content.Children.Add(Ui.Banner($"Partial view: only your/party damage is visible ({r.PartialViewReason}). " +
+                                            "Contribution is your damage / the boss's max HP; shares of the visible damage and the HP check do not apply." + others));
+        }
         bool multi = ChartData.IsMultiBoss(r);
         // Multi-boss fights: the tile shows the check summed over all bosses; the badges under the title show each boss.
         var check = multi ? r.OverallHpCheck ?? r.HpCheck : r.HpCheck;
-        string hpCheck = check is { } hc ? Fmt.Percent(hc.Ratio) : Fmt.Dash;
-        string hpKey = check is null ? ThemeKeys.TextMuted : check.Passed ? ThemeKeys.Positive : ThemeKeys.Warning;
+        string hpCheck = check is { } hc && !r.PartialView ? Fmt.Percent(hc.Ratio) : Fmt.Dash;
+        string hpKey = check is null || r.PartialView ? ThemeKeys.TextMuted : check.Passed ? ThemeKeys.Positive : ThemeKeys.Warning;
         string? hpTip = check is { } h
-            ? (multi ? "All bosses: " : "") + $"decoded damage {Fmt.Exact(h.DecodedDamage)} vs HP lost {Fmt.Exact(h.HpLost)} + boss self-heal {Fmt.Exact(h.BossSelfHealing)}" + (h.Note is null ? "" : $" · {h.Note}")
+            ? (r.PartialView ? $"Partial view: the decoded damage covers {Fmt.Percent(h.Ratio)} of the boss's HP loss. " : "") +
+              (multi ? "All bosses: " : "") + $"decoded damage {Fmt.Exact(h.DecodedDamage)} vs HP lost {Fmt.Exact(h.HpLost)} + boss self-heal {Fmt.Exact(h.BossSelfHealing)}" + (h.Note is null ? "" : $" · {h.Note}")
             : "No boss HP data to check against";
+        string hpSub = r.PartialView ? "partial view" : check is null ? "not available" : check.Passed ? (multi ? "all bosses match" : "damage matches HP lost") : "check the capture";
         long bossesMax = multi ? r.Bosses.Sum(b => b.MaxHp ?? 0) : 0;
         string? damageSub = multi && bossesMax > 0 ? $"{r.Bosses.Count} bosses' HP " + Fmt.Number(bossesMax)
             : r.BossMaxHp is { } mh ? "boss HP " + Fmt.Number(mh) : null;
         _content.Children.Add(Ui.TileGrid(5,
         [
-            Ui.Tile("Party DPS", Fmt.Dps(r.PartyDps), "damage / fight time", Fmt.Exact(r.PartyDps), ThemeKeys.Accent),
+            Ui.Tile(r.PartialView ? "Visible DPS" : "Party DPS", Fmt.Dps(r.PartyDps), r.PartialView ? "visible damage / fight time" : "damage / fight time", Fmt.Exact(r.PartyDps), ThemeKeys.Accent),
             Ui.Tile("Damage", Fmt.Number(r.TotalDamage), damageSub, Fmt.Exact(r.TotalDamage)),
             Ui.Tile("Time", Fmt.Duration(r.DurationSeconds), "first to last hit", Fmt.Seconds(r.DurationSeconds)),
             Ui.Tile("Players", friendly.Count(c => c.Kind == CombatantKind.Player).ToString(), r.LocalPlayerName is { } lp ? "you: " + lp : null),
-            Ui.Tile("HP check", hpCheck, check is null ? "not available" : check.Passed ? (multi ? "all bosses match" : "damage matches HP lost") : "check the capture", hpTip, hpKey),
+            Ui.Tile("HP check", hpCheck, hpSub, hpTip, hpKey),
         ]));
 
         DamageChart = new CumulativeDamageChart { Height = 270 };
@@ -153,7 +163,7 @@ public sealed class EncounterReportView : UserControl
         var wrap = new WrapPanel { Margin = new Thickness(0, 8, 0, 0) };
         foreach (var b in r.Bosses)
         {
-            string name = ChartData.BossName(b, gd);
+            string name = ChartData.BossName(b, gd, ChartData.IsOpenWorld(r, gd));
             string key = b.HpCheck is null ? ThemeKeys.TextMuted : b.HpCheck.Passed ? ThemeKeys.Positive : ThemeKeys.Warning;
             string value = b.HpCheck is { } hc ? "HP check " + Fmt.Percent(hc.Ratio) : "HP check " + Fmt.Dash;
             string tip = b.HpCheck is { } h
@@ -172,7 +182,7 @@ public sealed class EncounterReportView : UserControl
         string Who(uint id) => ChartData.Find(r, id) is { } c ? ChartData.DisplayName(c) : $"#{id}";
         var cols = new List<TableColumn<BossResult>>
         {
-            new("Boss", -1, b => BossCell(b, gd), b => ChartData.BossName(b, gd), HorizontalAlignment.Left),
+            new("Boss", -1, b => BossCell(b, gd), b => ChartData.BossName(b, gd, ChartData.IsOpenWorld(r, gd)), HorizontalAlignment.Left),
             new("Max HP", 80, b => Ui.Number(b.MaxHp is { } m ? Fmt.Number(m) : Fmt.Dash, b.MaxHp is { } mx ? Fmt.Exact(mx) : null), b => b.MaxHp ?? 0),
             new("Engaged", 66, b => Ui.Number(Fmt.Duration(b.EngagedSeconds), "first hit, from the start of the encounter"), b => b.EngagedSeconds),
             new("Result", 92, b => Ui.Number(BossOutcome(b), null, b.Killed ? ThemeKeys.Positive : ThemeKeys.TextMuted, FontWeights.SemiBold), b => b.KillTimeSeconds ?? double.MaxValue),

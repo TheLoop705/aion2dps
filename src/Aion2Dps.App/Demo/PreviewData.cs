@@ -16,6 +16,39 @@ public static class PreviewData
         return e.GetSnapshot(Origin.AddSeconds(secondsSinceOrigin));
     }
 
+    /// <summary>
+    /// Open-world field boss joined mid-fight (partial view): only your own direct hits are sent, a party member shows
+    /// up through DoT ticks, ~40 other players are folded into one "Others" row; % = damage / boss max HP.
+    /// </summary>
+    public static MeterSnapshot WorldBossPartial()
+    {
+        var s = LiveBoss();
+        var me = s.Rows.FirstOrDefault(r => r.IsLocal) ?? s.Rows[0];
+        var mate = s.Rows.First(r => !r.IsLocal);
+        const long max = 45_634_088;
+        var rows = new List<PlayerRow>
+        {
+            me with { Rank = 1, Damage = 1_911_496, Dps = 5_416, Contribution = 1_911_496.0 / max, RelativeToTop = 1, Name = "You" },
+            mate with { Rank = 2, Damage = 28_048, Dps = 79, Contribution = 28_048.0 / max, RelativeToTop = 28_048 / 1_911_496.0, IsPartyMember = true, Hits = 0, CritRate = 0 },
+            new PlayerRow
+            {
+                EntityId = Aion2Dps.Combat.CombatEngine.OthersEntityId, Name = "Others (39, visible DoT/heal only)", Rank = 3,
+                Damage = 488_989, Dps = 1_385, Contribution = 488_989.0 / max, RelativeToTop = 488_989 / 1_911_496.0, AggregateCount = 39,
+            },
+        };
+        return s with
+        {
+            Rows = rows,
+            TotalDamage = 2_428_533,
+            HpCheckRatio = 0.054,
+            PartialView = true,
+            PartialViewText = "Partial view: only your/party damage is visible (5.4 % of the boss HP lost)",
+            MapName = "Altgard",
+            Target = s.Target is { } t ? t with { Name = "Special Operations Leader Linx", MaxHp = max, Hp = max / 3, HpFraction = 1 / 3.0 } : null,
+            Bosses = [],
+        };
+    }
+
     /// <summary>Live boss fight late (boss low HP, colour shifted).</summary>
     public static MeterSnapshot LowHpBoss() => LiveBoss(118);
 

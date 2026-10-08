@@ -74,21 +74,25 @@ internal sealed class Encounter
     {
         if (Bosses.Count == 0) return "Boss";
         var names = new List<string>(Bosses.Count);
-        foreach (var b in Bosses) names.Add(b.NpcCode is uint c ? gd.GetNpcName(c) : $"Target {b.Id}");
+        foreach (var b in Bosses) names.Add(b.NpcCode is uint c ? gd.GetNpcName(c) : UnnamedBoss(gd, b.MaxHp) ?? $"Target {b.Id}");
         return string.Join(" + ", names);
     }
 
+    /// <summary>"World boss (45.6M HP)" for a boss whose spawn (NPC code) was missed; null when its max HP is unknown.</summary>
+    public string? UnnamedBoss(IGameData gd, long? maxHp) => BossLabel.Unnamed(maxHp, MapId is uint m && gd.IsOpenWorldMap(m));
+
     /// <summary>
     /// Contribution of one combatant: damage to the bosses with a trusted max HP / the sum of those max HPs.
-    /// Null when no boss has a trusted max HP (callers fall back to the share of party damage).
+    /// Null when no boss has a trusted max HP (callers fall back to the share of party damage). With
+    /// <paramref name="anyKnownMax"/> (partial view, where a share of the visible damage means nothing) any known max counts.
     /// </summary>
-    public double? HpContribution(CombatantState c)
+    public double? HpContribution(CombatantState c, bool anyKnownMax = false)
     {
         if (Kind != EncounterKind.Boss) return null;
         long denom = 0, num = 0;
         foreach (var b in Bosses)
         {
-            if (!b.MaxTrusted || b.MaxHp is not long max || max <= 0) continue;
+            if (!(b.MaxTrusted || anyKnownMax) || b.MaxHp is not long max || max <= 0) continue;
             denom += max;
             num += c.DamageByBoss.GetValueOrDefault(b.Id);
         }

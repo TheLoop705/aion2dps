@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using Aion2Dps.Contracts;
 
 namespace Aion2Dps.Protocol;
@@ -243,9 +244,17 @@ public sealed partial class PacketDecoder
     {
         var r = new SpanReader(body);
         if (!r.TryReadVarUInt(out uint actor) || !r.TryReadVarUInt(out _) || !r.TryReadU32(out uint skill)
-            || !r.TrySkip(2) || !r.TryReadVarUInt(out uint target))
+            || !r.TryReadU8(out _) || !r.TryReadU8(out byte kind) || !r.TryReadVarUInt(out uint target))
             return Fail("truncated");
-        Emit(new CastEvent { Time = _time, BundleDepth = _depth, Actor = actor, SkillRaw = skill, Target = target });
+        // [real] kind 2 (21,000+ frames of the world-boss capture): heading f32, then x, y, z f32 of the caster.
+        float? x = null, y = null, z = null;
+        if (kind == 2 && r.TrySkip(4) && r.TryReadF32(out float px) && r.TryReadF32(out float py) && r.TryReadF32(out float pz)
+            && float.IsFinite(px) && float.IsFinite(py) && float.IsFinite(pz)
+            && Math.Abs(px) < 10_000_000 && Math.Abs(py) < 10_000_000 && Math.Abs(pz) < 10_000_000)
+        {
+            (x, y, z) = (px, py, pz);
+        }
+        Emit(new CastEvent { Time = _time, BundleDepth = _depth, Actor = actor, SkillRaw = skill, Target = target, X = x, Y = y, Z = z });
         return true;
     }
 
@@ -295,6 +304,79 @@ public sealed partial class PacketDecoder
         var r = new SpanReader(body);
         if (!r.TryReadVarUInt(out uint entity)) return Fail("truncated");
         Emit(new TeleportEvent { Time = _time, BundleDepth = _depth, Entity = entity });
+        return true;
+    }
+
+    /// <summary>Largest accepted field-boss slot count (real lists carry 24).</summary>
+    private const int MaxFieldBossSlots = 99;
+
+    /// <summary>
+    /// <c>01 91</c> field-boss list (§8.16, [real] 143 + 124 frames decode to their exact end): <c>u16 0 | map u32 |
+    /// count u8 | count × (alive u8, slot varint, [x y z f32 if alive], [u8 on some slots], time i64) | 00 00 00</c>.
+    /// The optional byte has no flag: of the two readings of a slot only one leaves the next slot header (or the zero
+    /// tail) where it must be.
+    /// </summary>
+    private bool DecodeFieldBossList(ReadOnlySpan<byte> body)
+    {
+        if (body.Length < 7) return Fail("truncated");
+        uint map = BinaryPrimitives.ReadUInt32LittleEndian(body[2..]);
+        int count = body[6];
+        if (map == 0 || count > MaxFieldBossSlots) return Fail("bad header");
+        var slots = new List<FieldBossSlot>(count);
+        int o = 7;
+        for (int n = 0; n < count; n++)
+        {
+            if (!TryFieldBossSlot(body, ref o, map, last: n == count - 1, out var slot)) return Fail($"slot {n} not recognised");
+            slots.Add(slot);
+        }
+        Emit(new FieldBossListEvent { Time = _time, BundleDepth = _depth, MapId = map, Slots = slots });
+        return true;
+    }
+
+    private static bool TryFieldBossSlot(ReadOnlySpan<byte> b, ref int o, uint map, bool last, out FieldBossSlot slot)
+    {
+        slot = null!;
+        if (!FieldBossSlotHeader(b, o, map, out bool alive, out uint id, out int at)) return false;
+        float x = 0, y = 0, z = 0;
+        if (alive)
+        {
+            if (at + 12 > b.Length) return false;
+            x = BinaryPrimitives.ReadSingleLittleEndian(b[at..]);
+            y = BinaryPrimitives.ReadSingleLittleEndian(b[(at + 4)..]);
+            z = BinaryPrimitives.ReadSingleLittleEndian(b[(at + 8)..]);
+            at += 12;
+        }
+        for (int extra = 0; extra <= 1; extra++)
+        {
+            int t = at + extra;
+            if (t + 8 > b.Length) break;
+            long time = BinaryPrimitives.ReadInt64LittleEndian(b[t..]);
+            if (time != 0 && time is < 1_600_000_000_000 or > 2_600_000_000_000) continue;
+            int end = t + 8;
+            bool fits = last
+                ? b.Length - end <= 8 && b[end..].IndexOfAnyExcept((byte)0) < 0
+                : FieldBossSlotHeader(b, end, map, out _, out _, out _);
+            if (!fits) continue;
+            slot = new FieldBossSlot { Slot = id, Alive = alive, TimeUnixMs = time, X = x, Y = y, Z = z };
+            o = end;
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary><c>alive u8 (0/1) | slot varint</c> with the slot inside the map's range (map × 100 + 1..99).</summary>
+    private static bool FieldBossSlotHeader(ReadOnlySpan<byte> b, int o, uint map, out bool alive, out uint slot, out int next)
+    {
+        alive = false;
+        slot = 0;
+        next = o;
+        if (o >= b.Length || b[o] > 1) return false;
+        alive = b[o] == 1;
+        if (VarInt.TryRead(b[(o + 1)..], out uint v, out int width) != VarIntStatus.Ok) return false;
+        ulong lo = (ulong)map * 100;
+        if (v <= lo || v >= lo + 100) return false;
+        slot = v;
+        next = o + 1 + width;
         return true;
     }
 }

@@ -133,11 +133,12 @@ public sealed partial class PacketDecoder
         bool trailer = false;
         var rest = r.RemainingSpan;
         if (!probe && rest.Length >= 2 && rest[1] == 0 &&
-            (rest[0] == (byte)hitIndex || EndsAfterTrailer(rest[2..], flag) || ValidRecordAfterTrailer(rest[2..], flag)))
+            (rest[0] == (byte)hitIndex || EndsAfterTrailer(rest[2..], flag, layout) || ValidRecordAfterTrailer(rest[2..], flag, layout)))
         {
             r.TrySkip(2);
             trailer = true;
-            if ((flag & 0x04) != 0 && !r.TryReadVarUInt(out _)) { why = "truncated flag-4 tail"; return false; }
+            for (int k = TailVarints(flag, layout); k > 0; k--)
+                if (!r.TryReadVarUInt(out _)) { why = "truncated flag tail"; return false; }
         }
 
         uint skillId = SkillIds.Normalize(skillRaw);
@@ -185,21 +186,33 @@ public sealed partial class PacketDecoder
 
     /// <summary>True when the bytes after a trailer are exactly what the record still owns: nothing, or (flag 0x04)
     /// one varint.</summary>
-    private static bool EndsAfterTrailer(ReadOnlySpan<byte> after, uint flag)
+    private static bool EndsAfterTrailer(ReadOnlySpan<byte> after, uint flag, byte layout) =>
+        SkipTail(after, flag, layout, out int used) && used == after.Length;
+
+    /// <summary>
+    /// Varints after the trailer: one for flag 0x04 (Assassin/Gladiator hits) and [real, world-boss capture] one for
+    /// flag 0x10 on layout 4 (5 NPC hits, sw 0x44, value 1; the flag-0x10 layout-6 hits (4) carry mods 0x80 and no
+    /// tail): the same pattern as <c>sw 0x10</c> (layout-4 extra varint 1, layout 6 with mods 0x80). Meaning unknown.
+    /// </summary>
+    private static int TailVarints(uint flag, byte layout) =>
+        ((flag & 0x04) != 0 ? 1 : 0) + ((flag & 0x10) != 0 && layout == 4 ? 1 : 0);
+
+    private static bool SkipTail(ReadOnlySpan<byte> after, uint flag, byte layout, out int used)
     {
-        if ((flag & 0x04) == 0) return after.IsEmpty;
-        return VarInt.TryRead(after, out _, out int width) == VarIntStatus.Ok && width == after.Length;
+        used = 0;
+        for (int k = TailVarints(flag, layout); k > 0; k--)
+        {
+            if (VarInt.TryRead(after[used..], out _, out int width) != VarIntStatus.Ok) return false;
+            used += width;
+        }
+        return true;
     }
 
     /// <summary>A differing area-hit trailer is accepted before another record only when its fields validate.</summary>
-    private bool ValidRecordAfterTrailer(ReadOnlySpan<byte> after, uint flag)
+    private bool ValidRecordAfterTrailer(ReadOnlySpan<byte> after, uint flag, byte layout)
     {
-        if ((flag & 0x04) != 0)
-        {
-            if (VarInt.TryRead(after, out _, out int width) != VarIntStatus.Ok) return false;
-            after = after[width..];
-        }
-
+        if (!SkipTail(after, flag, layout, out int used)) return false;
+        after = after[used..];
         if (after.IsEmpty) return false;
         var candidate = new SpanReader(after);
         return TryParseDamageRecord(ref candidate, strict: true, out _, out _, probe: true);

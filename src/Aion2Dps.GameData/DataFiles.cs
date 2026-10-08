@@ -174,6 +174,22 @@ internal static class DataFiles
         return result.ToFrozenDictionary();
     }
 
+    /// <summary><c>field_boss_maps.json</c> → map id → NPC-code block (code / 1000) of the map's field bosses.</summary>
+    public static FrozenDictionary<uint, uint> ReadFieldBossBlocks(string path)
+    {
+        using var doc = Open(path);
+        if (doc is null || doc.RootElement.ValueKind != JsonValueKind.Object
+            || !doc.RootElement.TryGetProperty("maps", out var maps) || maps.ValueKind != JsonValueKind.Object)
+            return FrozenDictionary<uint, uint>.Empty;
+        var result = new Dictionary<uint, uint>();
+        foreach (var p in maps.EnumerateObject())
+        {
+            if (!TryKey(p.Name, out uint id) || p.Value.ValueKind != JsonValueKind.Object) continue;
+            if (p.Value.TryGetProperty("block", out var b) && TryUInt(b, out uint block) && block > 0) result[id] = block;
+        }
+        return result.ToFrozenDictionary();
+    }
+
     /// <summary><c>heal_skill_families.json</c>: base-id families and exact ids.</summary>
     public static (FrozenSet<uint> Families, FrozenSet<uint> Exact) ReadHealFamilies(string path)
     {
