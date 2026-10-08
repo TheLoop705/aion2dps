@@ -232,6 +232,7 @@ public sealed class AppHost : IDisposable
         opt.LivePlayerClock = g.LivePlayerClock;
         opt.PartyOnly = g.PartyOnly;
         opt.SaveTrashFights = g.SaveTrashFights;
+        opt.BossFightsOnly = g.BossFightsOnly;
         try { _services.GameData.Language = g.Language; } catch (Exception ex) { AppLog.Warn("App", $"Language change failed: {ex.Message}"); }
         _services.Capture.AdapterOverride = g.AdapterOverride;
     }

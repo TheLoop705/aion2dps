@@ -110,8 +110,13 @@ Settings, logs and the fight history live in `%APPDATA%\Aion2Dps`; recordings go
 To show gear score in the overlay, open **Appearance → Rows & columns → Columns → Gear score**. Scores appear as
 **GS** when available from the game; unknown scores show **—**. Clicking a player also shows GS in their breakdown.
 
-Finished fights remain on the live meter for **15 seconds**, then its counters clear. The fight stays in History.
-Adjust **Settings → Meter → Clear finished fights after**; set it to **0** to keep results until the next fight.
+The meter tracks **boss fights only** by default: trash mobs never start a fight on the meter, so it waits for a
+boss (or a training dummy, a training run or PvP). Damage to adds during a boss fight stays out of the boss numbers
+in Boss-only mode. Turn this off under **Settings → Meter → Track boss fights only (ignore trash mobs)** to track every fight.
+
+Finished fights remain on the live meter for **60 seconds**, then its counters clear. Trash pulled meanwhile does not
+replace the result; only the next boss fight does. The fight stays in History. Adjust **Settings → Meter → Clear
+finished fights after**; set it to **0** to keep results until the next fight.
 
 Out of combat the overlay shrinks to a slim one-row status bar (capture state, zone, your last DPS). It expands on
 its own for every fight, including PvP and training runs, and stays expanded while the result is shown: for the
@@ -149,7 +154,7 @@ the game. Opening Aion2Dps again (Start menu or desktop shortcut) while it runs 
 
 | Command | What it does |
 |---|---|
-| `replay <file> [--speed N] [--json out.json]` | Decodes a `.pcap` / `.pcapng` / hex log through flow detection, TCP reassembly, the protocol decoder and the combat engine; prints every completed encounter (kind, boss, outcome, duration, per-player damage / DPS / share / crit / healing / damage taken, HP check) and optionally writes the full encounter records as JSON |
+| `replay <file> [--speed N] [--json out.json] [--boss-only]` | Decodes a `.pcap` / `.pcapng` / hex log through flow detection, TCP reassembly, the protocol decoder and the combat engine; prints every completed encounter (kind, boss, outcome, duration, per-player damage / DPS / share / crit / healing / damage taken, HP check) and optionally writes the full encounter records as JSON; `--boss-only` applies the meter's *Track boss fights only* setting |
 | `census <file>` | Opcode census (count, bytes, decoded, failed per opcode) and decoder statistics (resyncs, bundle errors, decode errors, recent errors with hex) |
 | `simulate <scenario> --out file.pcap [--seed N]` | Writes a simulator scenario (`BossKill`, `BossWipeThenKill`, `TrashPull`, `PvpSkirmish`, `TrainingDummy`) as a pcap with handshake, client packets and a TLS decoy flow |
 | `selftest [--seeds N]` | Runs every scenario through an in-memory stream, single-flow pcap and concurrent world/instance pcap, plus a storage round trip; compares with exact ground truth; exit code 0 = pass, 1 = fail |

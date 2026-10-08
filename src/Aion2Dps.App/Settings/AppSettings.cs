@@ -95,7 +95,12 @@ public sealed class GeneralSettings
     public double IdleTimeoutSeconds { get; set; } = 10;
     public double BossIdleTimeoutSeconds { get; set; } = 30;
     /// <summary>How long completed fights remain on the live meter; zero keeps them until the next fight.</summary>
-    public double EndedDisplaySeconds { get; set; } = 15;
+    public double EndedDisplaySeconds { get; set; } = 60;
+    /// <summary>
+    /// Track boss fights only (default on): trash mobs never start or replace a fight on the meter; a finished boss fight
+    /// stays up for <see cref="EndedDisplaySeconds"/> unless the next boss is engaged. Training runs, dummies and PvP still count.
+    /// </summary>
+    public bool BossFightsOnly { get; set; } = true;
     public bool PartyOnly { get; set; }
     public bool SaveTrashFights { get; set; }
     public bool LaunchOverlayOnStart { get; set; } = true;

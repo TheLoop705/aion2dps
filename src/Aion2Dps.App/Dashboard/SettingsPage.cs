@@ -77,6 +77,13 @@ public sealed class SettingsPage : DashboardPage
             v => v <= 0 ? "Keep until next fight" : $"{v:0} s", v => { g.EndedDisplaySeconds = v; Save(); }),
             "Clears the live counter after combat ends. Finished fights stay in History. Set to 0 to keep results until the next fight."));
         meter.Children.Add(Ui.Check("Party members only: you + your party roster (solo: just you). Also on the overlay's PARTY chip and Ctrl+Alt+P", g.PartyOnly, v => { g.PartyOnly = v; Save(); }));
+        meter.Children.Add(Ui.Check("Track boss fights only (ignore trash mobs)", g.BossFightsOnly, v => { g.BossFightsOnly = v; Save(); }));
+        var bossOnlyHint = Ui.Text("Trash mobs never start or replace a fight on the meter: it waits for a boss, and a finished boss fight stays up " +
+                                   "for the \"Clear finished fights after\" time unless the next boss is engaged. Training runs, dummies and PvP still count.",
+            ThemeKeys.TextMuted, 11.5);
+        bossOnlyHint.TextWrapping = TextWrapping.Wrap;
+        bossOnlyHint.Margin = new Thickness(24, 2, 0, 6);
+        meter.Children.Add(bossOnlyHint);
         meter.Children.Add(Ui.Check("Save trash fights to history", g.SaveTrashFights, v => { g.SaveTrashFights = v; Save(); }));
         left.Children.Add(Ui.Card("Meter", meter));
 
