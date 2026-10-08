@@ -45,6 +45,24 @@ public class AutostartAndGameWatchTests
             key.SetValue(name, value, RegistryValueKind.String);
         }
 
+        /// <summary>The scratch StartupApproved key the registration derives for this Run key.</summary>
+        public string ApprovedPath => Path + @"\StartupApproved";
+
+        /// <summary>What Task Manager writes: 12 bytes, first byte 02 = enabled, 03 = disabled.</summary>
+        public void SetApproval(string name, byte first)
+        {
+            using var key = Registry.CurrentUser.CreateSubKey(ApprovedPath)!;
+            var data = new byte[12];
+            data[0] = first;
+            key.SetValue(name, data, RegistryValueKind.Binary);
+        }
+
+        public byte[]? GetApproval(string name)
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(ApprovedPath);
+            return key?.GetValue(name) as byte[];
+        }
+
         public void Dispose()
         {
             Registry.CurrentUser.DeleteSubKeyTree(Path, throwOnMissingSubKey: false);
@@ -147,6 +165,132 @@ public class AutostartAndGameWatchTests
             Assert.Equal($"\"{otherCopy}\" --autostart", run.Get(AutostartRegistration.ValueName));
         }
         finally { Directory.Delete(Path.GetDirectoryName(Path.GetDirectoryName(otherCopy))!, true); }
+    }
+
+    [Fact]
+    public void A_test_run_key_never_reaches_the_real_startup_approved_key()
+    {
+        var test = new AutostartRegistration(FakeExe(), TestRoot + @"\Run-x");
+        Assert.Equal(TestRoot + @"\Run-x\StartupApproved", test.StartupApprovedKeyPath);
+        var real = new AutostartRegistration(FakeExe());   // only inspected, never read or written here
+        Assert.Equal(AutostartRegistration.DefaultStartupApprovedKeyPath, real.StartupApprovedKeyPath);
+        Assert.Equal(@"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run", real.StartupApprovedKeyPath);
+    }
+
+    [Fact]
+    public void Switched_off_in_task_manager_reads_as_off_and_ticking_switches_it_on_again()
+    {
+        using var run = new TestRunKey();
+        var reg = new AutostartRegistration(FakeExe(), run.Path);
+        reg.Enable();
+        run.SetApproval(AutostartRegistration.ValueName, 0x03);   // Task Manager → Startup apps → Disable
+        run.SetApproval("Docker Desktop", 0x03);                  // another app's flag
+
+        Assert.False(reg.IsEnabled());
+        Assert.True(reg.IsDisabledByWindows());
+        Assert.NotNull(reg.ReadCommand());                        // Windows keeps the Run value
+
+        reg.Enable();
+        Assert.True(reg.IsEnabled());
+        Assert.False(reg.IsDisabledByWindows());
+        Assert.Null(run.GetApproval(AutostartRegistration.ValueName));
+        Assert.Equal(0x03, run.GetApproval("Docker Desktop")![0]);
+
+        run.SetApproval(AutostartRegistration.ValueName, 0x02);   // switched on again in Task Manager
+        Assert.True(reg.IsEnabled());
+        run.SetApproval(AutostartRegistration.ValueName, 0x07);
+        Assert.False(reg.IsEnabled());
+
+        reg.Disable();                                            // removes the Run value and our flag, nothing else
+        Assert.Null(reg.ReadCommand());
+        Assert.Null(run.GetApproval(AutostartRegistration.ValueName));
+        Assert.Equal(0x03, run.GetApproval("Docker Desktop")![0]);
+        Assert.False(reg.IsDisabledByWindows());
+    }
+
+    [Fact]
+    public void Disable_keeps_the_windows_flag_of_another_copys_entry()
+    {
+        using var run = new TestRunKey();
+        const string other = "\"C:\\Elsewhere\\Aion2Dps.exe\" --autostart";
+        run.Set(AutostartRegistration.ValueName, other);
+        run.SetApproval(AutostartRegistration.ValueName, 0x03);
+        var reg = new AutostartRegistration(FakeExe(), run.Path);
+
+        Assert.False(reg.IsDisabledByWindows());   // the flag is about the other copy's entry
+        reg.Disable();
+        Assert.Equal(other, run.Get(AutostartRegistration.ValueName));
+        Assert.NotNull(run.GetApproval(AutostartRegistration.ValueName));
+    }
+
+    [Theory]
+    [InlineData(@"C:\Program Files\dotnet\dotnet.exe", false)]   // dotnet Aion2Dps.dll
+    [InlineData(@"C:\Users\x\AppData\Local\Programs\Aion2Dps\Aion2Dps.exe", true)]
+    [InlineData(@"C:\Apps\AION2DPS.EXE", true)]
+    [InlineData(@"C:\Apps\Aion2Dps.dll", false)]
+    [InlineData(@"C:\Apps\testhost.exe", false)]
+    [InlineData("", false)]
+    [InlineData(null, false)]
+    public void Only_the_apps_own_executable_can_be_registered(string? processPath, bool available)
+    {
+        var reg = AutostartRegistration.ForProcessPath(processPath);
+        Assert.Equal(available, reg is not null);
+        if (reg is not null) Assert.Equal(AutostartRegistration.DefaultRunKeyPath, reg.RunKeyPath); // inspected only
+    }
+
+    [Fact]
+    public void The_install_default_switches_it_on_once_for_installed_copies_only()
+    {
+        using var run = new TestRunKey();
+        var exe = FakeExe("Programs With Spaces");
+        var root = Path.GetDirectoryName(Path.GetDirectoryName(exe))!;
+        try
+        {
+            var reg = new AutostartRegistration(exe, run.Path);
+            Directory.CreateDirectory(Path.GetDirectoryName(exe)!);
+
+            Assert.False(reg.IsInstalledCopy);
+            Assert.Null(reg.ApplyInstallDefault());                  // build output / loose copy: nothing, retry later
+            Assert.Null(reg.ReadCommand());
+
+            File.WriteAllText(Path.Combine(Path.GetDirectoryName(exe)!, AutostartRegistration.InstallMarkerName), "0.3.0");
+            Assert.True(reg.IsInstalledCopy);
+            Assert.True(reg.ApplyInstallDefault());
+            Assert.Equal($"\"{exe}\" --autostart", run.Get(AutostartRegistration.ValueName));
+            Assert.True(reg.IsEnabled());
+
+            Assert.False(reg.ApplyInstallDefault());                 // already there: unchanged
+            Assert.True(reg.IsEnabled());
+
+            reg.Disable();
+            run.SetApproval(AutostartRegistration.ValueName, 0x03);  // an earlier decision in Windows is respected
+            Assert.False(reg.ApplyInstallDefault());
+            Assert.Null(reg.ReadCommand());
+
+            using var run2 = new TestRunKey();                       // a foreign value is never replaced
+            const string foreign = "\"C:\\Tools\\Other.exe\"";
+            run2.Set(AutostartRegistration.ValueName, foreign);
+            Assert.False(new AutostartRegistration(exe, run2.Path).ApplyInstallDefault());
+            Assert.Equal(foreign, run2.Get(AutostartRegistration.ValueName));
+        }
+        finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+    }
+
+    [Fact]
+    public void A_second_instance_signals_the_first_unless_told_not_to()
+    {
+        string name = "Aion2Dps.Tests." + Guid.NewGuid().ToString("N");
+        using var signalled = new ManualResetEventSlim();
+        using var first = SingleInstanceGuard.TryAcquire(name, signalled.Set);
+        Assert.NotNull(first);
+
+        // Windows' delayed --autostart: exits without popping up the running meter's dashboard.
+        Assert.Null(SingleInstanceGuard.TryAcquire(name, () => { }, signalExisting: false));
+        Assert.False(signalled.Wait(TimeSpan.FromMilliseconds(300)));
+
+        // A normal second launch still asks the running meter to open its dashboard.
+        Assert.Null(SingleInstanceGuard.TryAcquire(name, () => { }));
+        Assert.True(signalled.Wait(TimeSpan.FromSeconds(5)));
     }
 
     [Theory]
@@ -315,6 +459,14 @@ public class AutostartAndGameWatchTests
     public void Start_up_visibility(bool gameAware, bool launchOverlayOnStart, bool overlayVisible, bool noOverlay, bool expected) =>
         Assert.Equal(expected, GameOverlayVisibilityPolicy.ShowAtStartup(gameAware, launchOverlayOnStart, overlayVisible, noOverlay));
 
+    [Theory]
+    [InlineData(true, true, "Aion2Dps runs in the tray and appears when AION 2 starts.")]
+    [InlineData(true, false, "Aion2Dps runs in the tray. Right-click the icon for the menu.")]   // "Show the overlay on start" off
+    [InlineData(false, true, "Aion2Dps runs in the tray. Right-click the icon for the menu.")]
+    [InlineData(false, false, "Aion2Dps runs in the tray. Right-click the icon for the menu.")]
+    public void The_first_autostart_notice_promises_the_overlay_only_when_it_will_appear(bool gameAware, bool allowAutoShow, string text) =>
+        Assert.Equal(text, GameOverlayVisibilityPolicy.AutostartNoticeText(gameAware, allowAutoShow));
+
     private static GameOverlayVisibilityPolicy Enabled()
     {
         var p = new GameOverlayVisibilityPolicy();
@@ -462,11 +614,15 @@ public class AutostartAndGameWatchTests
             Assert.False(old.General.OpenDashboardOnStart);
 
             old.General.ShowOverlayOnlyWhileGameRuns = false;
+            Assert.False(old.General.AutostartDefaultApplied);   // older files: the one-time default is still to come
             old.General.AutostartNoticeShown = true;
+            old.General.AutostartDefaultApplied = true;
             SettingsStore.SaveTo(path, old);
             var back = SettingsStore.LoadFrom(path);
             Assert.False(back.General.ShowOverlayOnlyWhileGameRuns);
             Assert.True(back.General.AutostartNoticeShown);
+            Assert.True(back.General.AutostartDefaultApplied);
+            Assert.True(back.Clone().General.AutostartDefaultApplied);
             Assert.False(back.Clone().General.ShowOverlayOnlyWhileGameRuns);
         }
         finally { Directory.Delete(dir, true); }
@@ -505,6 +661,35 @@ public class AutostartAndGameWatchTests
             game.IsChecked = false;
             Assert.False(store.Current.General.ShowOverlayOnlyWhileGameRuns);
             Assert.False(SettingsStore.LoadFrom(path).General.ShowOverlayOnlyWhileGameRuns);
+        }
+        finally { Directory.Delete(dir, true); }
+    });
+
+    [Fact]
+    public void Settings_page_shows_an_entry_switched_off_in_windows_as_off_and_ticking_switches_it_on() => Sta.Run(() =>
+    {
+        string dir = TempDirectory();
+        using var run = new TestRunKey();
+        try
+        {
+            var store = new SettingsStore(Path.Combine(dir, "settings.json"));
+            using var services = ServiceFactory.CreateDemo();
+            var reg = new AutostartRegistration(FakeExe(), run.Path);
+            reg.Enable();
+            run.SetApproval(AutostartRegistration.ValueName, 0x03);
+            var page = new SettingsPage(new DashboardContext { Settings = store, Services = services, Autostart = reg });
+            OffscreenRenderer.Render(OffscreenRenderer.Themed(page, ThemeCatalog.Obsidian), 1000);
+
+            var auto = Descendants<CheckBox>(page).Single(c => Equals(c.Content, "Start Aion2Dps with Windows (in the tray)"));
+            var note = Descendants<TextBlock>(page).Single(t => t.Text.StartsWith("Switched off in Windows", StringComparison.Ordinal));
+            Assert.False(auto.IsChecked);
+            Assert.Equal(Visibility.Visible, note.Visibility);
+
+            auto.IsChecked = true;
+            Assert.True(reg.IsEnabled());
+            Assert.Null(run.GetApproval(AutostartRegistration.ValueName));
+            Assert.True(auto.IsChecked);
+            Assert.Equal(Visibility.Collapsed, note.Visibility);
         }
         finally { Directory.Delete(dir, true); }
     });

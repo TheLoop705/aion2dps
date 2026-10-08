@@ -125,11 +125,14 @@ its menus is open) it waits to shrink until you move away, so a click never land
 Aion2Dps never changes Steam or the game (no launch options, no wrapper), so it can't be started *by* Steam. Instead,
 **Settings → Startup** has two options that make it feel like part of the game:
 
-* **Start Aion2Dps with Windows (in the tray)** (off by default): adds a per-user entry
+* **Start Aion2Dps with Windows (in the tray)**: a per-user entry
   (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run\Aion2Dps`, `"<install folder>\Aion2Dps.exe" --autostart`).
-  Started this way the meter stays quietly in the tray: no dashboard window and nothing takes focus. The installer's
-  `-Autostart` option sets up the same entry. The checkbox shows what is in the registry, so it stays correct
-  whichever way the entry was made, and moving the install fixes the entry on the next start.
+  Started this way the meter stays quietly in the tray: no dashboard window and nothing takes focus (if you already
+  opened Aion2Dps yourself, the Windows start leaves it alone). An installed copy switches this on once, the first
+  time it runs (a tray message says so); untick it and it stays off. The installer's `-Autostart` option switches it
+  on right away. The checkbox shows what is in the registry, including Windows' own switch (Task Manager → Startup
+  apps, Settings → Apps → Startup): if it was switched off there, the checkbox is unticked and ticking it switches it
+  on again. Moving the install fixes the entry on the next start, and uninstalling removes it.
 * **Show the overlay only while AION 2 is running** (on by default): the overlay appears when the game client starts
   (from Steam or anywhere else) and hides about five seconds after it closes. A quick client restart doesn't make
   it flicker. If you hide the overlay while playing (Ctrl+Alt+O, the tray menu or its hide button), it stays hidden

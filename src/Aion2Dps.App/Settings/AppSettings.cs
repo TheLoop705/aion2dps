@@ -107,6 +107,11 @@ public sealed class GeneralSettings
     public bool ShowOverlayOnlyWhileGameRuns { get; set; } = true;
     /// <summary>The one-time "runs in the tray" notice after the first Windows autostart was shown.</summary>
     public bool AutostartNoticeShown { get; set; }
+    /// <summary>
+    /// The one-time "start with Windows on" default for installed copies was applied (or found an existing decision). After
+    /// that only the registry decides, so the user's untick sticks. Not a mirror of the registry state.
+    /// </summary>
+    public bool AutostartDefaultApplied { get; set; }
     /// <summary>Where recordings go; null = %USERPROFILE%/Documents/Aion2Dps/captures.</summary>
     public string? CaptureFolder { get; set; }
     public bool EnableGlobalHotkeys { get; set; } = true;

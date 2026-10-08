@@ -10,7 +10,9 @@
 #   -NoShortcut           AION2DPS_NO_SHORTCUT=1  no Start menu or desktop shortcut
 #   -NoDesktopShortcut    AION2DPS_NO_DESKTOP_SHORTCUT=1
 #   -NoLaunch             AION2DPS_NO_LAUNCH=1    don't start the meter afterwards
-#   -Autostart            AION2DPS_AUTOSTART=1    start Aion2Dps with Windows (in the tray; the overlay appears with AION 2)
+#   -Autostart            AION2DPS_AUTOSTART=1    start Aion2Dps with Windows now (in the tray; the overlay appears with AION 2),
+#                                                 even if it was switched off before. Without it the app switches this on
+#                                                 once, the first time it runs, and leaves it to Settings > Startup after.
 #   -Uninstall [-Purge]   AION2DPS_UNINSTALL=1    remove Aion2Dps (-Purge also deletes settings and fight history)
 #   -ZipPath <zip>        AION2DPS_ZIP            install from a local release ZIP (offline / testing)
 #
@@ -42,9 +44,15 @@ param(
     # "Start with Windows": the value 'Aion2Dps' below HKCU\<RunKey> (the app reads the registry; nothing in settings.json).
     $RunKey = 'Software\Microsoft\Windows\CurrentVersion\Run'
     $RunValue = 'Aion2Dps'
-    # Test hook (undocumented): AION2DPS_TEST_RUN_KEY redirects the Run key to another key below HKCU\Software, so installer
-    # tests never modify the real Run key. The generated uninstall.ps1 honours it too.
-    if ($env:AION2DPS_TEST_RUN_KEY -match '^Software\\[^\\]') { $RunKey = $env:AION2DPS_TEST_RUN_KEY.TrimEnd('\') }
+    # Windows' own on/off switch for it (Task Manager > Startup apps): REG_BINARY 'Aion2Dps' below HKCU\<ApprovedKey>.
+    $ApprovedKey = 'Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run'
+    # Test hook (undocumented): AION2DPS_TEST_RUN_KEY redirects the Run key to another key below HKCU\Software (and the
+    # StartupApproved key to its subkey 'StartupApproved', as the app does), so installer tests never modify the real keys.
+    # The generated uninstall.ps1 honours it too.
+    if ($env:AION2DPS_TEST_RUN_KEY -match '^Software\\[^\\]') {
+        $RunKey = $env:AION2DPS_TEST_RUN_KEY.TrimEnd('\')
+        $ApprovedKey = "$RunKey\StartupApproved"
+    }
     $MarkerName = '.aion2dps-install'
     $ManifestName = 'install-manifest.txt'
     $DefaultDir = Join-Path $env:LOCALAPPDATA 'Programs\Aion2Dps'
@@ -350,23 +358,35 @@ param(
         } finally { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($shell) }
     }
 
-    # Writes the Run value for the installed exe (the same command the app's Settings checkbox writes).
+    # Deletes Windows' on/off flag for the 'Aion2Dps' Run value (absent = enabled); other apps' flags stay untouched.
+    function Remove-AutostartApproval {
+        $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($ApprovedKey, $true)
+        if ($key) { try { $key.DeleteValue($RunValue, $false) } finally { $key.Dispose() } }
+    }
+
+    # Writes the Run value for the installed exe (the same command the app's Settings checkbox writes) and clears a
+    # "switched off" flag Windows may hold for it: -Autostart is an explicit request to start with Windows.
     function Set-Autostart {
         $key = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($RunKey)   # opens an existing key; other values stay untouched
         if (-not $key) { throw "Could not open HKCU\$RunKey." }
         try { $key.SetValue($RunValue, "`"$appPath`" --autostart", [Microsoft.Win32.RegistryValueKind]::String) } finally { $key.Dispose() }
+        Remove-AutostartApproval
     }
 
-    # Removes the Run value only when it starts a program inside $dir (never another app's entry or another install's).
+    # Removes the Run value (and Windows' on/off flag for it) only when it starts a program inside $dir (never another app's
+    # entry or another install's). Works whether or not $dir still exists.
     function Remove-AutostartEntry([string]$dir) {
+        $dir = $dir.TrimEnd('\')
+        if (-not $dir -or $dir.Length -le ([IO.Path]::GetPathRoot($dir + '\')).TrimEnd('\').Length) { return }   # never a drive root
         $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($RunKey, $true)
         if (-not $key) { return }
         try {
             $cmd = [string]$key.GetValue($RunValue, $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
             if ($cmd -and ($cmd -match '^\s*"(?<exe>[^"]+)"' -or $cmd -match '^\s*(?<exe>.+?\.exe)(\s|$)')) {
                 $exe = [IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($Matches['exe']))
-                if ($exe.StartsWith($dir.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) {
+                if ($exe.StartsWith($dir + '\', [StringComparison]::OrdinalIgnoreCase)) {
                     $key.DeleteValue($RunValue, $false)
+                    Remove-AutostartApproval
                     Write-Info 'Removed the start-with-Windows entry.'
                 }
             }
@@ -396,16 +416,23 @@ foreach ($folder in 'Programs', 'DesktopDirectory') {
 $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Aion2Dps'
 if ((Get-ItemProperty -Path $key).InstallLocation -ieq $dir) { Remove-Item -LiteralPath $key -Recurse -Force }
 # Start with Windows: remove the Run value 'Aion2Dps' only when it starts a program in this folder.
-# Test hook: AION2DPS_TEST_RUN_KEY (a key below HKCU\Software) replaces the Run key so tests never touch the real one.
+# Windows' on/off flag for it (StartupApproved) goes with it.
+# Test hook: AION2DPS_TEST_RUN_KEY (a key below HKCU\Software) replaces the Run key (and its subkey 'StartupApproved' the
+# StartupApproved key) so tests never touch the real ones.
 $runKey = 'Software\Microsoft\Windows\CurrentVersion\Run'
-if ($env:AION2DPS_TEST_RUN_KEY -match '^Software\\[^\\]') { $runKey = $env:AION2DPS_TEST_RUN_KEY.TrimEnd('\') }
+$approvedKey = 'Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run'
+if ($env:AION2DPS_TEST_RUN_KEY -match '^Software\\[^\\]') { $runKey = $env:AION2DPS_TEST_RUN_KEY.TrimEnd('\'); $approvedKey = "$runKey\StartupApproved" }
 $run = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($runKey, $true)
 if ($run) {
     try {
         $cmd = [string]$run.GetValue('Aion2Dps', $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
         if ($cmd -and ($cmd -match '^\s*"(?<exe>[^"]+)"' -or $cmd -match '^\s*(?<exe>.+?\.exe)(\s|$)')) {
             $exe = [IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($Matches['exe']))
-            if ($exe.StartsWith($dir + '\', [StringComparison]::OrdinalIgnoreCase)) { $run.DeleteValue('Aion2Dps', $false) }
+            if ($exe.StartsWith($dir + '\', [StringComparison]::OrdinalIgnoreCase)) {
+                $run.DeleteValue('Aion2Dps', $false)
+                $approved = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($approvedKey, $true)
+                if ($approved) { try { $approved.DeleteValue('Aion2Dps', $false) } finally { $approved.Dispose() } }
+            }
         }
     } catch { } finally { $run.Dispose() }
 }
@@ -490,7 +517,11 @@ Write-Host 'Aion2Dps was removed. Npcap is still installed (remove it under Sett
 
     function Uninstall-App {
         Write-Step 'Uninstalling Aion2Dps'
-        if (-not (Test-Path -LiteralPath $Destination -PathType Container)) { Write-Info "Aion2Dps is not installed at $Destination."; return }
+        if (-not (Test-Path -LiteralPath $Destination -PathType Container)) {
+            Remove-AutostartEntry $Destination   # the folder was deleted by hand: still drop its start-with-Windows entry
+            Write-Info "Aion2Dps is not installed at $Destination."
+            return
+        }
         $script = Join-Path $Destination 'uninstall.ps1'
         if ((Test-Path -LiteralPath $markerPath) -and (Test-Path -LiteralPath $script)) {
             & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script
@@ -537,6 +568,9 @@ Write-Host 'Aion2Dps was removed. Npcap is still installed (remove it under Sett
                 Set-Autostart
                 Write-Good 'Aion2Dps starts with Windows (in the tray); the overlay appears while AION 2 is running.'
             } catch { Write-Warn2 "Could not set up the start with Windows ($($_.Exception.Message)). Use Settings > Startup in the dashboard." }
+        } else {
+            Write-Info 'The first time it runs, Aion2Dps switches on "Start with Windows" (in the tray), so it is ready when you'
+            Write-Info 'start AION 2 from Steam. Change it under Settings > Startup in the dashboard.'
         }
         if (-not $Opt.NoLaunch) {
             Write-Step 'Starting Aion2Dps'

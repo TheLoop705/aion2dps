@@ -65,7 +65,12 @@ public sealed class AppHost : IDisposable
         StartCapture();
 
         _autostart = AutostartRegistration.ForCurrentProcess();
-        if (_options.Mode == LaunchMode.Live) ReconcileAutostart();
+        bool autostartTurnedOn = false;
+        if (_options.Mode == LaunchMode.Live)
+        {
+            ReconcileAutostart();
+            autostartTurnedOn = ApplyAutostartDefault();
+        }
 
         _overlay = new OverlayController(_services, _settings, OpenDashboard);
         _overlay.StateChanged += UpdateTray;
@@ -89,7 +94,8 @@ public sealed class AppHost : IDisposable
         _settings.Changed += _ => { ApplyGameAwareness(); UpdateTray(); };   // keeps the tray in sync with the Settings page
         ApplyGameAwareness();
         UpdateTray();
-        ShowFirstAutostartNotice();
+        if (autostartTurnedOn) ShowAutostartTurnedOnNotice();
+        else ShowFirstAutostartNotice();
 
         if (_settings.Current.General.EnableGlobalHotkeys) RegisterHotkeys();
 
@@ -121,6 +127,35 @@ public sealed class AppHost : IDisposable
         }
         catch (Exception ex) { AppLog.Warn("App", $"Could not check the start-with-Windows entry: {ex.Message}"); }
     }
+
+    /// <summary>
+    /// Once per user, for installed copies: switch "Start Aion2Dps with Windows" on (the feature exists so the meter is
+    /// ready when AION 2 is started from Steam). An entry the user or Windows already decided about is left alone, and after
+    /// this one time the registry alone decides, so unticking it in Settings → Startup sticks. Returns true when it was
+    /// switched on now.
+    /// </summary>
+    private bool ApplyAutostartDefault()
+    {
+        var g = _settings.Current.General;
+        if (g.AutostartDefaultApplied || _autostart is null) return false;
+        try
+        {
+            if (_autostart.ApplyInstallDefault() is not { } created) return false;   // build output / loose copy: not now
+            g.AutostartDefaultApplied = true;
+            _settings.Save();   // before the overlay/tray exist: nothing to notify yet
+            if (created) AppLog.Info("App", $"Start with Windows switched on ({_autostart.Command})");
+            return created;
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warn("App", $"Could not set up the start with Windows: {ex.Message}");
+            return false;
+        }
+    }
+
+    private void ShowAutostartTurnedOnNotice() =>
+        _tray?.ShowBalloon("Aion2Dps", "Aion2Dps now starts with Windows in the tray, ready for AION 2. " +
+                                       "Turn this off under Settings > Startup.");
 
     /// <summary>Starts/stops the game watcher to match the setting (also when it changes on the Settings page).</summary>
     private void ApplyGameAwareness()
@@ -173,9 +208,7 @@ public sealed class AppHost : IDisposable
     {
         var g = _settings.Current.General;
         if (!_options.Autostart || g.AutostartNoticeShown || _tray is null) return;
-        _tray.ShowBalloon("Aion2Dps", _gamePolicy.Enabled
-            ? "Aion2Dps runs in the tray and appears when AION 2 starts."
-            : "Aion2Dps runs in the tray. Right-click the icon for the menu.");
+        _tray.ShowBalloon("Aion2Dps", GameOverlayVisibilityPolicy.AutostartNoticeText(_gamePolicy.Enabled, AllowAutoShow));
         g.AutostartNoticeShown = true;
         _settings.NotifyChanged(saveImmediately: true);
     }

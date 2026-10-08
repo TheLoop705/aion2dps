@@ -38,6 +38,14 @@ public sealed class GameOverlayVisibilityPolicy
     public static bool ShowAtStartup(bool gameAware, bool launchOverlayOnStart, bool overlayVisible, bool noOverlay) =>
         !gameAware && !noOverlay && launchOverlayOnStart && overlayVisible;
 
+    /// <summary>
+    /// The one-time tray notice after the first Windows autostart. It promises the overlay with the game only when that will
+    /// actually happen (feature on and "Show the overlay on start" allows the automatic show).
+    /// </summary>
+    public static string AutostartNoticeText(bool gameAware, bool allowAutoShow) => gameAware && allowAutoShow
+        ? "Aion2Dps runs in the tray and appears when AION 2 starts."
+        : "Aion2Dps runs in the tray. Right-click the icon for the menu.";
+
     /// <summary>Tray status line: null when the feature is off.</summary>
     public string? StatusText => !Enabled ? null : GameRunning ? "AION 2 running" : "Waiting for AION 2";
 

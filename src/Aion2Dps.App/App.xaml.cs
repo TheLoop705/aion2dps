@@ -46,7 +46,10 @@ public partial class App : Application
 
         if (!options.AllowMultiple)
         {
-            _guard = SingleInstanceGuard.TryAcquire("Aion2Dps", () => Dispatcher.BeginInvoke(() => _host?.OpenDashboard(null)));
+            // A second launch opens the running meter's dashboard, except Windows' delayed autostart: it must not pop up
+            // (and focus) a dashboard over a game the user may be starting.
+            _guard = SingleInstanceGuard.TryAcquire("Aion2Dps", () => Dispatcher.BeginInvoke(() => _host?.OpenDashboard(null)),
+                signalExisting: !options.Autostart);
             if (_guard is null)
             {
                 Shutdown(0);

@@ -10,6 +10,7 @@ public sealed class SettingsPage : DashboardPage
     private readonly StackPanel _hotkeys = new();
     private readonly CheckBox _autostartCheck;
     private readonly TextBlock _autostartError;
+    private readonly TextBlock _autostartOffInWindows;
     private bool _syncingAutostart;
 
     public SettingsPage(DashboardContext context) : base(context)
@@ -114,10 +115,13 @@ public sealed class SettingsPage : DashboardPage
         _autostartError.TextWrapping = TextWrapping.Wrap;
         _autostartError.Margin = new Thickness(24, 2, 0, 0);
         _autostartError.Visibility = Visibility.Collapsed;
+        _autostartOffInWindows = Hint("Switched off in Windows (Task Manager > Startup apps). Tick the box to switch it on again.");
+        _autostartOffInWindows.Visibility = Visibility.Collapsed;
         SyncAutostart();
         startup.Children.Add(_autostartCheck);
         startup.Children.Add(Hint("Starts quietly when you sign in to Windows: no dashboard window, just the tray icon. " +
                                   "Nothing is changed in Steam or the game."));
+        startup.Children.Add(_autostartOffInWindows);
         startup.Children.Add(_autostartError);
         var whileGame = Ui.Check("Show the overlay only while AION 2 is running", g.ShowOverlayOnlyWhileGameRuns,
             v => { g.ShowOverlayOnlyWhileGameRuns = v; Save(); });
@@ -163,12 +167,18 @@ public sealed class SettingsPage : DashboardPage
                 _autostartCheck.ToolTip = "Not available in this mode.";
                 return;
             }
-            try { _autostartCheck.IsChecked = reg.IsEnabled(); }
+            bool offInWindows = false;
+            try
+            {
+                _autostartCheck.IsChecked = reg.IsEnabled();
+                offInWindows = reg.IsDisabledByWindows();
+            }
             catch (Exception ex)
             {
                 AppLog.Warn("Settings", $"Could not read the start-with-Windows entry: {ex.Message}");
                 _autostartCheck.IsChecked = false;
             }
+            _autostartOffInWindows.Visibility = offInWindows ? Visibility.Visible : Visibility.Collapsed;
         }
         finally { _syncingAutostart = false; }
     }
