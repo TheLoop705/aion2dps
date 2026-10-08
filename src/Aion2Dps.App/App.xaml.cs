@@ -8,7 +8,7 @@ namespace Aion2Dps.App;
 /// <summary>
 /// Entry point. Command line: <c>--demo</c>, <c>--sim</c>, <c>--replay &lt;file&gt; [--speed x]</c>,
 /// <c>--render-screens &lt;dir&gt;</c> (real simulated pipeline rendered offscreen to PNGs, no windows),
-/// <c>--render-demo-screens &lt;dir&gt;</c> (design catalog from the demo fakes), <c>--no-overlay</c>, <c>--allow-multiple</c>.
+/// <c>--render-demo-screens &lt;dir&gt;</c> (design catalog from the demo fakes), <c>--no-overlay</c>, <c>--allow-multiple</c>, <c>--autostart</c> (started by Windows: quiet start in the tray).
 /// </summary>
 public partial class App : Application
 {
@@ -46,7 +46,10 @@ public partial class App : Application
 
         if (!options.AllowMultiple)
         {
-            _guard = SingleInstanceGuard.TryAcquire("Aion2Dps", () => Dispatcher.BeginInvoke(() => _host?.OpenDashboard(null)));
+            // A second launch opens the running meter's dashboard, except Windows' delayed autostart: it must not pop up
+            // (and focus) a dashboard over a game the user may be starting.
+            _guard = SingleInstanceGuard.TryAcquire("Aion2Dps", () => Dispatcher.BeginInvoke(() => _host?.OpenDashboard(null)),
+                signalExisting: !options.Autostart);
             if (_guard is null)
             {
                 Shutdown(0);
