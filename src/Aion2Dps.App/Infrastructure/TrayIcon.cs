@@ -13,6 +13,8 @@ public sealed class TrayIcon : IDisposable
     private readonly Forms.ToolStripMenuItem _overlayItem;
     private readonly Forms.ToolStripMenuItem _lockItem;
     private readonly Forms.ToolStripMenuItem _partyItem;
+    private readonly Forms.ToolStripMenuItem _statusItem;
+    private readonly Forms.ToolStripSeparator _statusSeparator;
 
     public sealed record Actions(Action ToggleOverlay, Action OpenDashboard, Action Reset, Action<TimeSpan> StartTraining, Action ToggleLock, Action Quit)
     {
@@ -30,6 +32,10 @@ public sealed class TrayIcon : IDisposable
         var training = new Forms.ToolStripMenuItem("Training run");
         foreach (var (label, secs) in new[] { ("30 seconds", 30), ("1 minute", 60), ("2 minutes", 120), ("3 minutes", 180), ("5 minutes", 300) })
             training.DropDownItems.Add(label, null, (_, _) => actions.StartTraining(TimeSpan.FromSeconds(secs)));
+        _statusItem = new Forms.ToolStripMenuItem("") { Enabled = false, Visible = false };
+        _statusSeparator = new Forms.ToolStripSeparator { Visible = false };
+        menu.Items.Add(_statusItem);
+        menu.Items.Add(_statusSeparator);
         menu.Items.Add(new Forms.ToolStripMenuItem("Open dashboard", null, (_, _) => actions.OpenDashboard()) { Font = new Drawing.Font(menu.Font, Drawing.FontStyle.Bold) });
         menu.Items.Add(_overlayItem);
         menu.Items.Add(_lockItem);
@@ -55,6 +61,15 @@ public sealed class TrayIcon : IDisposable
     public void SetLocked(bool locked) => _lockItem.Checked = locked;
 
     public void SetPartyOnly(bool partyOnly) => _partyItem.Checked = partyOnly;
+
+    /// <summary>A greyed status line at the top of the menu ("Waiting for AION 2"); null hides it.</summary>
+    public void SetStatus(string? text)
+    {
+        bool visible = !string.IsNullOrEmpty(text);
+        _statusItem.Text = text ?? "";
+        _statusItem.Visible = visible;
+        _statusSeparator.Visible = visible;
+    }
 
     public void SetTooltip(string text) => _icon.Text = text.Length > 63 ? text[..63] : text;
 

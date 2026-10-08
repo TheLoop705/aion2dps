@@ -8,7 +8,7 @@ namespace Aion2Dps.App;
 /// <summary>
 /// Entry point. Command line: <c>--demo</c>, <c>--sim</c>, <c>--replay &lt;file&gt; [--speed x]</c>,
 /// <c>--render-screens &lt;dir&gt;</c> (real simulated pipeline rendered offscreen to PNGs, no windows),
-/// <c>--render-demo-screens &lt;dir&gt;</c> (design catalog from the demo fakes), <c>--no-overlay</c>, <c>--allow-multiple</c>.
+/// <c>--render-demo-screens &lt;dir&gt;</c> (design catalog from the demo fakes), <c>--no-overlay</c>, <c>--allow-multiple</c>, <c>--autostart</c> (started by Windows: quiet start in the tray).
 /// </summary>
 public partial class App : Application
 {

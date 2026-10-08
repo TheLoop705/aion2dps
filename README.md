@@ -56,8 +56,10 @@ Run the same command again to update. A running meter is closed automatically, a
 ```
 
 Other options: `-Version 0.2.0`, `-InstallDir <path>`, `-SkipNpcap`, `-NoShortcut`, `-NoDesktopShortcut`,
-`-NoLaunch`, and `-Purge` (with `-Uninstall`, also deletes settings and history). For the one-liner, set the matching
-environment variable first, e.g. `$env:AION2DPS_SKIP_NPCAP = 1`.
+`-NoLaunch`, `-Autostart` (start Aion2Dps with Windows, see [Start with Windows and AION 2](#start-with-windows-and-aion-2)),
+and `-Purge` (with `-Uninstall`, also deletes settings and history). For the one-liner, set the matching
+environment variable first, e.g. `$env:AION2DPS_SKIP_NPCAP = 1` or `$env:AION2DPS_AUTOSTART = 1`. Uninstalling
+also removes the start-with-Windows entry when it points into the install folder.
 
 You can also download the release ZIP and extract it anywhere; then install Npcap yourself (see Requirements).
 
@@ -99,7 +101,7 @@ dotnet test Aion2Dps.sln
 .\src\Aion2Dps.App\bin\Debug\net10.0-windows\Aion2Dps.exe --demo
 ```
 
-Other options: `--no-overlay`, `--allow-multiple`, and the offscreen verification modes `--render-screens <dir>`
+Other options: `--no-overlay`, `--allow-multiple`, `--autostart` (the quiet tray start Windows uses, see below), and the offscreen verification modes `--render-screens <dir>`
 (runs the real simulated pipeline and renders the overlay, breakdowns, reports, history, trends and dashboard to PNG
 without showing any window) and `--render-demo-screens <dir>` (the design catalog of every overlay state × theme).
 
@@ -117,6 +119,26 @@ its own for every fight, including PvP and training runs, and stays expanded whi
 fight. The chevron button in the toolbar shrinks it again. While your mouse is on the expanded overlay (or one of
 its menus is open) it waits to shrink until you move away, so a click never lands in the game. Turn this off under
 **Settings → Overlay → Shrink overlay when not in combat**.
+
+### Start with Windows and AION 2
+
+Aion2Dps never changes Steam or the game (no launch options, no wrapper), so it can't be started *by* Steam. Instead,
+**Settings → Startup** has two options that make it feel like part of the game:
+
+* **Start Aion2Dps with Windows (in the tray)** (off by default): adds a per-user entry
+  (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run\Aion2Dps`, `"<install folder>\Aion2Dps.exe" --autostart`).
+  Started this way the meter stays quietly in the tray: no dashboard window and nothing takes focus. The installer's
+  `-Autostart` option sets up the same entry. The checkbox shows what is in the registry, so it stays correct
+  whichever way the entry was made, and moving the install fixes the entry on the next start.
+* **Show the overlay only while AION 2 is running** (on by default): the overlay appears when the game client starts
+  (from Steam or anywhere else) and hides about five seconds after it closes. A quick client restart doesn't make
+  it flicker. If you hide the overlay while playing (Ctrl+Alt+O, the tray menu or its hide button), it stays hidden
+  until the next game start. The tray icon shows **Waiting for AION 2** or **AION 2 running**. Turn this off to
+  get the old behaviour, where the overlay follows **Show the overlay on start**. Replays, the simulator and the
+  demo always behave the old way.
+
+Together they let you start AION 2 from Steam as usual: the meter is already in the tray and the overlay appears with
+the game. Opening Aion2Dps again (Start menu or desktop shortcut) while it runs opens the dashboard.
 
 ## Command-line tool
 

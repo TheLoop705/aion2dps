@@ -8,6 +8,9 @@ namespace Aion2Dps.App.Dashboard;
 public sealed class SettingsPage : DashboardPage
 {
     private readonly StackPanel _hotkeys = new();
+    private readonly CheckBox _autostartCheck;
+    private readonly TextBlock _autostartError;
+    private bool _syncingAutostart;
 
     public SettingsPage(DashboardContext context) : base(context)
     {
@@ -104,11 +107,29 @@ public sealed class SettingsPage : DashboardPage
         folders.Children.Add(FolderRow("Recordings", context.CaptureFolder));
         right.Children.Add(Ui.Card("Data folders", folders));
 
-        // Start-up
+        // Startup
         var startup = new StackPanel();
-        startup.Children.Add(Ui.Check("Show the overlay on start", g.LaunchOverlayOnStart, v => { g.LaunchOverlayOnStart = v; Save(); }));
-        startup.Children.Add(Ui.Check("Open the dashboard on start", g.OpenDashboardOnStart, v => { g.OpenDashboardOnStart = v; Save(); }));
-        right.Children.Add(Ui.Card("Start-up", startup));
+        _autostartCheck = Ui.Check("Start Aion2Dps with Windows (in the tray)", false, OnAutostartToggled);
+        _autostartError = Ui.Text("", ThemeKeys.Negative, 11.5);
+        _autostartError.TextWrapping = TextWrapping.Wrap;
+        _autostartError.Margin = new Thickness(24, 2, 0, 0);
+        _autostartError.Visibility = Visibility.Collapsed;
+        SyncAutostart();
+        startup.Children.Add(_autostartCheck);
+        startup.Children.Add(Hint("Starts quietly when you sign in to Windows: no dashboard window, just the tray icon. " +
+                                  "Nothing is changed in Steam or the game."));
+        startup.Children.Add(_autostartError);
+        var whileGame = Ui.Check("Show the overlay only while AION 2 is running", g.ShowOverlayOnlyWhileGameRuns,
+            v => { g.ShowOverlayOnlyWhileGameRuns = v; Save(); });
+        whileGame.Margin = new Thickness(0, 8, 0, 0);
+        startup.Children.Add(whileGame);
+        startup.Children.Add(Hint("The overlay appears when the game starts (also from Steam) and hides a few seconds after it closes. " +
+                                  "If you hide it while playing, it stays hidden until the next game start."));
+        var onStart = Ui.Check("Show the overlay on start (or when AION 2 starts)", g.LaunchOverlayOnStart, v => { g.LaunchOverlayOnStart = v; Save(); });
+        onStart.Margin = new Thickness(0, 8, 0, 0);
+        startup.Children.Add(onStart);
+        startup.Children.Add(Ui.Check("Open the dashboard on start (not when started with Windows)", g.OpenDashboardOnStart, v => { g.OpenDashboardOnStart = v; Save(); }));
+        right.Children.Add(Ui.Card("Startup", startup));
 
         cols.Children.Add(left);
         Grid.SetColumn(right, 2);
@@ -121,6 +142,55 @@ public sealed class SettingsPage : DashboardPage
     public override string Title => "Settings";
     public override string Icon => Ui.IconSettings;
 
+    private static TextBlock Hint(string text)
+    {
+        var t = Ui.Text(text, ThemeKeys.TextMuted, 11.5);
+        t.TextWrapping = TextWrapping.Wrap;
+        t.Margin = new Thickness(24, 2, 0, 0);
+        return t;
+    }
+
+    /// <summary>The checkbox mirrors the registry (the installer or another copy may have changed it).</summary>
+    private void SyncAutostart()
+    {
+        _syncingAutostart = true;
+        try
+        {
+            if (Context.Autostart is not { } reg)
+            {
+                _autostartCheck.IsChecked = false;
+                _autostartCheck.IsEnabled = false;
+                _autostartCheck.ToolTip = "Not available in this mode.";
+                return;
+            }
+            try { _autostartCheck.IsChecked = reg.IsEnabled(); }
+            catch (Exception ex)
+            {
+                AppLog.Warn("Settings", $"Could not read the start-with-Windows entry: {ex.Message}");
+                _autostartCheck.IsChecked = false;
+            }
+        }
+        finally { _syncingAutostart = false; }
+    }
+
+    private void OnAutostartToggled(bool enabled)
+    {
+        if (_syncingAutostart || Context.Autostart is not { } reg) return;
+        try
+        {
+            reg.Set(enabled);
+            _autostartError.Visibility = Visibility.Collapsed;
+            AppLog.Info("Settings", enabled ? $"Start with Windows enabled ({reg.Command})" : "Start with Windows disabled");
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warn("Settings", $"Could not change the start-with-Windows entry: {ex.Message}");
+            _autostartError.Text = "Windows did not allow the change: " + ex.Message;
+            _autostartError.Visibility = Visibility.Visible;
+        }
+        SyncAutostart();
+    }
+
     private void Save()
     {
         Context.ApplyServiceSettings();
@@ -129,6 +199,7 @@ public sealed class SettingsPage : DashboardPage
 
     public override void OnShown()
     {
+        SyncAutostart();
         _hotkeys.Children.Clear();
         foreach (var h in Context.Hotkeys())
         {
