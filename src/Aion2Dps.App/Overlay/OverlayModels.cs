@@ -78,6 +78,8 @@ public sealed record OverlayStatus
     public uint? PinnedEntityId { get; init; }
     /// <summary>The local player's DPS in the last fight (compact bar hint; null = unknown).</summary>
     public double? LastFightDps { get; init; }
+    /// <summary>The next starred timer for the idle bar ("Spacetime Rift in 12m"; null = none / turned off).</summary>
+    public string? NextTimer { get; init; }
 }
 
 /// <summary>Per-row-size metrics.</summary>

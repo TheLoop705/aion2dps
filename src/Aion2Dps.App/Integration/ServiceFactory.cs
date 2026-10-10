@@ -1,6 +1,7 @@
 using Aion2Dps.App.Demo;
 using Aion2Dps.Capture;
 using Aion2Dps.Combat;
+using Aion2Dps.Combat.Timers;
 using Aion2Dps.GameData;
 using Aion2Dps.Protocol;
 using Aion2Dps.Simulator;
@@ -41,6 +42,9 @@ public sealed record AppServices(
     /// <summary>The multi-flow protocol pipeline behind <see cref="PipelineInput"/> (per-flow counters), or null for the demo.</summary>
     public MultiFlowProtocolPipeline? Pipeline { get; init; }
 
+    /// <summary>Field-boss respawn timers fed by the game's field-boss lists (live, replay and simulator; seeded in the demo).</summary>
+    public FieldBossTimerBook FieldBosses { get; init; } = new();
+
     /// <summary>Extra objects disposed with the services (replay sources, simulator, …).</summary>
     public IReadOnlyList<IDisposable> Extra { get; init; } = [];
 
@@ -75,6 +79,7 @@ public static class ServiceFactory
         {
             ModeLabel = "Demo",
             IsDemo = true,
+            FieldBosses = DemoTimers.Seed(gameData, originUtc ?? DateTime.UtcNow),
         };
     }
 
@@ -113,6 +118,7 @@ public static class ServiceFactory
         {
             ModeLabel = "Live",
             Pipeline = core.Pipeline,
+            FieldBosses = core.FieldBosses,
         };
     }
 
@@ -129,6 +135,7 @@ public static class ServiceFactory
         {
             ModeLabel = "Simulator",
             Pipeline = core.Pipeline,
+            FieldBosses = core.FieldBosses,
         };
     }
 
@@ -143,6 +150,7 @@ public static class ServiceFactory
             ModeLabel = "Replay: " + Path.GetFileName(path),
             Clock = capture.Now,
             Pipeline = core.Pipeline,
+            FieldBosses = core.FieldBosses,
         };
     }
 
@@ -151,11 +159,12 @@ public static class ServiceFactory
     /// decoder) into one engine, so the world and the dungeon-instance connections (LIVE-FINDINGS NEW 1) feed the same
     /// meter. A capture gap of any flow marks the active encounter; a replay restart clears the session.
     /// </summary>
-    private static (GameDataStore GameData, CombatEngine Engine, MultiFlowProtocolPipeline Pipeline, IStreamSink Input) Core(string? gameDataDirectory, EngineOptions? options = null)
+    private static (GameDataStore GameData, CombatEngine Engine, MultiFlowProtocolPipeline Pipeline, IStreamSink Input, FieldBossTimerBook FieldBosses) Core(string? gameDataDirectory, EngineOptions? options = null)
     {
         var gameData = gameDataDirectory is null ? GameDataStore.LoadDefault() : new GameDataStore(gameDataDirectory);
         var engine = new CombatEngine(gameData, options ?? new EngineOptions());
-        var pipeline = new MultiFlowProtocolPipeline(engine, OpcodeTable.LoadOrDefault(), onDiscontinuity: (_, reason) =>
+        var fieldBosses = new FieldBossTimerBook(gameData, TimerData.Load(Path.Combine(gameData.DataDirectory, TimerData.FileName)));
+        var pipeline = new MultiFlowProtocolPipeline(new TeeSink(engine, fieldBosses), OpcodeTable.LoadOrDefault(), onDiscontinuity: (_, reason) =>
         {
             switch (reason)
             {
@@ -167,7 +176,7 @@ public static class ServiceFactory
                     break;
             }
         });
-        return (gameData, engine, pipeline, pipeline.Input);
+        return (gameData, engine, pipeline, pipeline.Input, fieldBosses);
     }
 
     private static IFightStore OpenStore(string path)
@@ -182,5 +191,15 @@ public static class ServiceFactory
             AppLog.Error("App", $"Could not open the fight history at {path}; fights of this session are kept in memory only", ex);
             return new InMemoryFightStore();
         }
+    }
+}
+
+/// <summary>Feeds the combat engine and, for the few events it cares about, the field-boss timer book.</summary>
+internal sealed class TeeSink(IGameEventSink engine, FieldBossTimerBook fieldBosses) : IGameEventSink
+{
+    public void OnEvent(GameEvent gameEvent)
+    {
+        engine.OnEvent(gameEvent);
+        if (gameEvent is FieldBossListEvent) fieldBosses.OnEvent(gameEvent);
     }
 }

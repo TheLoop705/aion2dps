@@ -28,6 +28,7 @@ public sealed class DashboardView : UserControl
         _pages =
         [
             new MeterPage(context),
+            new TimersPage(context),
             new HistoryPage(context),
             new TrendsPage(context),
             new CharacterPage(context),

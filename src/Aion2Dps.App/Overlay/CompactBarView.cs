@@ -86,6 +86,11 @@ public sealed record CompactBarModel
                 {
                     (text, dot, detail) = ("Waiting for combat", ThemeKeys.Positive,
                         s.LocalPlayer is { } lp ? $"Capturing. Tracking {lp.Name}." : "Capturing. Hit something to start an encounter.");
+                    if (status.NextTimer is { Length: > 0 } next)
+                    {
+                        text = next;
+                        detail += "\nNext starred timer (Dashboard → Timers).";
+                    }
                 }
                 break;
         }

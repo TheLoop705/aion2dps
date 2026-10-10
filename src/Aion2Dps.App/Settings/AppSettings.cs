@@ -26,6 +26,7 @@ public sealed class AppSettings
     public OverlaySettings Overlay { get; set; } = new();
     public AppearanceSettings Appearance { get; set; } = new();
     public GeneralSettings General { get; set; } = new();
+    public TimerSettings Timers { get; set; } = new();
     public WindowBounds? Dashboard { get; set; }
 
     public AppSettings Clone() =>
@@ -126,6 +127,27 @@ public sealed class GeneralSettings
     /// <summary>Where recordings go; null = %USERPROFILE%/Documents/Aion2Dps/captures.</summary>
     public string? CaptureFolder { get; set; }
     public bool EnableGlobalHotkeys { get; set; } = true;
+}
+
+/// <summary>Rift / event / field-boss timers (Dashboard → Timers).</summary>
+public sealed class TimerSettings
+{
+    /// <summary>Server clock: a region code of <c>timers.json</c> (EU, NAE, NAW, …) or a time zone id.</summary>
+    public string ServerRegion { get; set; } = "EU";
+    /// <summary>Tray notifications before starred timers.</summary>
+    public bool AlertsEnabled { get; set; } = true;
+    public int AlertMinutesBefore { get; set; } = 5;
+    /// <summary>Also notify when a starred field boss is up (its respawn time arrives).</summary>
+    public bool AlertOnSpawn { get; set; } = true;
+    /// <summary>
+    /// Star overrides: "event:rift" / "boss:111021" → starred or not. Missing keys use the default (starred events of
+    /// timers.json, important field bosses).
+    /// </summary>
+    public Dictionary<string, bool> Stars { get; set; } = new();
+    /// <summary>Field-boss list shows starred bosses only.</summary>
+    public bool StarredBossesOnly { get; set; }
+    /// <summary>The slim idle bar shows the next starred timer.</summary>
+    public bool ShowNextOnOverlay { get; set; } = true;
 }
 
 public sealed class WindowBounds

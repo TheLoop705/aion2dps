@@ -10,6 +10,8 @@ public sealed class DashboardContext
     public required AppServices Services { get; init; }
     public required SettingsStore Settings { get; init; }
     public FileLogSink? Log { get; init; }
+    /// <summary>Rift / event / field-boss timers; null hides the Timers page content.</summary>
+    public Timers.TimerService? Timers { get; init; }
     public Func<IReadOnlyList<HotkeyBinding>> Hotkeys { get; init; } = () => GlobalHotkeys.Defaults();
     /// <summary>Applies settings that need a service call (engine options, language, adapter). Called after edits.</summary>
     public Action ApplyServiceSettings { get; init; } = () => { };
