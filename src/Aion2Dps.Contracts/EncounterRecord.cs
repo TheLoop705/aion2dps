@@ -113,6 +113,8 @@ public sealed class CombatantRecord
     public long Healing { get; set; }
     public long DamageTaken { get; set; }
     public int Deaths { get; set; }
+    /// <summary>Each death: when, and the attack that killed (from the kill record; empty for records saved before).</summary>
+    public List<DeathRecord> DeathLog { get; set; } = new();
 
     public DateTime? FirstHitUtc { get; set; }
     public DateTime? LastHitUtc { get; set; }
@@ -200,6 +202,16 @@ public sealed class SkillStats
     public int QualityMeasuredHits { get; set; }
     /// <summary>True when the damage came from a summon/spirit attributed to this combatant.</summary>
     public bool FromSummon { get; set; }
+}
+
+public sealed class DeathRecord
+{
+    /// <summary>Seconds since <see cref="EncounterRecord.StartUtc"/>.</summary>
+    public double T { get; set; }
+    /// <summary>The killing attack (normalized skill id); null when only a death record arrived.</summary>
+    public uint? KillerSkillId { get; set; }
+    public uint? KillerEntityId { get; set; }
+    public uint? KillerNpcCode { get; set; }
 }
 
 public sealed class SourceDamage

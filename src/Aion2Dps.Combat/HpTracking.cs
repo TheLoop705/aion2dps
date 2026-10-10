@@ -219,6 +219,14 @@ internal sealed class HpCheckTracker
         return (double)damage / denom;
     }
 
+    /// <summary>
+    /// Allowed |ratio − 1|: 1 %, or 3 % for a boss that heals itself heavily (healing ≥ 20 % of the HP lost). [real]
+    /// Thamon (Vakron Sky Island) turns hits into healing for ~10 s; in that phase ~9 K per second of decoded damage
+    /// never comes off its HP (an absorb/regen the game does not send), which put an otherwise exact kill at 1.6 %.
+    /// </summary>
+    internal static double Tolerance(long hpLost, long selfHeal) =>
+        hpLost > 0 && selfHeal >= hpLost / 5 ? 0.03 : 0.01;
+
     /// <summary>One result summed over several trackers (one per boss); null when no window was measured.</summary>
     public static HpCheckResult? Combine(IReadOnlyCollection<HpCheckTracker> trackers)
     {
@@ -248,7 +256,7 @@ internal sealed class HpCheckTracker
             HpLost = lost,
             BossSelfHealing = heal,
             Ratio = ratio,
-            Passed = Math.Abs(ratio - 1.0) <= 0.01,
+            Passed = Math.Abs(ratio - 1.0) <= Tolerance(lost, heal),
             Overkill = overkill,
             Note = notes.Count > 0 ? string.Join("; ", notes) : null,
         };

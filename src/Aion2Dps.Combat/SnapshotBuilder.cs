@@ -50,6 +50,11 @@ internal static class SnapshotBuilder
         // shown; if the local player is not known yet either, filtering would empty the meter, so everyone stays visible.
         bool partyKnown = core.Party.IsKnown;
         bool partyFilter = opts.PartyOnly && (partyKnown || local != null);
+        // Automatic scope: in the open world, in a party only the party and solo everyone on the boss; on a training
+        // dummy only you (+ party), never the strangers hitting the dummies next to yours. Inside an instance only your
+        // group is there, so everyone stays: a Force (several parties) then ranks all of its members, not just your party.
+        bool inInstance = core.MapId is uint im && gd.IsInstanceMap(im);
+        if (opts.AutoPartyScope && ((partyKnown && !inInstance) || (enc.Kind == EncounterKind.Dummy && local != null))) partyFilter = true;
 
         // ── rows ──
         var candidates = new List<(CombatantState C, LiveAccumulator A)>(enc.Combatants.Count);

@@ -61,7 +61,7 @@ public sealed class OverlayWindow : Window
 
         View = new OverlayView();
         Content = View;
-        foreach (var handle in new FrameworkElement[] { View.DragHandle, View.CompactBar })
+        foreach (var handle in new FrameworkElement[] { View.DragHandle, View.CompactBar, View.RowsHost })
         {
             handle.MouseLeftButtonDown += OnHandleDown;
             handle.MouseMove += OnHandleMove;
@@ -241,13 +241,15 @@ public sealed class OverlayWindow : Window
 
     private void UpdateAdjustBar() => View.AdjustBarVisible = !_locked && !_compact && IsMouseOver;
 
-    // The header (expanded) and the compact bar both drag the window; a press-and-release on the compact bar without
-    // movement is a click (expand). While locked nothing moves, but the compact bar still expands on click. With
+    // The header (expanded), the compact bar and (bars only) the rows drag the window; a press-and-release on the compact
+    // bar without movement is a click (expand), on a row it opens that row's breakdown. While locked nothing moves, but the compact bar still expands on click. With
     // click-through on, WS_EX_TRANSPARENT sends every click to the game instead, so the bar never swallows clicks.
 
     private void OnHandleDown(object sender, MouseButtonEventArgs e)
     {
         if (e.ClickCount > 1) return;
+        // The classic overlay's rows handle their own clicks; only bars-only rows double as the drag handle.
+        if (ReferenceEquals(sender, View.RowsHost) && !View.BarsOnlyActive) return;
         _pressHandle = (FrameworkElement)sender;
         _moved = false;
         if (_locked) return;
@@ -270,7 +272,10 @@ public sealed class OverlayWindow : Window
 
     private void OnHandleUp(object sender, MouseButtonEventArgs e)
     {
-        bool click = ReferenceEquals(_pressHandle, sender) && !_moved && ReferenceEquals(sender, View.CompactBar);
+        bool pressed = ReferenceEquals(_pressHandle, sender) && !_moved;
+        bool click = pressed && ReferenceEquals(sender, View.CompactBar);
+        bool rowClick = pressed && _dragging && ReferenceEquals(sender, View.RowsHost);
+        var rowPoint = e.GetPosition(View.RowsHost);
         _pressHandle = null;
         if (_dragging)
         {
@@ -281,6 +286,12 @@ public sealed class OverlayWindow : Window
         {
             e.Handled = true;
             CompactBarClicked?.Invoke();
+        }
+        else if (rowClick)
+        {
+            // Unlocked bars only: the press was captured for a possible drag, so the row never saw the click.
+            e.Handled = true;
+            View.ClickRowAt(rowPoint, (Keyboard.Modifiers & ModifierKeys.Control) != 0);
         }
     }
 

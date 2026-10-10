@@ -192,6 +192,17 @@ internal static class EncounterRecordBuilder
                 r.IsPartyMember = cs.IsPartyMember;
                 r.ServerId = cs.ServerId;
                 r.Deaths = cs.Deaths;
+                foreach (var (time, skill, killer) in cs.DeathLog)
+                {
+                    r.DeathLog.Add(new DeathRecord
+                    {
+                        T = Math.Max(0, (time - enc.StartUtc).TotalSeconds),
+                        KillerSkillId = skill != 0 ? skill : null,
+                        KillerEntityId = killer != 0 ? killer : null,
+                        KillerNpcCode = killer != 0 && enc.SourceNpcCodes.TryGetValue(killer, out uint code) ? code
+                            : killer != 0 && enc.Targets.TryGetValue(killer, out var kt) ? kt.NpcCode : null,
+                    });
+                }
                 if (cs.IsEnemy && kind == CombatantKind.Player) r.Kind = CombatantKind.EnemyPlayer;
             }
             else if (kind == CombatantKind.UnknownSummons)

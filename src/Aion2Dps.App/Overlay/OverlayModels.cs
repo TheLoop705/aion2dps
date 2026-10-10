@@ -26,9 +26,22 @@ public sealed record OverlayViewOptions
     public bool PartyOnly { get; init; }
     /// <summary>"Shrink overlay when not in combat" (shows the collapse button in the toolbar).</summary>
     public bool ShrinkWhenIdle { get; init; } = true;
+    /// <summary>Just the DPS bars: no header/footer/box; rows show name + DPS only (see <see cref="OverlaySettings.BarsOnly"/>).</summary>
+    public bool BarsOnly { get; init; }
     public string Version { get; init; } = "";
 
-    public static OverlayViewOptions From(AppSettings s, string version) => new()
+    public static OverlayViewOptions From(AppSettings s, string version)
+    {
+        var o = FromColumns(s, version);
+        // Bars only: DPS is all that matters, so the per-row extras and the other views are off.
+        return !s.Overlay.BarsOnly ? o : o with
+        {
+            BarsOnly = true, View = MeterView.Dps, ShowTotal = false, ShowContribution = false, ShowCritRate = false, ShowMaxHit = false,
+            ShowGearScore = false, ShowRank = false, ShowClassEmblem = false, ShowColumnHeader = false,
+        };
+    }
+
+    private static OverlayViewOptions FromColumns(AppSettings s, string version) => new()
     {
         RowSize = s.Overlay.RowSize,
         View = s.Overlay.View,

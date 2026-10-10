@@ -377,6 +377,8 @@ public sealed class BreakdownView : UserControl
         var gd = _gameData!;
         bool enemySide = c.Kind == CombatantKind.EnemyPlayer;
 
+        if (c.Damage > 0) _content.Children.Add(BuildPacingTiles(c, r));
+
         var chart = new DpsTimelineChart { Height = 220 };
         chart.SetEncounter(r, c.EntityId, 5, x => (x.Kind == CombatantKind.EnemyPlayer) == enemySide);
         _content.Children.Add(Ui.Card(chart, enemySide ? "Opponent DPS timeline" : "Party DPS timeline", subtitle: "rolling 5 s average · hover for values"));
@@ -448,6 +450,26 @@ public sealed class BreakdownView : UserControl
             healTable.SetItems(healSkills);
             _content.Children.Add(Ui.Card(healTable, "Healing done", Ui.Facts(("Total", Fmt.Number(c.Healing)))));
         }
+    }
+
+    /// <summary>Downtime and burst: where DPS was lost (idle seconds) and the best 10 s stretch.</summary>
+    private static FrameworkElement BuildPacingTiles(CombatantRecord c, EncounterRecord r)
+    {
+        var down = FightInsights.ComputeDowntime(c.DamagePerSecond);
+        var burst = FightInsights.BestBurst(c.DamagePerSecond, 10);
+        string Mark(int second) => Fmt.Duration(second);
+        return Ui.TileGrid(4,
+        [
+            Ui.Tile("Uptime", down.ActiveSeconds > 0 ? Fmt.Percent(down.Uptime) : Fmt.Dash, "seconds with damage",
+                $"{down.ActiveSeconds - down.IdleSeconds} of {down.ActiveSeconds} s between your first and last hit dealt damage", ThemeKeys.Positive),
+            Ui.Tile("Idle", down.IdleSeconds > 0 ? $"{down.IdleSeconds} s" : "0 s", "no damage dealt",
+                "Seconds between your first and last hit without any damage (moving, mechanics, dead, out of range)", ThemeKeys.Warning),
+            Ui.Tile("Longest gap", down.LongestGapSeconds > 0 ? $"{down.LongestGapSeconds} s" : Fmt.Dash,
+                down.LongestGapStart is { } gs ? "at " + Mark(gs) : null, "Longest stretch without damage"),
+            Ui.Tile("Best 10 s", burst is { } b ? Fmt.Dps(b.Dps) : Fmt.Dash,
+                burst is { } b2 ? $"{Mark(b2.Start)}–{Mark(b2.Start + 10)} · ×{(c.Dps > 0 ? b2.Dps / c.Dps : 0):0.0} avg" : null,
+                "Highest damage in any 10 seconds of the fight (your burst window)", ThemeKeys.Accent),
+        ]);
     }
 
     private static IEnumerable<(string, string)> SkillTags(SkillStats s)
@@ -540,13 +562,33 @@ public sealed class BreakdownView : UserControl
             Ui.Tile("Endured", Opt(d.Endured), d.Endured is null ? notReported : null, d.Endured is null ? "The protocol does not report endures" : null),
             Ui.Tile("Resisted", Opt(d.Resisted), d.Resisted is null ? notReported : null, d.Resisted is null ? "The protocol does not report resists" : null),
         ]));
-        if (c.Deaths > 0)
+        if (c.DeathLog.Count > 0)
+        {
+            // Death recap: when, and the attack that killed (from the game's kill record).
+            string Attack(DeathRecord d) => d.KillerSkillId is { } sk ? gd.GetSkillName(sk) : "unknown attack";
+            string By(DeathRecord d) => d.KillerNpcCode is { } code ? gd.GetNpcName(code)
+                : d.KillerEntityId is { } id && ChartData.Find(r, id) is { } kc ? ChartData.DisplayName(kc) : Fmt.Dash;
+            var deathCols = new List<TableColumn<DeathRecord>>
+            {
+                new("Time", 70, d => Ui.Number(Fmt.Duration(d.T), $"{Fmt.Seconds(d.T)} into the fight"), d => d.T, HorizontalAlignment.Left),
+                new("Killed by", -1, d => Ui.Text(Attack(d), 0, ThemeKeys.Negative,
+                    tip: d.KillerSkillId is { } id2 ? $"{Attack(d)} (id {id2})" : "The game sent no kill record for this death"), Attack, HorizontalAlignment.Left),
+                new("From", 200, d => Ui.Text(By(d), 0, ThemeKeys.TextMuted), By, HorizontalAlignment.Left),
+            };
+            var deathTable = new GridTable<DeathRecord>(deathCols, 0, descending: false);
+            deathTable.SetItems(c.DeathLog);
+            var killers = c.DeathLog.Where(d => d.KillerSkillId is not null).GroupBy(Attack).OrderByDescending(g => g.Count()).ToList();
+            _content.Children.Add(Ui.Card(deathTable, c.Deaths == 1 ? "Death" : $"Deaths ({c.Deaths})",
+                subtitle: killers.Count == 0 ? null : "most deadly: " + string.Join(", ", killers.Take(3).Select(g => g.Count() > 1 ? $"{g.Key} ×{g.Count()}" : g.Key))));
+        }
+        else if (c.Deaths > 0)
         {
             var deaths = Ui.Facts(("Deaths", c.Deaths.ToString()));
             deaths.Margin = new Thickness(2, 0, 0, 10);
             _content.Children.Add(deaths);
         }
 
+        var biggest = FightInsights.MaxIncomingHits(r, c.EntityId);
         var sources = c.DamageTakenBySource.OrderByDescending(s => s.Damage).ToList();
         long maxSrc = sources.Count == 0 ? 1 : Math.Max(1, sources.Max(s => s.Damage));
         long totalTaken = Math.Max(1, sources.Sum(s => s.Damage));
@@ -555,13 +597,40 @@ public sealed class BreakdownView : UserControl
             new("Source", -1, s => SourceCell(s, r, gd), s => SourceName(s, r, gd), HorizontalAlignment.Left),
             new("Skill", 190, s => Ui.Text(gd.GetSkillName(s.SkillId), 0, ThemeKeys.Text, tip: $"{gd.GetSkillName(s.SkillId)} (id {s.SkillId})"), s => gd.GetSkillName(s.SkillId), HorizontalAlignment.Left),
             new("Hits", 50, s => Ui.Number(s.Hits.ToString()), s => s.Hits),
-            new("Crits", 50, s => Ui.Number(s.Crits.ToString()), s => s.Crits),
+            new("Max", 66, s => Ui.Number(biggest.TryGetValue((s.SourceEntityId, s.SkillId), out long m) ? Fmt.Number(m) : Fmt.Dash,
+                biggest.TryGetValue((s.SourceEntityId, s.SkillId), out long m2) ? "Biggest single hit: " + Fmt.Exact(m2) : null),
+                s => biggest.GetValueOrDefault((s.SourceEntityId, s.SkillId)), headerTip: "Biggest single hit"),
             new("Damage", 150, s => Ui.BarCell(Fmt.Number(s.Damage), (double)s.Damage / maxSrc, Fmt.Exact(s.Damage), fillKey: ThemeKeys.Negative), s => s.Damage),
             new("Share", 56, s => Ui.Number(Fmt.Percent((double)s.Damage / totalTaken)), s => s.Damage),
         };
         var table = new GridTable<SourceDamage>(cols, 4);
         table.SetItems(sources);
         _content.Children.Add(Ui.Card(table, "Incoming damage by source", subtitle: sources.Count == 0 ? "no damage taken" : $"{sources.Count} source/skill pairs"));
+
+        var heals = FightInsights.HealingReceived(r, c.EntityId);
+        if (heals.Count > 0)
+        {
+            long maxHeal = Math.Max(1, heals.Max(h => h.Amount));
+            long totalHeal = Math.Max(1, heals.Sum(h => h.Amount));
+            long self = heals.Where(h => h.IsSelf).Sum(h => h.Amount);
+            string Healer(FightInsights.HealSource h) =>
+                h.IsSelf ? "Self" : ChartData.Find(r, h.HealerId) is { } hc ? ChartData.DisplayName(hc) : "Entity " + h.HealerId;
+            var healCols = new List<TableColumn<FightInsights.HealSource>>
+            {
+                new("From", 150, h => Ui.Text(Healer(h), 0, h.IsSelf ? ThemeKeys.TextMuted : ThemeKeys.Text), Healer, HorizontalAlignment.Left),
+                new("Skill", -1, h => Ui.SkillCell(gd.GetSkillName(h.SkillId), h.SkillId, SkillVisuals.TileClass(gd, h.SkillId, c.Class)),
+                    h => gd.GetSkillName(h.SkillId), HorizontalAlignment.Left),
+                new("Count", 54, h => Ui.Number(h.Count.ToString()), h => h.Count),
+                new("Max", 66, h => Ui.Number(Fmt.Number(h.Max), Fmt.Exact(h.Max)), h => h.Max),
+                new("Healing", 160, h => Ui.BarCell(Fmt.Number(h.Amount), (double)h.Amount / maxHeal, Fmt.Exact(h.Amount), fillKey: ThemeKeys.Heal), h => h.Amount),
+                new("Share", 56, h => Ui.Number(Fmt.Percent((double)h.Amount / totalHeal)), h => h.Amount),
+            };
+            var healTable = new GridTable<FightInsights.HealSource>(healCols, 4);
+            healTable.SetItems(heals);
+            _content.Children.Add(Ui.Card(healTable, "Healing received",
+                Ui.Facts(("Total", Fmt.Number(totalHeal)), ("self", Fmt.Percent((double)self / totalHeal)), ("from others", Fmt.Number(totalHeal - self))),
+                "who healed you, with which skill (potions count as self)"));
+        }
     }
 
     private static string SourceName(SourceDamage s, EncounterRecord r, IGameData gd)

@@ -20,6 +20,8 @@ public sealed record CompactBarModel
     /// <summary>Tiny caption in front of the hint ("LAST" = last fight, "DPS" = live); null = none.</summary>
     public string? HintLabel { get; init; }
     public string? HintTooltip { get; init; }
+    /// <summary>The hint matters more than the status (your DPS in the finished fight): trim the status, keep the hint.</summary>
+    public bool KeepHint { get; init; }
     public string Tooltip { get; init; } = "";
 
     public static CompactBarModel Build(MeterSnapshot s, OverlayStatus status)
@@ -56,14 +58,19 @@ public sealed record CompactBarModel
                 }
                 break;
             case OverlayPhase.Ended:
-                text = s.Outcome switch
+            {
+                string result = s.Outcome switch
                 {
                     EncounterOutcome.Kill => "Kill · " + Fmt.Duration(s.Elapsed),
                     EncounterOutcome.Wipe => "Wipe · " + Fmt.Duration(s.Elapsed),
-                    _ => "Fight ended",
+                    _ => Fmt.Duration(s.Elapsed),
                 };
-                detail = "The last fight's result is kept; expand to see it.";
+                string target = s.Target?.Name?.Trim() ?? "";
+                text = target.Length > 0 ? $"{target} · {result}" : s.Outcome is EncounterOutcome.Kill or EncounterOutcome.Wipe ? result : "Fight ended";
+                detail = "The last fight is kept until the next one starts; click to see its bars.";
+                if (LocalDps(s) is { } mine) (hint, hintLabel, hintTip) = (Fmt.Abbrev(mine), "YOU", $"Your DPS in this fight: {Fmt.Exact(mine)}");
                 break;
+            }
             default:
                 // Only the engine knows whether a run is armed (a reset disarms it); the overlay's countdown is just a hint.
                 if (IsTrainingArmed(s))
@@ -99,6 +106,7 @@ public sealed record CompactBarModel
             Hint = hint,
             HintLabel = hint is null ? null : hintLabel,
             HintTooltip = hintTip,
+            KeepHint = hint is not null && phase == OverlayPhase.Ended,
             Tooltip = $"{detail}\nClick to expand the overlay · drag to move.",
         };
     }
@@ -211,6 +219,7 @@ public sealed class CompactBarView : Border
         _hint.ToolTip = model.HintTooltip;
         _panel.HasZone = model.Zone is not null;
         _panel.HasHint = model.Hint is not null;
+        _panel.KeepHint = model.KeepHint;
         ToolTip = model.Tooltip;
         _panel.InvalidateMeasure();
     }
@@ -232,6 +241,7 @@ public sealed class CompactBarView : Border
 
         public bool HasZone { get; set; }
         public bool HasHint { get; set; }
+        public bool KeepHint { get; set; }
 
         protected override Size MeasureOverride(Size available)
         {
@@ -247,7 +257,8 @@ public sealed class CompactBarView : Border
             _showZone = HasZone;
             _showHint = HasHint;
 
-            if (fixedW + status + zoneBlock + zone + hint > avail && _showHint)
+            if (KeepHint) fixedW += hint; // kept: the zone and then the status give way instead
+            if (fixedW + status + zoneBlock + zone + (KeepHint ? 0 : hint) > avail && _showHint && !KeepHint)
             {
                 _showHint = false;
                 hint = 0;
@@ -268,7 +279,7 @@ public sealed class CompactBarView : Border
             if (_showZone) _zone.Measure(new Size(zone, available.Height));
             double height = 0;
             foreach (UIElement c in Children) height = Math.Max(height, c.DesiredSize.Height);
-            double width = fixedW + status + zoneBlock + zone + hint;
+            double width = fixedW + status + zoneBlock + zone + (KeepHint ? 0 : hint);
             if (!double.IsInfinity(available.Width)) width = Math.Min(width, available.Width);
             return new Size(width, double.IsInfinity(available.Height) ? height : Math.Min(height, available.Height));
         }

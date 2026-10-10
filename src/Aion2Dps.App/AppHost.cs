@@ -228,9 +228,12 @@ public sealed class AppHost : IDisposable
         var opt = _services.Engine.Options;
         opt.IdleTimeoutSeconds = g.IdleTimeoutSeconds;
         opt.BossIdleTimeoutSeconds = g.BossIdleTimeoutSeconds;
-        opt.EndedDisplaySeconds = g.EndedDisplaySeconds;
+        // A finished fight is never cleared from the meter (the overlay only shrinks it to the slim bar after
+        // EndedDisplaySeconds); the next fight replaces it.
+        opt.EndedDisplaySeconds = 0;
         opt.LivePlayerClock = g.LivePlayerClock;
         opt.PartyOnly = g.PartyOnly;
+        opt.AutoPartyScope = true;
         opt.SaveTrashFights = g.SaveTrashFights;
         opt.BossFightsOnly = g.BossFightsOnly;
         try { _services.GameData.Language = g.Language; } catch (Exception ex) { AppLog.Warn("App", $"Language change failed: {ex.Message}"); }

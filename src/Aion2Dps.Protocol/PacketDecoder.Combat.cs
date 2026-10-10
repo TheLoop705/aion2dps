@@ -110,6 +110,9 @@ public sealed partial class PacketDecoder
             for (int i = 0; i < n; i++)
             {
                 if (!r.TryReadU8(out byte kind) || !r.TryReadI64(out long v)) return Fail("truncated 8-byte stat");
+                // [real] HP (kind 0) and max HP (kind 7) live in the low 4 bytes; the high 4 bytes often carry unrelated
+                // data (open-world boss: 0x10F000D9_02AACB70 = 44,747,632 HP). No NPC has 4.29 G HP or more.
+                if (kind is 0 or 7 && (ulong)v > uint.MaxValue) v = (uint)v;
                 s64[kind] = v;
                 if (kind == 0) hp = v;
             }

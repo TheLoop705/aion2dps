@@ -46,6 +46,11 @@ public sealed class OverlaySettings
     public bool Visible { get; set; } = true;
     /// <summary>Out of combat the overlay shrinks to a slim one-row status bar; it expands for fights (and on click).</summary>
     public bool ShrinkWhenIdle { get; set; } = true;
+    /// <summary>
+    /// Bars only: the overlay is just the DPS bars (name + DPS per row) with no header, footer or window box. Click a
+    /// bar for the fight breakdown, drag a bar to move the overlay (while unlocked); settings live in the tray menu.
+    /// </summary>
+    public bool BarsOnly { get; set; } = true;
     public RowSize RowSize { get; set; } = RowSize.Compact;
     public MeterView View { get; set; } = MeterView.Dps;
     public BarMode BarMode { get; set; } = BarMode.RelativeToTop;
@@ -94,11 +99,12 @@ public sealed class GeneralSettings
     public bool LivePlayerClock { get; set; } = true;
     public double IdleTimeoutSeconds { get; set; } = 10;
     public double BossIdleTimeoutSeconds { get; set; } = 30;
-    /// <summary>How long completed fights remain on the live meter; zero keeps them until the next fight.</summary>
+    /// <summary>How long a finished fight stays on the full overlay before it shrinks to the slim bar (zero = 15 s). The
+    /// fight itself is never cleared: it stays (on the bar, click to expand) until the next fight.</summary>
     public double EndedDisplaySeconds { get; set; } = 60;
     /// <summary>
     /// Track boss fights only (default on): trash mobs never start or replace a fight on the meter; a finished boss fight
-    /// stays up for <see cref="EndedDisplaySeconds"/> unless the next boss is engaged. Training runs, dummies and PvP still count.
+    /// stays up until the next boss is engaged. Training runs, dummies and PvP still count.
     /// </summary>
     public bool BossFightsOnly { get; set; } = true;
     public bool PartyOnly { get; set; }
