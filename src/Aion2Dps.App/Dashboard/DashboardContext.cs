@@ -17,6 +17,8 @@ public sealed class DashboardContext
     public Action ApplyServiceSettings { get; init; } = () => { };
     public Action RestartCapture { get; init; } = () => { };
     public Action ToggleOverlay { get; init; } = () => { };
+    /// <summary>Shows another dashboard page by key (set by <see cref="DashboardView"/>).</summary>
+    public Action<string>? Navigate { get; set; }
     public Func<bool> OverlayVisible { get; init; } = () => false;
     /// <summary>"Start Aion2Dps with Windows" (the HKCU Run value); null = not available (previews, renders).</summary>
     public AutostartRegistration? Autostart { get; init; }

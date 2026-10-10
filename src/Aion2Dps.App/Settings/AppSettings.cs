@@ -148,6 +148,34 @@ public sealed class TimerSettings
     public bool StarredBossesOnly { get; set; }
     /// <summary>The slim idle bar shows the next starred timer.</summary>
     public bool ShowNextOnOverlay { get; set; } = true;
+    /// <summary>Your own timers and your changes to the built-in ones (Settings → Timers).</summary>
+    public List<TimerEntry> Entries { get; set; } = new();
+}
+
+/// <summary>
+/// A timer entered in Settings: an override of a built-in event of timers.json (same <see cref="Id"/>, only the set
+/// fields change it), or your own (<see cref="Custom"/>): a server-time schedule or a countdown you start yourself.
+/// </summary>
+public sealed class TimerEntry
+{
+    public string Id { get; set; } = "";
+    public bool Custom { get; set; }
+    /// <summary>False hides the timer (built-in or own).</summary>
+    public bool Enabled { get; set; } = true;
+    public string? Name { get; set; }
+    /// <summary>Server time of day "HH:mm".</summary>
+    public string? Start { get; set; }
+    /// <summary>Repeat within the day (0 = once per day).</summary>
+    public int? EveryMinutes { get; set; }
+    /// <summary>Only on these days (null/empty = every day).</summary>
+    public List<DayOfWeek>? Days { get; set; }
+    public int? DurationMinutes { get; set; }
+    /// <summary>Countdown length; set = this entry is a countdown (started from the Timers page), not a schedule.</summary>
+    public int? CountdownMinutes { get; set; }
+    public DateTime? CountdownStartedUtc { get; set; }
+
+    [JsonIgnore]
+    public bool IsCountdown => Custom && CountdownMinutes is > 0;
 }
 
 public sealed class WindowBounds

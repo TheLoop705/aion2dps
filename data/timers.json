@@ -23,7 +23,7 @@
       "note": "Every hour at :30 (community estimate)." },
     { "id": "shugo", "name": "Shugo Festival", "start": "00:00", "everyMinutes": 60, "openMinutes": 3, "durationMinutes": 8,
       "note": "Every hour at :00 (community estimate)." },
-    { "id": "daily-reset", "name": "Daily reset", "start": "09:00", "everyMinutes": 1440,
+    { "id": "daily-reset", "name": "Daily reset", "start": "09:00",
       "note": "07:00 UTC while CEST (measured in game)." },
     { "id": "weekly-reset", "name": "Weekly reset", "days": ["Wed"], "start": "09:00" }
   ],

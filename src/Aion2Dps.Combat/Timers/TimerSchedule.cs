@@ -111,8 +111,7 @@ public sealed class TimerData
     {
         if (e.ValueKind != JsonValueKind.Object) return null;
         string? id = Str(e, "id"), name = Str(e, "name"), start = Str(e, "start");
-        if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(name) || start is null
-            || !TimeSpan.TryParseExact(start, @"hh\:mm", CultureInfo.InvariantCulture, out var at) || at >= TimeSpan.FromDays(1))
+        if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(name) || !TryParseTime(start, out var at))
             return null;
         var days = new List<DayOfWeek>();
         if (e.TryGetProperty("days", out var d) && d.ValueKind == JsonValueKind.Array)
@@ -141,6 +140,15 @@ public sealed class TimerData
         null or "" or "none" => TimerPriority.None,
         _ => null,
     };
+
+    /// <summary>"HH:mm" (also "H:mm") within one day.</summary>
+    public static bool TryParseTime(string? s, out TimeSpan at)
+    {
+        at = default;
+        return s is not null
+            && TimeSpan.TryParseExact(s.Trim(), [@"hh\:mm", @"h\:mm"], CultureInfo.InvariantCulture, out at)
+            && at >= TimeSpan.Zero && at < TimeSpan.FromDays(1);
+    }
 
     private static DayOfWeek? ParseDay(string s)
     {

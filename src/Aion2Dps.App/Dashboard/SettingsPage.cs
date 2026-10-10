@@ -4,7 +4,7 @@ using Aion2Dps.App.Settings;
 
 namespace Aion2Dps.App.Dashboard;
 
-/// <summary>Language, network adapter, meter behaviour, idle timeouts, filters, hotkeys, folders and start-up options.</summary>
+/// <summary>Language, network adapter, meter behaviour, idle timeouts, filters, hotkeys, folders, start-up options and timers.</summary>
 public sealed class SettingsPage : DashboardPage
 {
     private readonly StackPanel _hotkeys = new();
@@ -147,6 +147,9 @@ public sealed class SettingsPage : DashboardPage
         Grid.SetColumn(right, 2);
         cols.Children.Add(right);
         root.Children.Add(cols);
+        if (context.Timers is not null)
+            root.Children.Add(Ui.Card("Timers", new TimerEditor(context),
+                "Your own timers and countdowns, and the built-in rift / siege / reset times. Star and watch them on the Timers page."));
         Content = root;
     }
 
