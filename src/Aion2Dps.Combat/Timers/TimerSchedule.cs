@@ -3,6 +3,9 @@ using System.Text.Json;
 
 namespace Aion2Dps.Combat.Timers;
 
+/// <summary>How much a timer matters (badge on the Timers page; High and up are starred by default).</summary>
+public enum TimerPriority { None, Medium, High, Top }
+
 /// <summary>
 /// A recurring server-time event of <c>timers.json</c>: either every <see cref="EveryMinutes"/> from <see cref="Start"/>
 /// (rifts, hourly events; the grid restarts each server day at <see cref="Start"/>) or on fixed <see cref="Days"/> at
@@ -24,6 +27,7 @@ public sealed record ScheduledEvent
     public int DurationMinutes { get; init; }
     /// <summary>Alert for this event by default.</summary>
     public bool Favorite { get; init; }
+    public TimerPriority Priority { get; init; }
     public string? Note { get; init; }
 }
 
@@ -47,8 +51,8 @@ public sealed class TimerData
     public IReadOnlyDictionary<string, string> ServerTimeZones { get; init; } = new Dictionary<string, string>();
     /// <summary>(map, place) → respawn interval after a kill.</summary>
     public IReadOnlyDictionary<(uint Map, int Place), TimeSpan> RespawnIntervals { get; init; } = new Dictionary<(uint, int), TimeSpan>();
-    /// <summary>Field bosses with at least this respawn interval are the "important" ones (alerts by default).</summary>
-    public TimeSpan ImportantRespawn { get; init; } = TimeSpan.FromHours(6);
+    /// <summary>Field-boss NPC code → priority (<c>bossPriorities</c>): the bosses worth farming (starred by default).</summary>
+    public IReadOnlyDictionary<uint, TimerPriority> BossPriorities { get; init; } = new Dictionary<uint, TimerPriority>();
 
     public static TimerData Empty { get; } = new();
 
@@ -93,10 +97,14 @@ public sealed class TimerData
                         respawn[(mapId, pl)] = TimeSpan.FromMinutes(min);
             }
 
-        var important = root.TryGetProperty("importantRespawnMinutes", out var im) && im.ValueKind == JsonValueKind.Number && im.TryGetInt32(out int imin) && imin > 0
-            ? TimeSpan.FromMinutes(imin)
-            : TimeSpan.FromHours(6);
-        return new TimerData { Events = events, ServerTimeZones = zones, RespawnIntervals = respawn, ImportantRespawn = important };
+        var priorities = new Dictionary<uint, TimerPriority>();
+        if (root.TryGetProperty("bossPriorities", out var bp) && bp.ValueKind == JsonValueKind.Object)
+            foreach (var p in bp.EnumerateObject())
+                if (uint.TryParse(p.Name, NumberStyles.None, CultureInfo.InvariantCulture, out uint code) && p.Value.ValueKind == JsonValueKind.String
+                    && ParsePriority(p.Value.GetString()) is TimerPriority pr and not TimerPriority.None)
+                    priorities[code] = pr;
+
+        return new TimerData { Events = events, ServerTimeZones = zones, RespawnIntervals = respawn, BossPriorities = priorities };
     }
 
     private static ScheduledEvent? ParseEvent(JsonElement e)
@@ -118,11 +126,21 @@ public sealed class TimerData
             Id = id, Name = name, Start = at, EveryMinutes = every, Days = days,
             OpenMinutes = Math.Max(0, Int(e, "openMinutes")), DurationMinutes = Math.Max(0, Int(e, "durationMinutes")),
             Favorite = e.TryGetProperty("favorite", out var f) && f.ValueKind == JsonValueKind.True, Note = Str(e, "note"),
+            Priority = ParsePriority(Str(e, "priority")) ?? TimerPriority.None,
         };
 
         static string? Str(JsonElement e, string n) => e.TryGetProperty(n, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
         static int Int(JsonElement e, string n) => e.TryGetProperty(n, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out int i) ? i : 0;
     }
+
+    private static TimerPriority? ParsePriority(string? s) => s?.ToLowerInvariant() switch
+    {
+        "top" => TimerPriority.Top,
+        "high" => TimerPriority.High,
+        "medium" => TimerPriority.Medium,
+        null or "" or "none" => TimerPriority.None,
+        _ => null,
+    };
 
     private static DayOfWeek? ParseDay(string s)
     {

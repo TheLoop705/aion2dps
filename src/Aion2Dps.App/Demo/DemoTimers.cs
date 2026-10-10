@@ -7,7 +7,19 @@ public static class DemoTimers
 {
     public static FieldBossTimerBook Seed(IGameData gameData, DateTime nowUtc)
     {
-        var book = new FieldBossTimerBook(gameData, TimerData.LoadDefault());
+        // The bundled data plus demo priorities: the 12 h boss is the top target, the 4 h one a high one.
+        var bundled = TimerData.LoadDefault();
+        var priorities = new Dictionary<uint, TimerPriority>(bundled.BossPriorities)
+        {
+            [FakeGameData.FieldBossBlock * 1000 + 6] = TimerPriority.Top,
+            [FakeGameData.FieldBossBlock * 1000 + 4] = TimerPriority.High,
+        };
+        var data = new TimerData
+        {
+            Events = bundled.Events, ServerTimeZones = bundled.ServerTimeZones, RespawnIntervals = bundled.RespawnIntervals,
+            BossPriorities = priorities,
+        };
+        var book = new FieldBossTimerBook(gameData, data);
         uint map = FakeGameData.FieldBossMap;
         long Ms(DateTime t) => new DateTimeOffset(DateTime.SpecifyKind(t, DateTimeKind.Utc)).ToUnixTimeMilliseconds();
         FieldBossSlot Slot(int place, bool alive, DateTime? time) =>

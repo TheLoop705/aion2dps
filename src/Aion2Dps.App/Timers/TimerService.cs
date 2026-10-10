@@ -10,7 +10,7 @@ namespace Aion2Dps.App.Timers;
 /// <param name="AtUtc">Next start / respawn (null when unknown or already up).</param>
 /// <param name="Live">Running / open / alive right now.</param>
 public sealed record TimerRow(string Key, string Group, string Name, string Status, DateTime? AtUtc, bool Live, bool Starred, string? Detail,
-    TimeSpan? Interval = null);
+    TimeSpan? Interval = null, TimerPriority Priority = TimerPriority.None);
 
 /// <summary>A tray notification to show.</summary>
 public sealed record TimerAlert(string Title, string Text);
@@ -50,7 +50,7 @@ public sealed class TimerService
     public bool IsStarred(ScheduledEvent e) => _settings().Stars.TryGetValue(EventKey(e), out bool s) ? s : e.Favorite;
 
     public bool IsStarred(FieldBossTimer t) =>
-        _settings().Stars.TryGetValue(BossKey(t), out bool s) ? s : t.IsImportant(Data.ImportantRespawn);
+        _settings().Stars.TryGetValue(BossKey(t), out bool s) ? s : t.IsImportant;
 
     /// <summary>Loads the saved boss book (call once at start-up).</summary>
     public void Load(DateTime nowUtc)
@@ -79,7 +79,7 @@ public sealed class TimerService
             if (TimerSchedule.Current(e, zone, nowUtc) is not EventOccurrence o) continue;
             string status = o.EntryOpen ? "Open" : o.Running ? "Running" : "Next";
             DateTime? at = o.Running ? (o.EntryOpen ? o.StartUtc.AddMinutes(e.OpenMinutes) : o.EndUtc) : o.StartUtc;
-            rows.Add(new TimerRow(EventKey(e), "Events", e.Name, status, at, o.Running, IsStarred(e), e.Note));
+            rows.Add(new TimerRow(EventKey(e), "Events", e.Name, status, at, o.Running, IsStarred(e), e.Note, Priority: e.Priority));
         }
         return rows.OrderBy(r => r.Live ? 0 : 1).ThenBy(r => r.AtUtc ?? DateTime.MaxValue).ToList();
     }
@@ -101,7 +101,7 @@ public sealed class TimerService
             string? detail = t.Interval is TimeSpan i ? $"respawn {FormatInterval(i)}{(t.IntervalLearned ? "" : " (est.)")}" : null;
             if (st == FieldBossStatus.Up && t.TimeUtc is DateTime since) detail = Join(detail, "up since " + LocalClock(since));
             rows.Add(new TimerRow(BossKey(t), group, t.Name, status, st == FieldBossStatus.Respawning ? t.RespawnUtc : null,
-                st is FieldBossStatus.Up or FieldBossStatus.ProbablyUp, IsStarred(t), detail, t.Interval));
+                st is FieldBossStatus.Up or FieldBossStatus.ProbablyUp, IsStarred(t), detail, t.Interval, t.Priority));
         }
         return rows;
     }

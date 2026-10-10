@@ -1,6 +1,7 @@
 using Aion2Dps.App.Controls;
 using Aion2Dps.App.Settings;
 using Aion2Dps.App.Timers;
+using Aion2Dps.Combat.Timers;
 
 namespace Aion2Dps.App.Dashboard;
 
@@ -53,7 +54,7 @@ public sealed class TimersPage : DashboardPage
         bossBody.Children.Add(_bosses);
         root.Children.Add(Ui.Card("Field bosses", bossBody,
             "Respawn times come from the game's field-boss list (every few seconds while you play) and are kept across restarts. " +
-            "Bosses with a long respawn (6 h+) and scheduled Abyss bosses are starred by default."));
+            "Priority bosses (Gartua first, then Dartan, Kashapa, Lagta and Lawa) and the scheduled Abyss bosses are starred by default."));
         Content = root;
     }
 
@@ -80,7 +81,7 @@ public sealed class TimersPage : DashboardPage
 
         var bosses = svc.BossRows(now);
         if (T.StarredBossesOnly) bosses = bosses.Where(b => b.Starred).ToList();
-        bosses = bosses.OrderBy(b => b.Group).ThenBy(b => b.Live ? 1 : 0).ThenBy(b => b.AtUtc ?? DateTime.MaxValue)
+        bosses = bosses.OrderBy(b => b.Group).ThenByDescending(b => b.Priority).ThenBy(b => b.Live ? 1 : 0).ThenBy(b => b.AtUtc ?? DateTime.MaxValue)
             .ThenByDescending(b => b.Interval ?? TimeSpan.Zero).ToList();
         _bossHint.Text = svc.Book.Version == 0 && bosses.Count == 0
             ? "No field-boss list received yet. Log in (or zone) with the meter running: the game sends it within a few seconds."
@@ -135,7 +136,7 @@ public sealed class TimersPage : DashboardPage
             var b = svc.Book.Snapshot().FirstOrDefault(x => TimerService.BossKey(x) == key);
             if (b is null) return;
             starred = svc.IsStarred(b);
-            defaultValue = b.IsImportant(svc.Data.ImportantRespawn);
+            defaultValue = b.IsImportant;
         }
         svc.SetStar(key, !starred, defaultValue);
         Save();
@@ -152,6 +153,7 @@ public sealed class TimersPage : DashboardPage
         private readonly TextBlock _status = Ui.Text("", ThemeKeys.TextMuted, 11.5, FontWeights.SemiBold);
         private readonly TextBlock _left = Ui.Text("", ThemeKeys.Text, 14, FontWeights.SemiBold, mono: true);
         private readonly TextBlock _at = Ui.Text("", ThemeKeys.TextMuted, 11.5);
+        private readonly Border _badge = Ui.Pill("", ThemeKeys.Warning, ThemeKeys.AccentText, 9);
 
         public RowView(TimersPage page, string key)
         {
@@ -164,7 +166,11 @@ public sealed class TimersPage : DashboardPage
             g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });
             g.Children.Add(_star);
             var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-            text.Children.Add(_name);
+            var title = new StackPanel { Orientation = Orientation.Horizontal };
+            title.Children.Add(_name);
+            _badge.Margin = new Thickness(8, 1, 0, 0);
+            title.Children.Add(_badge);
+            text.Children.Add(title);
             text.Children.Add(_detail);
             Grid.SetColumn(text, 1);
             g.Children.Add(text);
@@ -189,6 +195,14 @@ public sealed class TimersPage : DashboardPage
             _star.Content = r.Starred ? "" : "";
             _star.Ref(Control.ForegroundProperty, r.Starred ? ThemeKeys.Warning : ThemeKeys.TextMuted);
             _name.Text = r.Name;
+            _badge.Visibility = r.Priority == TimerPriority.None ? Visibility.Collapsed : Visibility.Visible;
+            ((TextBlock)_badge.Child).Text = r.Priority switch { TimerPriority.Top => "TOP PRIORITY", TimerPriority.High => "HIGH", _ => "MEDIUM" };
+            _badge.SetResourceReference(Border.BackgroundProperty, r.Priority switch
+            {
+                TimerPriority.Top => ThemeKeys.Negative,
+                TimerPriority.High => ThemeKeys.Warning,
+                _ => ThemeKeys.TextMuted,
+            });
             _detail.Text = r.Detail ?? "";
             _detail.Visibility = string.IsNullOrEmpty(r.Detail) ? Visibility.Collapsed : Visibility.Visible;
             _status.Text = r.Status;

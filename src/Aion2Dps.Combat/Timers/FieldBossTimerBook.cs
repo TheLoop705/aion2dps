@@ -25,11 +25,19 @@ public enum FieldBossStatus
 /// <param name="Interval">Respawn interval after a kill: learned live (kill seen → respawn time) or the bundled default.</param>
 /// <param name="IntervalLearned">True when <paramref name="Interval"/> was measured from this game's own list.</param>
 /// <param name="SeenUtc">Capture time of the latest list carrying this slot.</param>
+/// <param name="Priority"><c>bossPriorities</c> of timers.json; scheduled bosses count as High.</param>
 public sealed record FieldBossTimer(uint MapId, uint Slot, uint? NpcCode, string Name, bool Alive, DateTime? TimeUtc, TimeSpan? Interval,
-    bool IntervalLearned, DateTime SeenUtc)
+    bool IntervalLearned, DateTime SeenUtc, TimerPriority Priority = TimerPriority.None)
 {
-    /// <summary>A long-respawn ("big") boss, or a scheduled one (no interval, announced respawn time).</summary>
-    public bool IsImportant(TimeSpan threshold) => Interval is TimeSpan i ? i >= threshold : !Alive && TimeUtc is not null;
+    /// <summary>
+    /// A scheduled boss (the Abyss siege bosses): the game announces its respawn on a whole 5 minutes (21:05:00.000) rather
+    /// than kill time + interval (random seconds), and no respawn interval is known.
+    /// </summary>
+    public bool IsScheduled => !Alive && Interval is null && TimeUtc is DateTime t
+        && t.Ticks % TimeSpan.TicksPerMinute == 0 && t.Minute % 5 == 0;
+
+    /// <summary>Starred by default: a priority boss (High / Top; scheduled bosses are High).</summary>
+    public bool IsImportant => Priority >= TimerPriority.High;
 
     public int Place => (int)(Slot - MapId * 100);
 
@@ -153,8 +161,10 @@ public sealed class FieldBossTimerBook : IGameEventSink
         TimeSpan? interval = x.IntervalMinutes is int m and > 0 ? TimeSpan.FromMinutes(m) : null;
         bool learned = interval is not null;
         if (interval is null && _data.RespawnIntervals.TryGetValue((x.Map, place), out var d)) interval = d;
-        return new FieldBossTimer(x.Map, x.Slot, code, string.IsNullOrWhiteSpace(name) ? $"Field boss {place}" : name!, x.Alive, x.Time,
-            interval, learned, x.Seen);
+        var priority = code is uint pc && _data.BossPriorities.TryGetValue(pc, out var p) ? p : TimerPriority.None;
+        var timer = new FieldBossTimer(x.Map, x.Slot, code, string.IsNullOrWhiteSpace(name) ? $"Field boss {place}" : name!, x.Alive, x.Time,
+            interval, learned, x.Seen, priority);
+        return timer.IsScheduled && priority < TimerPriority.High ? timer with { Priority = TimerPriority.High } : timer;
     }
 
     public void Clear()

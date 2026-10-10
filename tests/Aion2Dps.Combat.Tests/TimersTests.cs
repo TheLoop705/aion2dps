@@ -33,7 +33,11 @@ public class TimersTests
         Assert.Equal("Europe/Berlin", Data.ServerTimeZones["EU"]);
         Assert.Equal(TimeSpan.FromHours(12), Data.RespawnIntervals[(1110, 21)]);
         Assert.Equal(24, Data.RespawnIntervals.Keys.Count(k => k.Map == 1110));
-        Assert.Equal(TimeSpan.FromHours(6), Data.ImportantRespawn);
+        Assert.Equal(TimerPriority.Top, Data.BossPriorities[2400800]);       // Immortal Gartua
+        Assert.Equal(TimerPriority.High, Data.BossPriorities[2400855]);      // Silent Dartan
+        Assert.Equal(TimerPriority.High, Data.BossPriorities[2100617]);      // Black Tentacle Lawa
+        Assert.Equal(TimerPriority.Medium, Event("kaira").Priority);
+        Assert.Equal(new TimeSpan(21, 35, 0), Event("executors").Start);
         Assert.NotEqual(TimeZoneInfo.Utc, Berlin);
     }
 
@@ -130,14 +134,36 @@ public class TimersTests
         Assert.True(gartua.IntervalLearned);
         Assert.Equal(FieldBossStatus.Respawning, gartua.StatusAt(Utc(10, 9, 22)));
         Assert.Equal(FieldBossStatus.ProbablyUp, gartua.StatusAt(Utc(10, 10, 9)));
-        Assert.True(gartua.IsImportant(Data.ImportantRespawn));
 
         // First seen dead: no kill observed, so only the bundled default interval (3 h for Linx).
         var linx = snap.Single(t => t.Place == 11);
         Assert.Equal(TimeSpan.FromHours(3), linx.Interval);
         Assert.False(linx.IntervalLearned);
-        Assert.False(linx.IsImportant(Data.ImportantRespawn));
+        Assert.False(linx.IsImportant);
         Assert.Equal("Field boss 11", linx.Name);
+    }
+
+    [Fact]
+    public void Priority_bosses_and_scheduled_bosses_are_important()
+    {
+        var data = TimerData.Parse($$"""
+            { "bossPriorities": { "{{FakeGameData.FieldBossCode}}": "top" } }
+            """);
+        var book = new FieldBossTimerBook(new FakeGameData(), data);
+        var t0 = Utc(10, 9, 21, 21, 20);
+        book.OnList(List(t0, Slot(1, true, null), Slot(2, false, Utc(10, 10, 2, 13, 7)), Slot(3, false, Utc(10, 10, 19, 35)),
+            Slot(4, false, Utc(10, 10, 4, 12, 31))));
+        var snap = book.Snapshot();
+        Assert.Equal(TimerPriority.Top, snap.Single(t => t.Place == 2).Priority);
+        Assert.True(snap.Single(t => t.Place == 2).IsImportant);
+        Assert.False(snap.Single(t => t.Place == 1).IsImportant);
+        // Announced on a whole 5 minutes without a known interval: a scheduled (Abyss) boss.
+        var scheduled = snap.Single(t => t.Place == 3);
+        Assert.True(scheduled.IsScheduled);
+        Assert.Equal(TimerPriority.High, scheduled.Priority);
+        // Random seconds = kill time + interval: an ordinary respawn.
+        Assert.False(snap.Single(t => t.Place == 4).IsScheduled);
+        Assert.False(snap.Single(t => t.Place == 4).IsImportant);
     }
 
     [Fact]

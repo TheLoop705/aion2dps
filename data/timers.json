@@ -9,14 +9,16 @@
     "LA": "America/Sao_Paulo"
   },
   "events": [
-    { "id": "rift", "name": "Spacetime Rift", "start": "02:00", "everyMinutes": 180, "openMinutes": 10, "durationMinutes": 60, "favorite": true,
+    { "id": "rift", "name": "Spacetime Rift", "start": "02:00", "everyMinutes": 180, "openMinutes": 10, "durationMinutes": 60, "favorite": true, "priority": "high",
       "note": "Portals in Verteron/Eltnen/Altgard/Morheim (level 45+). Entry for 10 min, up to 1 h in enemy territory." },
-    { "id": "siege", "name": "Artifact Siege", "days": ["Mon", "Thu", "Sat"], "start": "21:00", "durationMinutes": 30, "favorite": true,
-      "note": "Chaotic Lower Reshanta. The Executors spawn at 21:35." },
-    { "id": "nahma", "name": "Guardian Lord Nahma", "days": ["Fri", "Sun"], "start": "21:05", "durationMinutes": 30, "favorite": true,
-      "note": "Lower Reshanta siege boss." },
-    { "id": "kaira", "name": "Watcher Kaira", "start": "01:00", "everyMinutes": 180, "durationMinutes": 30,
-      "note": "Chaotic Lower Reshanta, random spot (community estimate)." },
+    { "id": "siege", "name": "Artifact Siege", "days": ["Mon", "Thu", "Sat"], "start": "21:00", "durationMinutes": 30, "favorite": true, "priority": "high",
+      "note": "Chaotic Lower Reshanta." },
+    { "id": "executors", "name": "Executor Tamasa, Argo, Kaira", "days": ["Mon", "Thu", "Sat"], "start": "21:35", "durationMinutes": 30, "favorite": true, "priority": "high",
+      "note": "After the Artifact Siege. Published 21:30; the game's own boss list announces 21:35." },
+    { "id": "nahma", "name": "Guardian Lord Nahma", "days": ["Fri", "Sun"], "start": "21:05", "durationMinutes": 30, "favorite": true, "priority": "high",
+      "note": "Lower Reshanta siege boss. Published 21:00; the game's own boss list announces 21:05." },
+    { "id": "kaira", "name": "Watcher Kaira", "start": "01:00", "everyMinutes": 180, "durationMinutes": 30, "priority": "medium",
+      "note": "Chaotic Lower Reshanta, random spot." },
     { "id": "invasion", "name": "Dimensional Invasion", "start": "00:30", "everyMinutes": 60, "durationMinutes": 15,
       "note": "Every hour at :30 (community estimate)." },
     { "id": "shugo", "name": "Shugo Festival", "start": "00:00", "everyMinutes": 60, "openMinutes": 3, "durationMinutes": 8,
@@ -32,5 +34,11 @@
       "13": 240, "14": 180, "15": 240, "16": 360, "17": 180, "18": 240, "19": 360, "20": 360, "21": 720, "22": 720, "23": 360, "24": 360
     }
   },
-  "importantRespawnMinutes": 360
+  "bossPriorities": {
+    "_note": "NPC code -> priority (top / high / medium). Starred by default from high up. Gartua: level 51, level 70 gear incl. helmet, Pantheon artwork. Dartan / Kashapa / Lagta: boss chests, gear, collection (first kill achievements). Lawa: Elyos, part of the Gartua boss rush.",
+    "2400800": "top", "2101074": "top",
+    "2400855": "high", "2400854": "high", "2400853": "high",
+    "2101120": "high", "2101122": "high", "2101131": "high",
+    "2100617": "high"
+  }
 }

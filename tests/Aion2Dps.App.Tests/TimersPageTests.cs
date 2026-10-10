@@ -41,9 +41,13 @@ public class TimersPageTests
             Assert.Contains("VERDANT REACH", texts);
             Assert.Contains(texts, t => t.StartsWith("respawn 12 h", StringComparison.Ordinal));
 
-            // The 12 h boss is starred by default, the 30 min one is not.
+            // Priority bosses are starred by default (and badged), the others are not.
+            Assert.Contains("TOP PRIORITY", texts);
             var rows = timers.BossRows(services.Now());
             Assert.True(rows.Single(r => r.Name == "The Verdant Tyrant").Starred);
+            Assert.Equal("The Verdant Tyrant", rows.OrderByDescending(r => r.Priority).First().Name);
+            Assert.True(rows.Single(r => r.Name == "Bloomrot Behemoth").Starred);
+            Assert.False(rows.Single(r => r.Name == "Captain Orrevan").Starred);
             var grazer = rows.Single(r => r.Name == "Thornwing Harrier");
             Assert.False(grazer.Starred);
 
