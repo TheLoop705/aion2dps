@@ -67,8 +67,9 @@ also removes the start-with-Windows entry when it points into the install folder
 
 You can also download the release ZIP and extract it anywhere; then install Npcap yourself (see Requirements).
 
-Version 0.2.1 hardens capture during dungeon transitions, corrects summon identity and shield damage accounting,
-and checks boss HP loss against damage and effective healing. The installer uses the latest published GitHub release.
+Version 0.3.0 adds timers: Spacetime Rift, sieges and resets on the server clock, live field-boss respawns from the
+game (also updated by your own kills), your own timers and countdowns, and an upcoming-timers list on the idle
+overlay. The installer uses the latest published GitHub release.
 
 ## Requirements
 
