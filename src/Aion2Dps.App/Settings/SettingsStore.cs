@@ -123,6 +123,14 @@ public sealed class SettingsStore
         s.General ??= new GeneralSettings();
         s.Timers ??= new TimerSettings();
         s.Timers.Stars ??= new Dictionary<string, bool>();
+        s.Timers.Entries ??= new List<TimerEntry>();
+        s.Timers.Entries.RemoveAll(e => e is null || string.IsNullOrWhiteSpace(e.Id));
+        foreach (var e in s.Timers.Entries)
+        {
+            if (e.EveryMinutes is { } every) e.EveryMinutes = Math.Clamp(every, 0, 1440);
+            if (e.DurationMinutes is { } dur) e.DurationMinutes = Math.Clamp(dur, 0, 1440);
+            if (e.CountdownMinutes is { } cd) e.CountdownMinutes = Math.Clamp(cd, 1, 60 * 24 * 7);
+        }
         s.Timers.AlertMinutesBefore = Math.Clamp(s.Timers.AlertMinutesBefore, 0, 60);
         if (string.IsNullOrWhiteSpace(s.Timers.ServerRegion)) s.Timers.ServerRegion = "EU";
         var o = s.Overlay;

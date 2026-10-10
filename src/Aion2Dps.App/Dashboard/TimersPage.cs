@@ -27,21 +27,15 @@ public sealed class TimersPage : DashboardPage
         root.Children.Add(Ui.PageSubtitle("Spacetime Rifts, sieges and resets on the server clock, and field-boss respawns read live from the game. " +
                                           "Star a timer to get a tray alert before it starts."));
 
-        var options = new WrapPanel { Margin = new Thickness(0, 0, 0, 4) };
         var t = T;
-        var zones = (context.Timers?.Data.ServerTimeZones.Keys ?? []).Select(k => (k, $"{k} server ({context.Timers!.Data.ServerTimeZones[k]})")).ToList();
-        if (zones.Count == 0) zones.Add(("EU", "EU server"));
-        options.Children.Add(Ui.Field("Server clock", Ui.Combo(zones, t.ServerRegion, v => { T.ServerRegion = v; Save(); }, 280)));
-        options.Children.Add(Spacer());
-        options.Children.Add(Ui.Field("Alert before", Ui.Combo(new[] { (0, "Off"), (1, "1 min"), (3, "3 min"), (5, "5 min"), (10, "10 min"), (15, "15 min") },
-            t.AlertsEnabled ? t.AlertMinutesBefore : 0, v => { T.AlertsEnabled = v > 0; if (v > 0) T.AlertMinutesBefore = v; Save(); }, 120)));
-        var checks = new StackPanel { Margin = new Thickness(18, 22, 0, 0) };
-        checks.Children.Add(Ui.Check("Alert when a starred boss respawns", t.AlertOnSpawn, v => { T.AlertOnSpawn = v; Save(); }));
-        checks.Children.Add(Ui.Check("Show the next starred timer on the idle overlay", t.ShowNextOnOverlay, v => { T.ShowNextOnOverlay = v; Save(); }));
-        options.Children.Add(checks);
-        root.Children.Add(options);
-        _clock.Margin = new Thickness(0, 0, 0, 10);
-        root.Children.Add(_clock);
+        var bar = new DockPanel { Margin = new Thickness(0, 0, 0, 10), LastChildFill = true };
+        var edit = Ui.Button("Edit timers", () => Context.Navigate?.Invoke("Settings"), icon: Ui.IconSettings);
+        edit.ToolTip = "Add your own timers and countdowns, change or hide the built-in ones, server clock and alerts (Settings → Timers)";
+        DockPanel.SetDock(edit, Dock.Right);
+        bar.Children.Add(edit);
+        _clock.VerticalAlignment = VerticalAlignment.Center;
+        bar.Children.Add(_clock);
+        root.Children.Add(bar);
 
         root.Children.Add(Ui.Card("Events", _events));
         var bossBody = new StackPanel();
@@ -64,8 +58,6 @@ public sealed class TimersPage : DashboardPage
 
     private TimerSettings T => Context.Settings.Current.Timers;
 
-    private static FrameworkElement Spacer() => new Border { Width = 18 };
-
     private void Save() => Context.Settings.NotifyChanged();
 
     public override void Refresh()
@@ -74,7 +66,7 @@ public sealed class TimersPage : DashboardPage
         if (svc is null) return;
         var now = Context.Services.Now();
         var zone = svc.ServerZone;
-        _clock.Text = $"Server time {TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(now, DateTimeKind.Utc), zone):ddd HH:mm:ss} · your time {DateTime.SpecifyKind(now, DateTimeKind.Utc).ToLocalTime():HH:mm:ss}";
+        _clock.Text = $"{(T.AlertsEnabled ? $"Alerts {T.AlertMinutesBefore} min before" : "Alerts off")} · server time {TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(now, DateTimeKind.Utc), zone):ddd HH:mm:ss} · your time {DateTime.SpecifyKind(now, DateTimeKind.Utc).ToLocalTime():HH:mm:ss}";
 
         var events = svc.EventRows(now);
         Fill(_events, events, ref _eventLayout, now, grouped: false);
@@ -126,10 +118,19 @@ public sealed class TimersPage : DashboardPage
         bool starred, defaultValue;
         if (key.StartsWith("event:", StringComparison.Ordinal))
         {
-            var e = svc.Data.Events.FirstOrDefault(x => TimerService.EventKey(x) == key);
-            if (e is null) return;
-            starred = svc.IsStarred(e);
-            defaultValue = e.Favorite;
+            var e = svc.Events().FirstOrDefault(x => TimerService.EventKey(x) == key);
+            var c = svc.Countdowns().FirstOrDefault(x => TimerService.CountdownKey(x) == key);
+            if (e is not null)
+            {
+                starred = svc.IsStarred(e);
+                defaultValue = e.Favorite;
+            }
+            else if (c is not null)
+            {
+                starred = svc.IsStarred(c);
+                defaultValue = true;
+            }
+            else return;
         }
         else
         {
@@ -144,6 +145,14 @@ public sealed class TimersPage : DashboardPage
         Refresh();
     }
 
+    private void ToggleCountdown(string key, bool running)
+    {
+        var svc = Context.Timers;
+        if (svc is null) return;
+        if (running ? svc.StopCountdown(key) : svc.StartCountdown(key, Context.Services.Now())) Save();
+        Refresh();
+    }
+
     /// <summary>One timer line: star · name (+ detail) · status pill · countdown · local clock.</summary>
     private sealed class RowView
     {
@@ -154,10 +163,15 @@ public sealed class TimersPage : DashboardPage
         private readonly TextBlock _left = Ui.Text("", ThemeKeys.Text, 14, FontWeights.SemiBold, mono: true);
         private readonly TextBlock _at = Ui.Text("", ThemeKeys.TextMuted, 11.5);
         private readonly Border _badge = Ui.Pill("", ThemeKeys.Warning, ThemeKeys.AccentText, 9);
+        private readonly Button _countdown;
+        private bool _counting;
 
         public RowView(TimersPage page, string key)
         {
             _star = Ui.IconButton("", "Star: alert before this timer", () => page.ToggleStar(key), 12);
+            _countdown = Ui.Chip("Start", "Start the countdown now", () => page.ToggleCountdown(key, _counting));
+            _countdown.Margin = new Thickness(10, 0, 0, 0);
+            _countdown.Visibility = Visibility.Collapsed;
             var g = new Grid { Margin = new Thickness(0, 2, 0, 2) };
             g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(30) });
             g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -170,6 +184,7 @@ public sealed class TimersPage : DashboardPage
             title.Children.Add(_name);
             _badge.Margin = new Thickness(8, 1, 0, 0);
             title.Children.Add(_badge);
+            title.Children.Add(_countdown);
             text.Children.Add(title);
             text.Children.Add(_detail);
             Grid.SetColumn(text, 1);
@@ -195,6 +210,9 @@ public sealed class TimersPage : DashboardPage
             _star.Content = r.Starred ? "" : "";
             _star.Ref(Control.ForegroundProperty, r.Starred ? ThemeKeys.Warning : ThemeKeys.TextMuted);
             _name.Text = r.Name;
+            _counting = r.Status == "Counting";
+            _countdown.Visibility = r.IsCountdown ? Visibility.Visible : Visibility.Collapsed;
+            _countdown.Content = _counting ? "Stop" : r.Status == "Done" ? "Restart" : "Start";
             _badge.Visibility = r.Priority == TimerPriority.None ? Visibility.Collapsed : Visibility.Visible;
             ((TextBlock)_badge.Child).Text = r.Priority switch { TimerPriority.Top => "TOP PRIORITY", TimerPriority.High => "HIGH", _ => "MEDIUM" };
             _badge.SetResourceReference(Border.BackgroundProperty, r.Priority switch
@@ -208,7 +226,8 @@ public sealed class TimersPage : DashboardPage
             _status.Text = r.Status;
             _status.Ref(TextBlock.ForegroundProperty, r.Status switch
             {
-                "Open" or "Up" or "Running" => ThemeKeys.Positive,
+                "Open" or "Up" or "Running" or "Done" => ThemeKeys.Positive,
+                "Counting" => ThemeKeys.Accent,
                 "Probably up" => ThemeKeys.Warning,
                 _ => ThemeKeys.TextMuted,
             });

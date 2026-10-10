@@ -23,7 +23,7 @@
       "note": "Every hour at :30 (community estimate)." },
     { "id": "shugo", "name": "Shugo Festival", "start": "00:00", "everyMinutes": 60, "openMinutes": 3, "durationMinutes": 8,
       "note": "Every hour at :00 (community estimate)." },
-    { "id": "daily-reset", "name": "Daily reset", "start": "09:00", "everyMinutes": 1440,
+    { "id": "daily-reset", "name": "Daily reset", "start": "09:00",
       "note": "07:00 UTC while CEST (measured in game)." },
     { "id": "weekly-reset", "name": "Weekly reset", "days": ["Wed"], "start": "09:00" }
   ],
@@ -33,6 +33,10 @@
       "1": 30, "2": 30, "3": 30, "4": 60, "5": 120, "6": 90, "7": 120, "8": 120, "9": 120, "10": 180, "11": 180, "12": 240,
       "13": 240, "14": 180, "15": 240, "16": 360, "17": 180, "18": 240, "19": 360, "20": 360, "21": 720, "22": 720, "23": 360, "24": 360
     }
+  },
+  "bossRespawnMinutesByNpc": {
+    "_note": "Respawn after a kill by NPC code, for bosses on maps the field-boss list cannot be matched on yet (Elyos side). Estimates: half the TW intervals, like every verified Altgard one. Your own kills plus the game's list correct them.",
+    "2101074": 720, "2101131": 720, "2101120": 360, "2101122": 360, "2100617": 240
   },
   "bossPriorities": {
     "_note": "NPC code -> priority (top / high / medium). Starred by default from high up. Gartua: level 51, level 70 gear incl. helmet, Pantheon artwork. Dartan / Kashapa / Lagta: boss chests, gear, collection (first kill achievements). Lawa: Elyos, part of the Gartua boss rush.",

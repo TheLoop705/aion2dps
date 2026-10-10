@@ -63,6 +63,93 @@ public class TimersPageTests
     });
 
     [Fact]
+    public void Own_timers_and_overrides_from_settings()
+    {
+        using var services = ServiceFactory.CreateDemo();
+        var settings = new TimerSettings();
+        var timers = Service(services, settings);
+        var now = new DateTime(2026, 10, 10, 11, 30, 0, DateTimeKind.Utc);   // 13:30 CEST
+
+        // Move the rift grid an hour later and hide the Shugo Festival.
+        settings.Entries.Add(new TimerEntry { Id = "rift", Start = "03:00" });
+        settings.Entries.Add(new TimerEntry { Id = "shugo", Enabled = false });
+        // Own daily timer (Saturday 20:00 server time) and a 90 min countdown.
+        settings.Entries.Add(new TimerEntry { Id = "custom-guild", Custom = true, Name = "Guild boss run", Start = "20:00", Days = [DayOfWeek.Saturday] });
+        settings.Entries.Add(new TimerEntry { Id = "custom-cd", Custom = true, Name = "Lawa", CountdownMinutes = 90 });
+        settings.Entries.Add(new TimerEntry { Id = "custom-bad", Custom = true, Name = "Broken", Start = "25:99" });
+
+        var events = timers.Events();
+        Assert.Equal(new TimeSpan(3, 0, 0), events.Single(e => e.Id == "rift").Start);
+        Assert.DoesNotContain(events, e => e.Id == "shugo");
+        Assert.DoesNotContain(events, e => e.Id == "custom-bad");
+        var rows = timers.EventRows(now);
+        var rift = rows.Single(r => r.Name == "Spacetime Rift");
+        Assert.Equal(new DateTime(2026, 10, 10, 13, 0, 0, DateTimeKind.Utc), rift.AtUtc);     // 15:00 CEST
+        var guild = rows.Single(r => r.Name == "Guild boss run");
+        Assert.True(guild.Starred);
+        Assert.Equal(new DateTime(2026, 10, 10, 18, 0, 0, DateTimeKind.Utc), guild.AtUtc);
+
+        var cd = rows.Single(r => r.Name == "Lawa");
+        Assert.True(cd.IsCountdown);
+        Assert.Equal("Ready", cd.Status);
+        Assert.True(timers.StartCountdown(cd.Key, now));
+        var counting = timers.EventRows(now.AddMinutes(10)).Single(r => r.Name == "Lawa");
+        Assert.Equal("Counting", counting.Status);
+        Assert.Equal(now.AddMinutes(90), counting.AtUtc);
+        Assert.Contains(timers.CollectAlerts(now.AddMinutes(87)), a => a.Title == "Lawa" && a.Text.StartsWith("Due in 3m", StringComparison.Ordinal));
+        Assert.Contains(timers.CollectAlerts(now.AddMinutes(90).AddSeconds(2)), a => a.Title == "Lawa" && a.Text == "Countdown finished");
+        Assert.Equal("Done", timers.EventRows(now.AddMinutes(91)).Single(r => r.Name == "Lawa").Status);
+        Assert.True(timers.StopCountdown(cd.Key));
+        Assert.Equal("Ready", timers.EventRows(now.AddMinutes(91)).Single(r => r.Name == "Lawa").Status);
+    }
+
+    [Fact]
+    public void Settings_timer_editor_adds_saves_and_resets() => Sta.Run(() =>
+    {
+        string directory = TempDirectory();
+        try
+        {
+            string path = Path.Combine(directory, "settings.json");
+            var store = new SettingsStore(path);
+            using var services = ServiceFactory.CreateDemo();
+            var timers = Service(services, store.Current.Timers);
+            var page = new SettingsPage(new DashboardContext { Settings = store, Services = services, Timers = timers });
+            var host = OffscreenRenderer.Themed(page, ThemeCatalog.Obsidian);
+            SaveForReview(OffscreenRenderer.Render(host, 1200), "settings-timers.png");
+            var editor = Descendants<TimerEditor>(page).Single();
+
+            Click(Descendants<Button>(editor).Single(b => ButtonText(b) == "Add timer"));
+            Click(Descendants<Button>(editor).Single(b => ButtonText(b) == "Add countdown"));
+            SaveForReview(OffscreenRenderer.Render(host, 1200), "settings-timers-added.png");
+            Assert.Equal(2, store.Current.Timers.Entries.Count(e => e.Custom));
+            Assert.Single(store.Current.Timers.Entries, e => e.IsCountdown);
+
+            // Edit the built-in rift time: first box with "02:00".
+            var riftTime = Descendants<TextBox>(editor).First(t => t.Text == "02:00");
+            riftTime.Text = "03:00";
+            Assert.Equal("03:00", store.Current.Timers.Entries.Single(e => e.Id == "rift").Start);
+            riftTime.Text = "3:7x";    // invalid: ignored
+            Assert.Equal("03:00", store.Current.Timers.Entries.Single(e => e.Id == "rift").Start);
+
+            store.Save();
+            var loaded = SettingsStore.LoadFrom(path).Timers;
+            Assert.Equal(3, loaded.Entries.Count);
+            Assert.Equal(60, loaded.Entries.Single(e => e.IsCountdown).CountdownMinutes);
+
+            // Reset the rift back to the built-in time.
+            var reset = Descendants<Button>(editor).Single(b => b.ToolTip as string == "Back to the built-in time" && b.Visibility == Visibility.Visible);
+            Click(reset);
+            Assert.DoesNotContain(store.Current.Timers.Entries, e => e.Id == "rift");
+        }
+        finally { Directory.Delete(directory, true); }
+    });
+
+    private static void Click(Button b) => b.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+
+    private static string? ButtonText(Button b) => b.Content as string
+        ?? (b.Content as StackPanel)?.Children.OfType<TextBlock>().LastOrDefault()?.Text;
+
+    [Fact]
     public void Alerts_fire_once_per_occurrence_for_starred_timers()
     {
         using var services = ServiceFactory.CreateDemo();

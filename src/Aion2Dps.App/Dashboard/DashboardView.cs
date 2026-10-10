@@ -18,6 +18,7 @@ public sealed class DashboardView : UserControl
     public DashboardView(DashboardContext context)
     {
         _context = context;
+        context.Navigate = Navigate;
         this.Ref(FontFamilyProperty, ThemeKeys.FontFamily);
         this.Ref(ForegroundProperty, ThemeKeys.Text);
         this.Ref(BackgroundProperty, AppThemeKeys.DashboardBackground);
