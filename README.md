@@ -67,7 +67,7 @@ also removes the start-with-Windows entry when it points into the install folder
 
 You can also download the release ZIP and extract it anywhere; then install Npcap yourself (see Requirements).
 
-Version 0.3.0 adds timers: Spacetime Rift, sieges and resets on the server clock, live field-boss respawns from the
+Version 0.3.1 adds timers: Spacetime Rift, sieges and resets on the server clock, live field-boss respawns from the
 game (also updated by your own kills), your own timers and countdowns, and an upcoming-timers list on the idle
 overlay. The installer uses the latest published GitHub release.
 
