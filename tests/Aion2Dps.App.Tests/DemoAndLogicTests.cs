@@ -225,7 +225,7 @@ public class OverlayLogicTests
     }
 
     [Fact]
-    public void Partial_view_ranks_you_and_party_first_others_last_and_shows_boss_hp_share()
+    public void Partial_view_lists_only_sent_damage_and_shows_boss_hp_share()
     {
         var snap = Snap() with
         {
@@ -240,9 +240,10 @@ public class OverlayLogicTests
             },
         };
         var rows = OverlayView.ComputeRows(snap, new OverlayViewOptions { View = MeterView.Total, BarMode = BarMode.ShareOfParty, MaxRows = 24 });
-        Assert.Equal(new uint[] { 3, 2, 1, CombatEngineIds.Others }, rows.Select(r => r.Row.EntityId));
-        Assert.Equal(0.042, rows[0].Pct!.Value, 6); // share of the boss's max HP, never the 20 % of visible damage
-        Assert.Equal(300_000.0 / 900_000, rows[0].Bar, 6); // share-of-party bars fall back to relative bars
+        // The party member and the "Others" aggregate are seen only through DoT ticks / heals: not listed.
+        Assert.Equal(new uint[] { 1, 3 }, rows.Select(r => r.Row.EntityId));
+        Assert.Equal(0.042, rows[1].Pct!.Value, 6); // share of the boss's max HP, never the 20 % of visible damage
+        Assert.Equal(300_000.0 / 900_000, rows[1].Bar, 6); // share-of-party bars fall back to relative bars
     }
 
     [Fact]

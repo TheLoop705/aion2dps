@@ -58,22 +58,28 @@ public class ScopeAndRankOverlayTests
     }
 
     [Fact]
-    public void Partial_view_ranks_party_and_force_ahead_of_strangers_and_tags_dot_only_rows()
+    public void Partial_view_damage_lists_only_players_whose_damage_is_actually_sent()
     {
+        // Open-world boss in a force: the server sends only your own direct hits, so the force's DoT-only numbers are
+        // not shown; a player whose direct hits do arrive (real data) still is.
         var snap = ForceFight(partial: true) with
         {
             Rows = ForceFight(partial: true).Rows
-                .Append(new PlayerRow { EntityId = 50, Name = "Stranger", Damage = 5_000_000, Dps = 50_000, Hits = 30 })
+                .Append(new PlayerRow { EntityId = 50, Name = "Visible", Damage = 5_000_000, Dps = 50_000, Hits = 30 })
+                .Append(new PlayerRow { EntityId = 99, Name = "Others (40)", Damage = 900_000, Dps = 9_000, AggregateCount = 40 })
                 .ToList(),
         };
-        var rows = OverlayView.ComputeRows(snap, new OverlayViewOptions { MaxRows = 24 });
-        Assert.Equal(50u, rows[^1].Row.EntityId); // a stranger with direct hits ranks after your whole group
-        Assert.False(rows[^1].DotOnly);
-        Assert.False(rows.Single(r => r.Row.IsLocal).DotOnly);
-        Assert.True(rows.Where(r => r.Row.IsForceMember || r.Row.IsPartyMember).Where(r => !r.Row.IsLocal).All(r => r.DotOnly));
+        foreach (var view in new[] { MeterView.Dps, MeterView.Total })
+        {
+            var rows = OverlayView.ComputeRows(snap, new OverlayViewOptions { View = view, MaxRows = 24 });
+            Assert.Equal(new uint[] { 50, 9 }, rows.Select(r => r.Row.EntityId));
+            Assert.Equal(new[] { 1, 2 }, rows.Select(r => r.Rank));
+        }
 
-        var heal = OverlayView.ComputeRows(snap, new OverlayViewOptions { View = MeterView.Heal, MaxRows = 24 });
-        Assert.DoesNotContain(heal, r => r.DotOnly); // healing of the whole force is visible: no DoT tag there
+        // Healing and damage taken still list the whole force.
+        var heal = OverlayView.ComputeRows(snap with { Rows = snap.Rows.Select(r => r with { Healing = 1_000 }).ToList() },
+            new OverlayViewOptions { View = MeterView.Heal, MaxRows = 24 });
+        Assert.Contains(heal, r => r.Row.IsForceMember);
     }
 
     [Theory]
@@ -91,7 +97,7 @@ public class ScopeAndRankOverlayTests
     [Fact]
     public void Bars_caption_mentions_a_partial_view_and_stays_empty_out_of_combat()
     {
-        Assert.Equal("Field boss · Force 12 · your hits only", OverlayView.BarsCaption(ForceFight(partial: true)));
+        Assert.Equal("Field boss · Force 12 · only your damage is sent", OverlayView.BarsCaption(ForceFight(partial: true)));
         Assert.Equal("Field boss · Force 12", OverlayView.BarsCaption(ForceFight()));
         Assert.Equal("", OverlayView.BarsCaption(ForceFight() with { State = MeterState.WaitingForCombat }));
     }
@@ -102,11 +108,11 @@ public class ScopeAndRankOverlayTests
         var view = new OverlayView { AnimationsEnabled = false, Width = 300 };
         var root = OffscreenRenderer.Themed(view, ThemeCatalog.Obsidian, backdrop: OffscreenRenderer.SceneBackdrop());
         var options = OverlayViewOptions.From(new AppSettings(), "test");
-        view.Update(ForceFight(partial: true), PreviewData.Status(), options);
+        view.Update(ForceFight() with { Context = FightContext.DungeonBoss }, PreviewData.Status(), options);
         SaveForReview(OffscreenRenderer.Render(root, 300), "bars-only-force-lifted.png");
 
-        var caption = Descendants<TextBlock>(view).Single(t => t.Text.StartsWith("Field boss", StringComparison.Ordinal));
-        Assert.Equal("Field boss · Force 12 · your hits only", caption.Text);
+        var caption = Descendants<TextBlock>(view).Single(t => t.Text.StartsWith("Dungeon boss", StringComparison.Ordinal));
+        Assert.Equal("Dungeon boss · Force 12", caption.Text);
         for (DependencyObject? d = caption; d is not null && d != view; d = VisualTreeHelper.GetParent(d))
             if (d is UIElement el) Assert.Equal(Visibility.Visible, el.Visibility);
 
@@ -117,7 +123,20 @@ public class ScopeAndRankOverlayTests
         // Still name + DPS only (no rank column), but the name says where you really are.
         Assert.Equal(3, mine.Children.OfType<Grid>().Single().ColumnDefinitions.Count);
         Assert.Contains(Descendants<TextBlock>(mine), t => t.Text == "#9 P9");
-        Assert.Contains(Descendants<TextBlock>(rows[1]), t => t.Text == "DoT" && t.Visibility == Visibility.Visible);
+    });
+
+    [Fact]
+    public void Bars_only_at_an_open_world_boss_shows_only_you_and_says_why() => Sta.Run(() =>
+    {
+        var view = new OverlayView { AnimationsEnabled = false, Width = 300 };
+        var root = OffscreenRenderer.Themed(view, ThemeCatalog.Obsidian, backdrop: OffscreenRenderer.SceneBackdrop());
+        view.Update(ForceFight(partial: true), PreviewData.Status(), OverlayViewOptions.From(new AppSettings(), "test"));
+        SaveForReview(OffscreenRenderer.Render(root, 300), "bars-only-field-boss-force.png");
+
+        Assert.Contains(Descendants<TextBlock>(view), t => t.Text == "Field boss · Force 12 · only your damage is sent");
+        var row = Assert.Single(Descendants<PlayerRowView>(view));
+        Assert.True(row.Row.IsLocal);
+        Assert.Contains(Descendants<TextBlock>(row), t => t.Text == "P9"); // rank 1 of the shown rows: no "#9" lift
     });
 
     [Fact]

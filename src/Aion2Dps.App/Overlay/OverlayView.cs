@@ -625,9 +625,9 @@ public sealed class OverlayView : UserControl
         {
             // Open world: the server sends only your own direct hits. Not a decoding problem, so no HP-check warning.
             _partialBadge.ToolTip = (s.PartialViewText ?? "Partial view: only part of the damage is visible") +
-                                    ".\nAt open-world bosses the server sends every player only their own direct hits: your party and force show " +
-                                    "just their DoT ticks and heals (marked DoT), so their damage cannot be ranked against yours. Only your own " +
-                                    "numbers are complete there.\n% = damage / boss max HP. Other players are grouped as \"Others\".";
+                                    ".\nAt open-world bosses the server sends every player only their own direct hits, so the damage of your " +
+                                    "party, your force and everyone else is not known there: the damage views list only you.\n% = damage / " +
+                                    "boss max HP.";
             _partialBadge.Visibility = Visibility.Visible;
         }
         else if (live && !pvp && s.HpCheckRatio is { } ratio && Math.Abs(ratio - 1) > 0.03)
@@ -777,7 +777,7 @@ public sealed class OverlayView : UserControl
         if (s.State is not (MeterState.InCombat or MeterState.Ended)) return "";
         string text = ContextText(s);
         if (text.Length == 0) return "";
-        return s.PartialView ? text + " · your hits only" : text;
+        return s.PartialView ? text + " · only your damage is sent" : text;
     }
 
     private static string ScopeChipText(MeterSnapshot s) => s.Scope switch
@@ -946,9 +946,10 @@ public sealed class OverlayView : UserControl
         bool damageView = o.View is not (MeterView.Taken or MeterView.Heal);
         if (s.PartialView && damageView)
         {
-            // Partial view: you and your party first, then other players with direct hits, the "Others" row last; the
-            // percentage is always the share of the boss's max HP (a share of the visible damage means nothing here).
-            list = list.OrderBy(r => r.AggregateCount > 0 ? 2 : r.IsLocal || r.IsPartyMember || r.IsForceMember ? 0 : 1).ToList();
+            // Partial view (open-world bosses): the server sends every player only their own direct hits, so the others'
+            // damage is not known. Their DoT-only numbers would be wrong, so only real data is listed: you, and anyone whose
+            // direct hits do arrive. The percentage is the share of the boss's max HP.
+            list = list.Where(r => r.IsLocal || (r.AggregateCount == 0 && r.Hits > 0)).ToList();
             pct = r => r.Contribution;
         }
         // Top N only. Outside the top N your own row takes the last slot with your real rank, so you always compare
@@ -973,9 +974,7 @@ public sealed class OverlayView : UserControl
             var r = list[i];
             double bar = o.BarMode == BarMode.ShareOfParty && !s.PartialView ? share(r) : topValue > 0 ? primary(r) / topValue : 0;
             bool lifted = liftedRank > 0 && i == list.Count - 1;
-            // Partial view: a group member seen only through DoT ticks (their direct hits are never sent to you).
-            bool dotOnly = s.PartialView && damageView && !r.IsLocal && r.AggregateCount == 0 && r.Hits == 0 && r.Damage > 0;
-            result.Add(new RowDisplay(r, lifted ? liftedRank : i + 1, primary(r), secondary(r), pct(r), bar, lifted, dotOnly));
+            result.Add(new RowDisplay(r, lifted ? liftedRank : i + 1, primary(r), secondary(r), pct(r), bar, lifted));
         }
         return result;
     }

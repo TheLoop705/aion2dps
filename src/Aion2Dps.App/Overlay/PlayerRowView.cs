@@ -8,9 +8,7 @@ namespace Aion2Dps.App.Overlay;
 /// <summary>What one row shows for the current view (computed by <see cref="OverlayView"/>).</summary>
 /// <param name="Rank">Place in the ranking (the real one for a <paramref name="Lifted"/> row).</param>
 /// <param name="Lifted">Your own row, ranked below the row limit, shown in the last slot instead of that slot's player.</param>
-/// <param name="DotOnly">Partial view: only this player's DoT ticks are visible (their direct hits are not sent to you).</param>
-internal readonly record struct RowDisplay(PlayerRow Row, int Rank, double Primary, double Secondary, double? Pct, double Bar, bool Lifted = false,
-    bool DotOnly = false);
+internal readonly record struct RowDisplay(PlayerRow Row, int Rank, double Primary, double Secondary, double? Pct, double Bar, bool Lifted = false);
 
 /// <summary>
 /// One party row: bar fill behind, rank, class emblem, name (+ "YOU"), optional crit %/max hit, primary and secondary
@@ -34,7 +32,6 @@ internal sealed class PlayerRowView : Grid
     private readonly Border _you = Ui.Pill("YOU", ThemeKeys.Accent, ThemeKeys.AccentText, 8);
     private readonly TextBlock _dead = Ui.Icon("", ThemeKeys.Negative, 9);
     private readonly TextBlock _crit = Ui.Text("", ThemeKeys.Crit, mono: true);
-    private readonly TextBlock _dotOnly = Ui.Text("DoT", ThemeKeys.TextMuted, 9, FontWeights.SemiBold);
     private readonly TextBlock _max = Ui.Text("", ThemeKeys.TextMuted, mono: true);
     private readonly TextBlock _gearScore = Ui.Text("", ThemeKeys.TextMuted, mono: true);
     private readonly TextBlock _primary = Ui.Text("", ThemeKeys.Text, weight: FontWeights.SemiBold, mono: true);
@@ -64,10 +61,6 @@ internal sealed class PlayerRowView : Grid
         _you.Margin = new Thickness(5, 0, 0, 0);
         _dead.Margin = new Thickness(4, 0, 0, 0);
         _dead.ToolTip = "Dead";
-        _dotOnly.Margin = new Thickness(5, 0, 0, 0);
-        _dotOnly.VerticalAlignment = VerticalAlignment.Center;
-        _dotOnly.Opacity = 0.85;
-        _dotOnly.ToolTip = "Only this player's DoT ticks are visible: at open-world bosses the server sends each player only their own direct hits.";
         foreach (var t in new[] { _crit, _max, _gearScore, _primary, _secondary, _pct, _rank })
             t.TextAlignment = TextAlignment.Right;
         _rank.TextAlignment = TextAlignment.Center;
@@ -184,12 +177,11 @@ internal sealed class PlayerRowView : Grid
         else Col(4, null);
 
         // The name trims while the badges stay right after it.
-        foreach (var el in new FrameworkElement[] { _name, _dead, _dotOnly, _you })
+        foreach (var el in new FrameworkElement[] { _name, _dead, _you })
             if (el.Parent is Panel old) old.Children.Remove(el);
         var nameHost = new TrimPanel { VerticalAlignment = VerticalAlignment.Center };
         nameHost.Children.Add(_name);
         nameHost.Children.Add(_dead);
-        nameHost.Children.Add(_dotOnly);
         if (!micro) nameHost.Children.Add(_you);
         Col(-1, nameHost);
 
@@ -229,7 +221,6 @@ internal sealed class PlayerRowView : Grid
         _you.Visibility = r.IsLocal && _options?.RowSize != RowSize.Micro ? Visibility.Visible : Visibility.Collapsed;
         _localStripe.Visibility = r.IsLocal ? Visibility.Visible : Visibility.Collapsed;
         _dead.Visibility = r.IsDead ? Visibility.Visible : Visibility.Collapsed;
-        _dotOnly.Visibility = d.DotOnly ? Visibility.Visible : Visibility.Collapsed;
         _name.Opacity = r.IsDead ? 0.6 : 1;
         Set(_crit, r.Hits > 0 ? Fmt.Percent(r.CritRate) : Fmt.Dash);
         Set(_max, r.MaxHit > 0 ? Fmt.Abbrev(r.MaxHit) : Fmt.Dash);

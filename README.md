@@ -70,11 +70,11 @@ also removes the start-with-Windows entry when it points into the install folder
 
 You can also download the release ZIP and extract it anywhere; then install Npcap yourself (see Requirements).
 
-Version 0.4.0 makes the DPS window group-aware: solo it ranks just you, in a party your party, and in a force (up to four
+Version 0.4.0 (0.4.1: field bosses list only real numbers) makes the DPS window group-aware: solo it ranks just you, in a party your party, and in a force (up to four
 parties joined for a world or field boss) the whole force, never the strangers around you. It shows the top 5, your
 own row stays as the 5th with your real rank, and it names the fight (field boss, dungeon boss, PvP, training dummy).
-At open-world bosses the game sends every player only their own hits, so party and force members show their DoT ticks
-and heals only (marked DoT); inside dungeons everyone's damage is complete.
+At open-world bosses the game sends every player only their own hits, so the damage views show only you there (other
+players' damage is not sent); inside dungeons everyone's damage is complete.
 
 Version 0.3.3 lets you add a timer straight from the Timers page: a name, "spawns in 28 min" and an optional respawn
 (Killed restarts it, or it repeats on its own), for bosses the game does not list such as Abyss field bosses. Since
