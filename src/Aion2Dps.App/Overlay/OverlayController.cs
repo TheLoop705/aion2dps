@@ -337,20 +337,20 @@ public sealed class OverlayController : IDisposable
         ShowToast(title, message);
     }
 
-    /// <summary>Text of the next starred timer for the idle bar (set by the host; null = none).</summary>
-    public Func<DateTime, string?>? NextTimer { get; set; }
+    /// <summary>Timers due soon for the slim bar's list (set by the host; null = none).</summary>
+    public Func<DateTime, IReadOnlyList<UpcomingTimer>>? Upcoming { get; set; }
 
-    private string? _nextTimerText;
-    private DateTime _nextTimerAt;
+    private IReadOnlyList<UpcomingTimer> _upcoming = [];
+    private DateTime _upcomingAt;
 
-    private string? NextTimerText(DateTime clock)
+    private IReadOnlyList<UpcomingTimer> UpcomingTimers(DateTime clock)
     {
-        if (NextTimer is null || !_settings.Current.Timers.ShowNextOnOverlay) return null;
-        if ((DateTime.UtcNow - _nextTimerAt).TotalSeconds < 1) return _nextTimerText;
-        _nextTimerAt = DateTime.UtcNow;
-        try { _nextTimerText = NextTimer(clock); }
-        catch (Exception ex) { AppLog.Warn("Overlay", $"Next timer failed: {ex.Message}"); _nextTimerText = null; }
-        return _nextTimerText;
+        if (Upcoming is null || !_settings.Current.Timers.ShowNextOnOverlay) return [];
+        if ((DateTime.UtcNow - _upcomingAt).TotalSeconds < 1) return _upcoming;
+        _upcomingAt = DateTime.UtcNow;
+        try { _upcoming = Upcoming(clock); }
+        catch (Exception ex) { AppLog.Warn("Overlay", $"Upcoming timers failed: {ex.Message}"); _upcoming = []; }
+        return _upcoming;
     }
 
     public void Refresh()
@@ -382,7 +382,7 @@ public sealed class OverlayController : IDisposable
             var status = new OverlayStatus
             {
                 Capture = _capture, TrainingRemaining = remaining, Flash = _flash, PinnedEntityId = _pinned, LastFightDps = _lastFightDps,
-                NextTimer = NextTimerText(clock),
+                Upcoming = UpcomingTimers(clock),
             };
             var settings = _settings.Current;
             _window.View.Update(snap, status, OverlayViewOptions.From(settings, AppPaths.Version));

@@ -79,9 +79,11 @@ public sealed class AppHost : IDisposable
 
         _overlay = new OverlayController(_services, _settings, OpenDashboard);
         _overlay.StateChanged += UpdateTray;
-        _overlay.NextTimer = now => _timers.NextStarred(now) is { AtUtc: DateTime at } next
-            ? next.Status == "Open" ? $"{next.Name} open · {TimerService.FormatLeft(at - now)}" : $"{next.Name} in {TimerService.FormatLeft(at - now)}"
-            : null;
+        _overlay.Upcoming = now => _timers.Upcoming(now, TimeSpan.FromMinutes(_settings.Current.Timers.UpcomingMinutes))
+            .Select(r => new UpcomingTimer(r.Name,
+                r.Status == "Open" ? "open · " + TimerService.FormatLeft(r.AtUtc!.Value - now) : TimerService.FormatLeft(r.AtUtc!.Value - now),
+                r.Status == "Open", r.Starred))
+            .ToList();
         _overlay.TrainingFinished += OnTrainingFinished;
         _overlay.UserVisibilityChanged += visible => { if (visible) _gamePolicy.OnUserShowed(); else _gamePolicy.OnUserHid(); };
         // With "only while AION 2 is running" the overlay starts hidden; the watcher's first check shows it when the game runs.

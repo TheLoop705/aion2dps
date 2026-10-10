@@ -132,6 +132,7 @@ public sealed class SettingsStore
             if (e.CountdownMinutes is { } cd) e.CountdownMinutes = Math.Clamp(cd, 1, 60 * 24 * 7);
         }
         s.Timers.AlertMinutesBefore = Math.Clamp(s.Timers.AlertMinutesBefore, 0, 60);
+        s.Timers.UpcomingMinutes = Math.Clamp(s.Timers.UpcomingMinutes, 10, 360);
         if (string.IsNullOrWhiteSpace(s.Timers.ServerRegion)) s.Timers.ServerRegion = "EU";
         var o = s.Overlay;
         o.Width = double.IsFinite(o.Width) ? Math.Clamp(o.Width, 300, 1000) : 380;

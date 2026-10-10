@@ -40,8 +40,11 @@ public sealed class TimerEditor : StackPanel
             t.AlertsEnabled ? t.AlertMinutesBefore : 0, v => { T.AlertsEnabled = v > 0; if (v > 0) T.AlertMinutesBefore = v; Save(); }, 120)));
         var checks = new StackPanel { Margin = new Thickness(16, 22, 0, 0) };
         checks.Children.Add(Ui.Check("Alert when a starred boss respawns or a countdown ends", t.AlertOnSpawn, v => { T.AlertOnSpawn = v; Save(); }));
-        checks.Children.Add(Ui.Check("Show the next starred timer on the idle overlay", t.ShowNextOnOverlay, v => { T.ShowNextOnOverlay = v; Save(); }));
+        checks.Children.Add(Ui.Check("List upcoming timers under the idle overlay bar", t.ShowNextOnOverlay, v => { T.ShowNextOnOverlay = v; Save(); }));
         options.Children.Add(checks);
+        options.Children.Add(new Border { Width = 16 });
+        options.Children.Add(Ui.Field("Overlay list looks ahead", Ui.Combo(new[] { (30, "30 min"), (60, "1 hour"), (120, "2 hours"), (180, "3 hours") },
+            t.UpcomingMinutes, v => { T.UpcomingMinutes = v; Save(); }, 120)));
         Children.Add(options);
 
         Children.Add(Heading("Your timers", "Times are server time (the clock above). Leave all days off for every day."));

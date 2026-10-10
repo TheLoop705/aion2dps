@@ -186,11 +186,18 @@ public sealed class TimerService
         return rows;
     }
 
-    /// <summary>The next starred event or respawn (for the slim overlay bar); live entries count only when an entry window is open.</summary>
-    public TimerRow? NextStarred(DateTime nowUtc) =>
-        EventRows(nowUtc).Where(r => r.Starred && (r.Status == "Open" || !r.Live) && r.AtUtc is not null)
-            .Concat(BossRows(nowUtc).Where(r => r.Starred && r.AtUtc is not null))
-            .OrderBy(r => r.Status == "Open" ? 0 : 1).ThenBy(r => r.AtUtc).FirstOrDefault();
+    /// <summary>
+    /// Everything due within <paramref name="window"/> for the slim overlay bar, soonest first: every event (built-in,
+    /// your own, running countdowns) starting or with an entry window open now, and starred field-boss respawns
+    /// (all bosses would drown it in 30-minute respawns). <see cref="TimerRow.AtUtc"/> is always set.
+    /// </summary>
+    public IReadOnlyList<TimerRow> Upcoming(DateTime nowUtc, TimeSpan window)
+    {
+        var until = nowUtc + window;
+        return EventRows(nowUtc).Where(r => r.AtUtc is DateTime at && at <= until && (r.Status is "Open" or "Next" or "Counting"))
+            .Concat(BossRows(nowUtc).Where(r => r.Starred && r.AtUtc is DateTime at && at <= until))
+            .OrderBy(r => r.Status == "Open" ? 0 : 1).ThenBy(r => r.AtUtc).ToList();
+    }
 
     /// <summary>
     /// Alerts due at <paramref name="nowUtc"/>: starred events and respawns within the lead time, and (optionally) a starred

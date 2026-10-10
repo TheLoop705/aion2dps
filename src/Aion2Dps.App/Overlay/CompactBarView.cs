@@ -23,6 +23,19 @@ public sealed record CompactBarModel
     /// <summary>The hint matters more than the status (your DPS in the finished fight): trim the status, keep the hint.</summary>
     public bool KeepHint { get; init; }
     public string Tooltip { get; init; } = "";
+    /// <summary>Timers due soon (shown under the bar, at most <see cref="MaxUpcoming"/>).</summary>
+    public IReadOnlyList<UpcomingTimer> Upcoming { get; init; } = [];
+    /// <summary>Timers due soon that did not fit the list.</summary>
+    public int MoreUpcoming { get; init; }
+
+    public const int MaxUpcoming = 6;
+
+    public bool Equals(CompactBarModel? other) =>
+        other is not null && Status == other.Status && DotKey == other.DotKey && IsFlash == other.IsFlash && Zone == other.Zone
+        && Hint == other.Hint && HintLabel == other.HintLabel && HintTooltip == other.HintTooltip && KeepHint == other.KeepHint
+        && Tooltip == other.Tooltip && MoreUpcoming == other.MoreUpcoming && Upcoming.SequenceEqual(other.Upcoming);
+
+    public override int GetHashCode() => HashCode.Combine(Status, Zone, Hint, Upcoming.Count);
 
     public static CompactBarModel Build(MeterSnapshot s, OverlayStatus status)
     {
@@ -86,11 +99,6 @@ public sealed record CompactBarModel
                 {
                     (text, dot, detail) = ("Waiting for combat", ThemeKeys.Positive,
                         s.LocalPlayer is { } lp ? $"Capturing. Tracking {lp.Name}." : "Capturing. Hit something to start an encounter.");
-                    if (status.NextTimer is { Length: > 0 } next)
-                    {
-                        text = next;
-                        detail += "\nNext starred timer (Dashboard → Timers).";
-                    }
                 }
                 break;
         }
@@ -113,6 +121,8 @@ public sealed record CompactBarModel
             HintTooltip = hintTip,
             KeepHint = hint is not null && phase == OverlayPhase.Ended,
             Tooltip = $"{detail}\nClick to expand the overlay · drag to move.",
+            Upcoming = status.Upcoming.Take(MaxUpcoming).ToList(),
+            MoreUpcoming = Math.Max(0, status.Upcoming.Count - MaxUpcoming),
         };
     }
 
@@ -154,6 +164,7 @@ public sealed class CompactBarView : Border
     private readonly TextBlock _hintLabel = Ui.Text("", ThemeKeys.TextMuted, 8, FontWeights.Bold);
     private readonly TextBlock _hintText = Ui.Text("", ThemeKeys.Text, 10.5, FontWeights.SemiBold, mono: true);
     private readonly Bar _panel;
+    private readonly StackPanel _upcoming = new() { Margin = new Thickness(2, 0, 8, 6) };
 
     public CompactBarView()
     {
@@ -185,7 +196,10 @@ public sealed class CompactBarView : Border
         Chevron.VerticalAlignment = VerticalAlignment.Center;
 
         _panel = new Bar(dotHost, _status, _divider, _zone, _hint, Chevron);
-        Child = _panel;
+        var stack = new StackPanel();
+        stack.Children.Add(_panel);
+        stack.Children.Add(_upcoming);
+        Child = stack;
         Configure(RowSize.Compact);
     }
 
@@ -199,7 +213,8 @@ public sealed class CompactBarView : Border
     public void Configure(RowSize size)
     {
         var m = CompactMetrics.For(size);
-        Height = m.Height;
+        _panel.Height = m.Height;
+        _upcomingSize = m.ZoneSize;
         _status.FontSize = m.StatusSize;
         _zone.FontSize = m.ZoneSize;
         _hintText.FontSize = m.HintSize;
@@ -226,7 +241,40 @@ public sealed class CompactBarView : Border
         _panel.HasHint = model.Hint is not null;
         _panel.KeepHint = model.KeepHint;
         ToolTip = model.Tooltip;
+        UpdateUpcoming(model);
         _panel.InvalidateMeasure();
+    }
+
+    private double _upcomingSize = 11.5;
+
+    /// <summary>The upcoming timers under the bar: name (trimmed) · time left, one line each.</summary>
+    private void UpdateUpcoming(CompactBarModel model)
+    {
+        _upcoming.Children.Clear();
+        _upcoming.Visibility = model.Upcoming.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+        foreach (var u in model.Upcoming)
+        {
+            var line = new DockPanel { LastChildFill = true, Margin = new Thickness(0, 1, 0, 0) };
+            var when = Ui.Text(u.When, u.Live ? ThemeKeys.Positive : ThemeKeys.Text, _upcomingSize - 0.5, FontWeights.SemiBold, mono: true);
+            when.Margin = new Thickness(8, 0, 0, 0);
+            DockPanel.SetDock(when, Dock.Right);
+            line.Children.Add(when);
+            var star = Ui.Icon(u.Starred ? "\uE735" : "\uE823", u.Starred ? ThemeKeys.Warning : ThemeKeys.TextMuted, _upcomingSize - 2.5);
+            star.Width = 15;
+            star.VerticalAlignment = VerticalAlignment.Center;
+            DockPanel.SetDock(star, Dock.Left);
+            line.Children.Add(star);
+            var name = Ui.Text(u.Name, ThemeKeys.TextMuted, _upcomingSize);
+            name.TextTrimming = TextTrimming.CharacterEllipsis;
+            line.Children.Add(name);
+            _upcoming.Children.Add(line);
+        }
+        if (model.MoreUpcoming > 0)
+        {
+            var more = Ui.Text($"+{model.MoreUpcoming} more (Dashboard → Timers)", ThemeKeys.TextMuted, _upcomingSize - 1.5);
+            more.Margin = new Thickness(15, 1, 0, 0);
+            _upcoming.Children.Add(more);
+        }
     }
 
     /// <summary>Lays the parts out in one line; drops the hint, then trims the zone, then the status, to stay within the max width.</summary>

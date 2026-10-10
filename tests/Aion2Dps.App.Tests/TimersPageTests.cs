@@ -1,3 +1,4 @@
+using Aion2Dps.App.Controls;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -204,13 +205,68 @@ public class TimersPageTests
     }
 
     [Fact]
-    public void Idle_bar_shows_the_next_starred_timer()
+    public void Upcoming_lists_every_event_within_the_window_and_starred_bosses()
+    {
+        using var services = ServiceFactory.CreateDemo();
+        var settings = new TimerSettings();
+        var timers = Service(services, settings);
+        // Sat 2026-10-10 13:50 CEST (11:50 UTC): rift 14:00, Shugo 14:00, invasion 14:30; Kaira next at 16:00 (outside).
+        var now = new DateTime(2026, 10, 10, 11, 50, 0, DateTimeKind.Utc);
+        settings.Entries.Add(new TimerEntry { Id = "custom-cd", Custom = true, Name = "Lawa", CountdownMinutes = 40, CountdownStartedUtc = now });
+
+        var list = timers.Upcoming(now, TimeSpan.FromHours(1));
+        var names = list.Select(r => r.Name).ToList();
+        Assert.Contains("Spacetime Rift", names);
+        Assert.Contains("Shugo Festival", names);
+        Assert.Contains("Dimensional Invasion", names);
+        Assert.Contains("Lawa", names);
+        Assert.DoesNotContain("Watcher Kaira", names);
+        Assert.DoesNotContain("Artifact Siege", names);
+        Assert.All(list, r => Assert.InRange(r.AtUtc!.Value, now, now.AddHours(1)));
+        Assert.Equal(list.OrderBy(r => r.AtUtc).Select(r => r.Key), list.Select(r => r.Key));
+
+        // Field bosses: starred ones only (the demo's 30 min boss is not starred until you star it).
+        var bossNow = DateTime.UtcNow;
+        Assert.DoesNotContain(timers.Upcoming(bossNow, TimeSpan.FromHours(1)), r => r.Name == "Thornwing Harrier");
+        settings.Stars["boss:" + (FakeGameData.FieldBossMap * 100 + 2)] = true;
+        Assert.Contains(timers.Upcoming(bossNow, TimeSpan.FromHours(1)), r => r.Name == "Thornwing Harrier");
+
+        // An open rift entry window comes first and counts down to its close.
+        var open = timers.Upcoming(new DateTime(2026, 10, 10, 12, 3, 0, DateTimeKind.Utc), TimeSpan.FromHours(1));
+        Assert.Equal("Spacetime Rift", open[0].Name);
+        Assert.Equal("Open", open[0].Status);
+        Assert.Equal(new DateTime(2026, 10, 10, 12, 10, 0, DateTimeKind.Utc), open[0].AtUtc);
+    }
+
+    [Fact]
+    public void Idle_bar_lists_upcoming_timers() => Sta.Run(() =>
     {
         var snap = MeterSnapshot.Empty with { State = MeterState.WaitingForCombat };
-        var model = CompactBarModel.Build(snap, new OverlayStatus { NextTimer = "Spacetime Rift in 12m 00s" });
-        Assert.Equal("Spacetime Rift in 12m 00s", model.Status);
-        Assert.Equal("Waiting for combat", CompactBarModel.Build(snap, new OverlayStatus()).Status);
-    }
+        UpcomingTimer[] upcoming =
+        [
+            new("Spacetime Rift", "open · 7m 12s", true, true),
+            new("Shugo Festival", "9m 48s", false, false),
+            new("Immortal Gartua", "21m 05s", false, true),
+            new("Dimensional Invasion", "39m 48s", false, false),
+            new("A", "40m", false, false), new("B", "41m", false, false), new("C", "42m", false, false),
+        ];
+        var model = CompactBarModel.Build(snap, new OverlayStatus { Upcoming = upcoming });
+        Assert.Equal("Waiting for combat", model.Status);
+        Assert.Equal(CompactBarModel.MaxUpcoming, model.Upcoming.Count);
+        Assert.Equal(1, model.MoreUpcoming);
+        Assert.Equal(model, CompactBarModel.Build(snap, new OverlayStatus { Upcoming = upcoming.ToList() }));
+        Assert.Empty(CompactBarModel.Build(snap, new OverlayStatus()).Upcoming);
+
+        var bar = new CompactBarView();
+        bar.Update(model, RowSize.Compact);
+        var host = new Border { Child = bar, Padding = new Thickness(0) };
+        host.Ref(Border.BackgroundProperty, ThemeKeys.WindowBackground);
+        SaveForReview(OffscreenRenderer.Render(OffscreenRenderer.Themed(host, ThemeCatalog.Obsidian), 300), "idle-bar-upcoming.png");
+        var texts = Descendants<TextBlock>(bar).Select(t => t.Text).ToList();
+        Assert.Contains("open · 7m 12s", texts);
+        Assert.Contains("Immortal Gartua", texts);
+        Assert.Contains(texts, t => t.StartsWith("+1 more", StringComparison.Ordinal));
+    });
 
     private static string? RowName(DependencyObject star)
     {

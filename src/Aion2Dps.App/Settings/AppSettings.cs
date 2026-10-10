@@ -146,8 +146,10 @@ public sealed class TimerSettings
     public Dictionary<string, bool> Stars { get; set; } = new();
     /// <summary>Field-boss list shows starred bosses only.</summary>
     public bool StarredBossesOnly { get; set; }
-    /// <summary>The slim idle bar shows the next starred timer.</summary>
+    /// <summary>The slim idle bar lists the timers due within <see cref="UpcomingMinutes"/>.</summary>
     public bool ShowNextOnOverlay { get; set; } = true;
+    /// <summary>How far ahead the slim bar's list looks (minutes).</summary>
+    public int UpcomingMinutes { get; set; } = 60;
     /// <summary>Your own timers and your changes to the built-in ones (Settings → Timers).</summary>
     public List<TimerEntry> Entries { get; set; } = new();
 }
