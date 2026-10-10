@@ -102,6 +102,8 @@ internal sealed class CombatantState
     public CharacterClass Class;
     public bool IsLocal;
     public bool IsPartyMember;
+    /// <summary>A member of your force who is not in your own party.</summary>
+    public bool IsForceMember;
     public bool IsEnemy;
     public ushort? ServerId;
 

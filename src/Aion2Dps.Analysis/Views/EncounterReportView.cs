@@ -89,8 +89,9 @@ public sealed class EncounterReportView : UserControl
             string others = folded.Count > 0
                 ? $" {folded.Count} player(s) seen only through DoT ticks or heals ({Fmt.Number(folded.Sum(c => c.Damage))} damage) are not listed."
                 : "";
-            _content.Children.Add(Ui.Banner($"Partial view: only your/party damage is visible ({r.PartialViewReason}). " +
-                                            "Contribution is your damage / the boss's max HP; shares of the visible damage and the HP check do not apply." + others));
+            _content.Children.Add(Ui.Banner($"Partial view: only part of the damage is visible ({r.PartialViewReason}). At open-world bosses " +
+                                            "the server sends only your own direct hits: your party and force show just their DoT ticks and heals. " +
+                                            "Contribution is damage / the boss's max HP; shares of the visible damage and the HP check do not apply." + others));
         }
         bool multi = ChartData.IsMultiBoss(r);
         // Multi-boss fights: the tile shows the check summed over all bosses; the badges under the title show each boss.

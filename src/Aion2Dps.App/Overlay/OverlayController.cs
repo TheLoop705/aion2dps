@@ -207,7 +207,7 @@ public sealed class OverlayController : IDisposable
         _services.Engine.Options.PartyOnly = g.PartyOnly;
         _settings.NotifyChanged();
         Refresh();
-        Flash(g.PartyOnly ? "Party members only" : "Showing everyone");
+        Flash(g.PartyOnly ? "Only your group, instances too" : "Instances: everyone there");
         StateChanged?.Invoke();
     }
 

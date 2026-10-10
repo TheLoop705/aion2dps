@@ -58,6 +58,13 @@ public sealed record MeterSnapshot
     public bool PartialView { get; init; }
     /// <summary>Short explanation for the header/footer when <see cref="PartialView"/> is set.</summary>
     public string? PartialViewText { get; init; }
+
+    /// <summary>What kind of fight this is (field boss, dungeon boss, PvP, training dummy, …).</summary>
+    public FightContext Context { get; init; }
+    /// <summary>Whose rows are ranked: you, your party, your force or everyone hitting the same enemies.</summary>
+    public GroupScope Scope { get; init; }
+    /// <summary>Players in <see cref="Scope"/> including you (party or force size), 0 when unknown or not a group.</summary>
+    public int GroupSize { get; init; }
 }
 
 public sealed record PlayerRow
@@ -70,6 +77,8 @@ public sealed record PlayerRow
     public CombatantKind Kind { get; init; }
     public bool IsLocal { get; init; }
     public bool IsPartyMember { get; init; }
+    /// <summary>A member of your force (several parties joined) who is not in your own party.</summary>
+    public bool IsForceMember { get; init; }
     public int Rank { get; init; }
     public long Damage { get; init; }
     /// <summary>Live DPS (per-player clock: damage / (now − own first hit), see EngineOptions.LivePlayerClock).</summary>

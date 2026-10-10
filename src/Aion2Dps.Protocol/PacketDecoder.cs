@@ -27,6 +27,7 @@ public sealed partial class PacketDecoder : IFrameSink
         Teleport,
         PartyRoster,
         HpUpdate,
+        ForceHpUpdate,
         BuffApplied,
         BuffRemoved,
         Cast,
@@ -86,6 +87,7 @@ public sealed partial class PacketDecoder : IFrameSink
         Set(_ops.BuffRemoved, Handler.BuffRemoved);
         Set(_ops.BuffApplied2, Handler.BuffApplied);
         Set(_ops.BuffApplied, Handler.BuffApplied);
+        Set(_ops.ForceHpUpdate, Handler.ForceHpUpdate);
         Set(_ops.HpUpdate, Handler.HpUpdate);
         Set(_ops.PartyRoster, Handler.PartyRoster);
         Set(_ops.Teleport, Handler.Teleport);
@@ -143,6 +145,7 @@ public sealed partial class PacketDecoder : IFrameSink
                 Handler.Teleport => DecodeTeleport(body),
                 Handler.PartyRoster => DecodePartyRoster(body),
                 Handler.HpUpdate => DecodeHpUpdate(body),
+                Handler.ForceHpUpdate => DecodeForceHpUpdate(body),
                 Handler.BuffApplied => DecodeBuffApplied(body),
                 Handler.BuffRemoved => DecodeBuffRemoved(body),
                 Handler.Cast => DecodeCast(body),

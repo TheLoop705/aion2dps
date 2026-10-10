@@ -94,6 +94,41 @@ public enum EncounterKind
     Training,
 }
 
+/// <summary>What kind of fight the meter is showing (for the overlay's context label and row scope).</summary>
+public enum FightContext
+{
+    /// <summary>No fight, or not enough known to tell.</summary>
+    None,
+    /// <summary>Trash in the open world.</summary>
+    OpenWorld,
+    /// <summary>A boss in the open world (field/world boss): the server sends only your own direct hits there.</summary>
+    FieldBoss,
+    /// <summary>Trash inside an instance (dungeon, raid).</summary>
+    Dungeon,
+    /// <summary>A boss inside an instance: every group member's hits are visible.</summary>
+    DungeonBoss,
+    /// <summary>A boss on a map that is neither a known instance nor a known open-world map.</summary>
+    Boss,
+    TrainingDummy,
+    /// <summary>A timed training run.</summary>
+    Training,
+    /// <summary>Fighting other players.</summary>
+    Pvp,
+}
+
+/// <summary>Whose rows the meter ranks.</summary>
+public enum GroupScope
+{
+    /// <summary>Everyone hitting the same enemies (no group known, or a group-wide view such as an instance without roster).</summary>
+    Everyone,
+    /// <summary>Only you (solo, or a training dummy).</summary>
+    Solo,
+    /// <summary>You and your party.</summary>
+    Party,
+    /// <summary>You and your force (several parties joined, e.g. for a field or world boss).</summary>
+    Force,
+}
+
 public enum EncounterOutcome
 {
     InProgress,

@@ -4,7 +4,7 @@ using Aion2Dps.Contracts;
 
 namespace Aion2Dps.Analysis.Tests;
 
-/// <summary>Report of an open-world boss fight where only your/party damage was visible (EncounterRecord.PartialView).</summary>
+/// <summary>Report of an open-world boss fight where only part of the damage was visible (EncounterRecord.PartialView).</summary>
 public class PartialViewAnalysisTests
 {
     private static readonly FakeGameData Gd = new();
@@ -51,6 +51,18 @@ public class PartialViewAnalysisTests
     }
 
     [Fact]
+    public void Visible_friendly_keeps_force_members_with_the_group_not_with_the_strangers()
+    {
+        var r = PartialFight();
+        var forceMember = r.Combatants.First(c => c.Kind == CombatantKind.Player && !c.IsLocal && !c.IsPartyMember);
+        forceMember.IsForceMember = true; // another party of your force, seen only through DoT ticks
+        var rows = ChartData.VisibleFriendly(r, out var folded);
+        Assert.Contains(forceMember, rows);
+        Assert.DoesNotContain(forceMember, folded);
+        Assert.Equal(3, rows.Count);
+    }
+
+    [Fact]
     public void Unnamed_boss_title_uses_its_max_hp()
     {
         var r = PartialFight();
@@ -68,7 +80,7 @@ public class PartialViewAnalysisTests
         var view = new EncounterReportView(r, Gd) { OpenBreakdownOnDoubleClick = false };
         Render.Host(view, dark, 1100, 1000);
         var texts = Texts(view);
-        Assert.Contains(texts, t => t.StartsWith("Partial view: only your/party damage is visible", StringComparison.Ordinal));
+        Assert.Contains(texts, t => t.StartsWith("Partial view: only part of the damage is visible", StringComparison.Ordinal));
         Assert.Contains("partial view", texts); // HP check tile subtitle, not "check the capture"
         Assert.DoesNotContain("check the capture", texts);
         Assert.Contains(texts, t => string.Equals(t, "Visible DPS", StringComparison.OrdinalIgnoreCase));

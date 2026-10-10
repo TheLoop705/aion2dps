@@ -90,6 +90,8 @@ public sealed class CombatantRecord
     public ushort? ServerId { get; set; }
     public bool IsLocal { get; set; }
     public bool IsPartyMember { get; set; }
+    /// <summary>A member of your force (several parties joined) who is not in your own party.</summary>
+    public bool IsForceMember { get; set; }
     public uint? Level { get; set; }
     public uint? GearScore { get; set; }
     public ulong? CombatPower { get; set; }

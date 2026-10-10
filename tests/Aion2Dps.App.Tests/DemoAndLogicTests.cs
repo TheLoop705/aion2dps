@@ -230,7 +230,7 @@ public class OverlayLogicTests
         var snap = Snap() with
         {
             PartialView = true,
-            PartialViewText = "Partial view: only your/party damage is visible",
+            PartialViewText = "Partial view: only part of the damage is visible",
             Rows = new[]
             {
                 new PlayerRow { EntityId = 1, Name = "Stranger", Damage = 900_000, Dps = 9_000, DamageShare = 0.6, Contribution = 0.02, Hits = 40 },
@@ -251,6 +251,20 @@ public class OverlayLogicTests
         var rows = OverlayView.ComputeRows(Snap(), new OverlayViewOptions { View = MeterView.Total, MaxRows = 5 });
         Assert.Equal(5, rows.Count);
         Assert.True(rows[^1].Row.IsLocal);
+        // The top 4 keep their places; your row (12th by damage) carries its real rank.
+        Assert.Equal(new uint[] { 1, 2, 3, 4, 12 }, rows.Select(r => r.Row.EntityId));
+        Assert.Equal(new[] { 1, 2, 3, 4, 12 }, rows.Select(r => r.Rank));
+        Assert.Equal(new[] { false, false, false, false, true }, rows.Select(r => r.Lifted));
+    }
+
+    [Fact]
+    public void Top_5_is_the_default_and_your_row_is_not_lifted_inside_it()
+    {
+        var snap = Snap() with { Rows = Snap().Rows.Select(r => r with { IsLocal = r.EntityId == 2 }).ToList() };
+        var rows = OverlayView.ComputeRows(snap, new OverlayViewOptions { View = MeterView.Total });
+        Assert.Equal(5, rows.Count);
+        Assert.Equal(new uint[] { 1, 2, 3, 4, 5 }, rows.Select(r => r.Row.EntityId));
+        Assert.DoesNotContain(rows, r => r.Lifted);
     }
 
     [Fact]
@@ -260,8 +274,10 @@ public class OverlayLogicTests
         Assert.Equal(12u, taken[0].Row.EntityId);
         Assert.Equal(12_000 / 100.0, taken[0].Secondary, 6);
         var heal = OverlayView.ComputeRows(Snap(), new OverlayViewOptions { View = MeterView.Heal, MaxRows = 24 });
-        Assert.Single(heal);
+        // Only the healer, plus your own row (0 healing) so you can always compare yourself.
+        Assert.Equal(new uint[] { 5, 12 }, heal.Select(r => r.Row.EntityId));
         Assert.Equal(1.0, heal[0].Pct);
+        Assert.Equal(0.0, heal[1].Pct);
     }
 
     [Fact]

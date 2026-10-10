@@ -48,13 +48,31 @@ internal static class SnapshotBuilder
         var partial = core.EvaluatePartialView(enc);
         // Party only: local player + party (roster, or group HP updates). Without a party (solo) only the local player is
         // shown; if the local player is not known yet either, filtering would empty the meter, so everyone stays visible.
-        bool partyKnown = core.Party.IsKnown;
-        bool partyFilter = opts.PartyOnly && (partyKnown || local != null);
-        // Automatic scope: in the open world, in a party only the party and solo everyone on the boss; on a training
-        // dummy only you (+ party), never the strangers hitting the dummies next to yours. Inside an instance only your
-        // group is there, so everyone stays: a Force (several parties) then ranks all of its members, not just your party.
-        bool inInstance = core.MapId is uint im && gd.IsInstanceMap(im);
-        if (opts.AutoPartyScope && ((partyKnown && !inInstance) || (enc.Kind == EncounterKind.Dummy && local != null))) partyFilter = true;
+        // Your group is your force when you are in one (2B 96, several parties joined), else your party (roster or 1B 92).
+        // The fight's own members count too: a finished fight keeps its group after a zone change cleared the live state.
+        int partyRows = 0, forceRows = 0;
+        foreach (var c in enc.Combatants.Values)
+        {
+            if (c.IsLocal) continue;
+            if (c.IsPartyMember) partyRows++;
+            else if (c.IsForceMember) forceRows++;
+        }
+        // A finished fight keeps the group it had: today's party (joined later) does not relabel it.
+        DateTime groupSince = core.GroupSince;
+        bool partyKnown = (!enc.Ended && core.Party.IsKnown(groupSince)) || partyRows > 0;
+        bool forceKnown = (!enc.Ended && core.Party.HasForcePeers(groupSince)) || forceRows > 0;
+        bool groupKnown = partyKnown || forceKnown;
+        bool partyFilter = opts.PartyOnly && (groupKnown || local != null);
+        // Automatic scope: outside instances only your group (party or force), or just you when solo, never the strangers
+        // hitting the same boss or the dummies next to yours (their direct hits are not even sent in the open world).
+        // Inside an instance only your group is there, so everyone stays (a map not known yet counts as outside). The
+        // fight's map decides, not the one you may have moved to. Without a known local player nothing is filtered.
+        uint? fightMap = enc.MapId ?? (enc.Ended ? null : core.MapId);
+        bool inInstance = fightMap is uint im && gd.IsInstanceMap(im);
+        if (opts.AutoPartyScope && ((!inInstance && local != null)
+                                    || (enc.Kind is EncounterKind.Dummy or EncounterKind.Training && local != null)))
+            partyFilter = true;
+        static bool InGroup(CombatantState c) => c.IsLocal || c.IsPartyMember || c.IsForceMember;
 
         // ── rows ──
         var candidates = new List<(CombatantState C, LiveAccumulator A)>(enc.Combatants.Count);
@@ -63,12 +81,12 @@ internal static class SnapshotBuilder
         foreach (var c in enc.Combatants.Values)
         {
             if (c.IsEnemy || c.Kind == CombatantKind.EnemyPlayer) continue;
-            if (partyFilter && !(c.IsLocal || (partyKnown && c.IsPartyMember))) continue;
+            if (partyFilter && !InGroup(c)) continue;
             var acc = useAll ? c.All : c.Scoped;
             if (acc.Damage == 0 && c.Healing == 0 && c.DamageTaken == 0 && c.Deaths == 0 && !c.IsLocal) continue;
             total += acc.Damage;
             // Partial view: other players are seen only through their DoT ticks and heals (no direct hit): one row.
-            if (partial.IsPartial && !c.IsLocal && !c.IsPartyMember && c.Kind == CombatantKind.Player && acc.Hits == 0)
+            if (partial.IsPartial && !InGroup(c) && c.Kind == CombatantKind.Player && acc.Hits == 0)
                 folded.Add((c, acc));
             else
                 candidates.Add((c, acc));
@@ -77,7 +95,7 @@ internal static class SnapshotBuilder
         {
             if (partial.IsPartial)
             {
-                int ga = a.C.IsLocal || a.C.IsPartyMember ? 0 : 1, gb = b.C.IsLocal || b.C.IsPartyMember ? 0 : 1;
+                int ga = InGroup(a.C) ? 0 : 1, gb = InGroup(b.C) ? 0 : 1;
                 if (ga != gb) return ga.CompareTo(gb);
             }
             int r = b.A.Damage.CompareTo(a.A.Damage);
@@ -116,6 +134,7 @@ internal static class SnapshotBuilder
                 Kind = c.Kind,
                 IsLocal = c.IsLocal,
                 IsPartyMember = c.IsPartyMember,
+                IsForceMember = c.IsForceMember,
                 Rank = i + 1,
                 Damage = a.Damage,
                 Dps = dps,
@@ -161,6 +180,35 @@ internal static class SnapshotBuilder
                 AggregateCount = folded.Count,
             });
         }
+
+        // ── context and scope ──
+        uint? contextMap = fightMap ?? (enc.Ended ? null : mapId);
+        bool openWorld = contextMap is uint ow && gd.IsOpenWorldMap(ow);
+        bool instanceMap = inInstance || (contextMap is uint em && gd.IsInstanceMap(em));
+        var context = enc.Kind switch
+        {
+            EncounterKind.Pvp => FightContext.Pvp,
+            EncounterKind.Training => FightContext.Training,
+            EncounterKind.Dummy => FightContext.TrainingDummy,
+            EncounterKind.Boss => instanceMap ? FightContext.DungeonBoss : openWorld || partial.IsPartial ? FightContext.FieldBoss : FightContext.Boss,
+            _ => instanceMap ? FightContext.Dungeon : openWorld ? FightContext.OpenWorld : FightContext.None,
+        };
+        GroupScope scope;
+        if (partyFilter || (inInstance && groupKnown))
+            scope = forceKnown ? GroupScope.Force : partyKnown ? GroupScope.Party : GroupScope.Solo;
+        else
+            scope = rows.Any(r => r.Kind == CombatantKind.Player && !r.IsLocal && r.AggregateCount == 0) || folded.Count > 0 ? GroupScope.Everyone : GroupScope.Solo;
+        // Members seen around this fight (HP updates arrive in bursts; members who left earlier in the zone drop out). A
+        // finished fight counts the members it had (its rows plus the size noted when it ended).
+        int forceOthers = enc.Ended ? enc.ForceOthersAtEnd : core.Party.ActiveForcePeerCount(groupSince);
+        int partyOthers = enc.Ended ? enc.PartyOthersAtEnd : core.Party.IsKnown(groupSince) ? core.Party.OtherPartyMemberCount(groupSince) : 0;
+        int groupSize = scope switch
+        {
+            GroupScope.Force => Math.Min(PartyTracker.MaxForceSize, Math.Max(forceOthers, partyRows + forceRows) + 1),
+            GroupScope.Party => Math.Min(PartyTracker.MaxPartySize, Math.Max(partyOthers, partyRows) + 1),
+            GroupScope.Solo => 1,
+            _ => 0,
+        };
 
         // ── targets ──
         var ordered = core.OrderedTargets(enc);
@@ -230,6 +278,9 @@ internal static class SnapshotBuilder
             PartialViewText = partial.IsPartial ? PartialViewText(partial) : null,
             OverallHpCheckRatio = enc.Bosses.Count > 0 ? HpCheckTracker.CombinedRatio(enc.Bosses.Select(b => b.HpCheck)) : null,
             Bosses = bosses,
+            Context = context,
+            Scope = scope,
+            GroupSize = groupSize,
         };
     }
 
@@ -245,8 +296,8 @@ internal static class SnapshotBuilder
     /// <summary>Header/footer text of a partial view.</summary>
     public static string PartialViewText(PartialViewInfo p) =>
         p.VisibleRatio is double r
-            ? $"Partial view: only your/party damage is visible ({(r * 100).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)} % of the boss HP lost)"
-            : "Partial view: only your/party damage is visible";
+            ? $"Partial view: only part of the damage is visible ({(r * 100).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)} % of the boss HP lost)"
+            : "Partial view: only part of the damage is visible";
 
     private static bool EndedDisplayExpired(Encounter enc, double delay, DateTime now) =>
         enc is { Ended: true, Finalized: true, EndedAt: { } endedAt }

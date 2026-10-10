@@ -317,6 +317,15 @@ public sealed class FakeCombatEngine : ICombatEngine
             AvgDps = dpsList.Count > 0 ? dpsList.Average() : 0,
             MaxDps = dpsList.Count > 0 ? dpsList.Max() : 0,
             HpCheckRatio = f.MaxHp is null || e < 3 ? null : 0.997,
+            Context = f.Kind switch
+            {
+                EncounterKind.Boss => FightContext.DungeonBoss,
+                EncounterKind.Training => FightContext.Training,
+                EncounterKind.Dummy => FightContext.TrainingDummy,
+                _ => FightContext.Dungeon,
+            },
+            Scope = _players.Count > 5 ? GroupScope.Force : GroupScope.Party,
+            GroupSize = _players.Count,
         };
     }
 

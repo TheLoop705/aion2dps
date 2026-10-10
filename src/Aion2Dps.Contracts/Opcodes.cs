@@ -22,6 +22,9 @@ public static class Opcodes
     public const ushort PartyRoster = 0x0297;
     public const ushort OtherPartyRoster = 0x0197;
     public const ushort HpUpdate = 0x1B92;
+    /// <summary>[real] HP/MP of the other members of your force (several parties joined for a field/world boss); the same
+    /// layout as <see cref="HpUpdate"/>, which covers only your own party.</summary>
+    public const ushort ForceHpUpdate = 0x2B96;
     public const ushort BuffApplied = 0x2A38;
     public const ushort BuffApplied2 = 0x2B38;
     public const ushort BuffRemoved = 0x0E92;

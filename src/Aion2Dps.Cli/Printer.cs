@@ -92,7 +92,7 @@ internal static class Printer
         if (r.BossMaxHp is long max)
             w.WriteLine($"  boss max HP {N(max)}   HP start {(r.BossHpStart is long s ? N(s) : "—")}   HP end {(r.BossHpEnd is long e ? N(e) : "—")}");
         if (r.PartialView)
-            w.WriteLine($"  PARTIAL VIEW: only your/party damage is visible ({r.PartialViewReason}). Contribution = damage / boss max HP; " +
+            w.WriteLine($"  PARTIAL VIEW: only part of the damage is visible ({r.PartialViewReason}). Contribution = damage / boss max HP; " +
                         "share of party damage and the HP check do not apply" +
                         (r.HpCheck is { } phc ? $" (visible {Pct(phc.Ratio)}: decoded {N(phc.DecodedDamage)} of {N(phc.HpLost)} HP lost)" : "") + ".");
         else if (r.HpCheck is { } hc)
@@ -115,19 +115,20 @@ internal static class Printer
                 w.WriteLine($"  Overall HP check: {(oh.Passed ? "PASSED" : "FAILED")}  ratio {N(oh.Ratio, "0.0000")}  decoded {N(oh.DecodedDamage)}  HP lost {N(oh.HpLost)}");
         }
 
-        // Partial view: you and your party first; players seen only through DoT ticks / heals folded into one line.
+        // Partial view: you and your party/force first; other players seen only through DoT ticks / heals folded into one
+        // line. Markers: * you, + party, ~ force (another party of your force).
         string shareHeader = r.PartialView ? "Contrib" : "Share";
         w.WriteLine($"  {"Player",-18} {"Class",-13} {"Damage",14} {"DPS",10} {shareHeader,7} {"Crit",7} {"Hits",6} {"Heal",11} {"Taken",11} {"Deaths",6}");
         var ordered = r.Combatants.OrderBy(c => c.Kind == CombatantKind.EnemyPlayer)
-            .ThenBy(c => r.PartialView && !(c.IsLocal || c.IsPartyMember))
+            .ThenBy(c => r.PartialView && !(c.IsLocal || c.IsPartyMember || c.IsForceMember))
             .ThenByDescending(c => c.Damage).ToList();
         var folded = r.PartialView
-            ? ordered.Where(c => c.Kind == CombatantKind.Player && !c.IsLocal && !c.IsPartyMember && c.Quality.Hits == 0).ToList()
+            ? ordered.Where(c => c.Kind == CombatantKind.Player && !c.IsLocal && !c.IsPartyMember && !c.IsForceMember && c.Quality.Hits == 0).ToList()
             : new List<CombatantRecord>();
         foreach (var c in ordered)
         {
             if (folded.Contains(c)) continue;
-            string name = (c.IsLocal ? "*" : c.IsPartyMember ? "+" : " ") + c.Name;
+            string name = (c.IsLocal ? "*" : c.IsPartyMember ? "+" : c.IsForceMember ? "~" : " ") + c.Name;
             if (name.Length > 18) name = name[..18];
             string crit = c.Quality.Hits > 0 ? Pct((double)c.Quality.Crits / c.Quality.Hits) : "—";
             string kind = c.Kind == CombatantKind.EnemyPlayer ? " (enemy)" : "";

@@ -72,11 +72,13 @@ public sealed class SettingsPage : DashboardPage
         meter.Children.Add(Ui.Field("Bar fill", barMode));
         meter.Children.Add(Ui.Field("Default mode", Ui.Combo(new[] { (MeterMode.BossOnly, "Boss only"), (MeterMode.AllTargets, "All targets") }, o.DefaultMode,
             v => { o.DefaultMode = v; context.Services.Engine.Mode = v; Save(); }, 200)));
-        meter.Children.Add(Ui.Field("Rows shown", SliderWithLabel(1, 24, o.MaxRows, 1, v => $"{v:0}", v => { o.MaxRows = (int)v; Save(); })));
+        meter.Children.Add(Ui.Field("Rows shown", SliderWithLabel(1, 24, o.MaxRows, 1, v => $"{v:0}", v => { o.MaxRows = (int)v; Save(); }),
+            "The top of the ranking. When you are not among them, the last row is yours with your real rank."));
         meter.Children.Add(Ui.Field("Shrink a finished fight to the slim bar after", SliderWithLabel(0, 120, g.EndedDisplaySeconds, 5,
             v => v <= 0 ? $"{Overlay.OverlayPresentationPolicy.DefaultLingerSeconds:0} s" : $"{v:0} s", v => { g.EndedDisplaySeconds = v; Save(); }),
             "A finished fight is never cleared: it stays until the next fight starts. After this delay the overlay shrinks to the slim bar; click the bar to see the result again."));
-        meter.Children.Add(Ui.Check("Only me when solo (in a party the meter always shows just your party)", g.PartyOnly, v => { g.PartyOnly = v; Save(); }));
+        meter.Children.Add(Ui.Check("Only my group inside instances too (outside instances the meter always ranks just you, your party or your force)",
+            g.PartyOnly, v => { g.PartyOnly = v; Save(); }));
         meter.Children.Add(Ui.Check("Track boss fights only (ignore trash mobs)", g.BossFightsOnly, v => { g.BossFightsOnly = v; Save(); }));
         var bossOnlyHint = Ui.Text("Trash mobs never start or replace a fight on the meter: it waits for a boss, and a finished boss fight stays up " +
                                    "until the next boss is engaged. Training runs, dummies and PvP still count.",

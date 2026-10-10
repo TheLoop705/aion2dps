@@ -190,6 +190,7 @@ internal static class EncounterRecordBuilder
                 r.Class = cs.Class;
                 r.IsLocal = cs.IsLocal;
                 r.IsPartyMember = cs.IsPartyMember;
+                r.IsForceMember = cs.IsForceMember;
                 r.ServerId = cs.ServerId;
                 r.Deaths = cs.Deaths;
                 foreach (var (time, skill, killer) in cs.DeathLog)
@@ -221,6 +222,7 @@ internal static class EncounterRecordBuilder
             if (core.Party.Get(r.Name) is { } m && r.Kind != CombatantKind.EnemyPlayer)
             {
                 r.IsPartyMember = true;
+                r.IsForceMember = false;
                 r.Level = m.Level != 0 ? m.Level : null;
                 r.GearScore = m.GearScore;
                 r.CombatPower = m.CombatPower;

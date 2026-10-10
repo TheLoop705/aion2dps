@@ -102,7 +102,11 @@ internal sealed class CombatCore
             case DotEvent e: OnDot(e); break;
             case EntityStatsEvent e: OnEntityStats(e); break;
             case HpUpdateEvent e:
-                if (Entities.Get(e.Entity) is not NpcEntity && NotePartyHpPeer(e.Entity)) PlayersChanged(e.Time);
+                if (Entities.Get(e.Entity) is not NpcEntity && NotePartyHpPeer(e.Entity, e.Time)) PlayersChanged(e.Time);
+                OnHp(e.Entity, e.Hp, e.HpMax, e.Time);
+                break;
+            case ForceMemberHpEvent e:
+                if (Entities.Get(e.Entity) is not NpcEntity && NoteForcePeer(e.Entity, e.Time)) PlayersChanged(e.Time);
                 OnHp(e.Entity, e.Hp, e.HpMax, e.Time);
                 break;
             case FieldBossListEvent e: OnFieldBossList(e); break;
@@ -171,7 +175,12 @@ internal sealed class CombatCore
         // encounter is finalized first, while Entities.Local still describes the character who fought it.
         bool switching = Entities.Local is { Authoritative: true } cur && cur.Name.Length > 0 && e.Name.Length > 0
                          && !string.Equals(cur.Name, e.Name, StringComparison.Ordinal);
-        if (switching) EndActive(EncounterOutcome.ZoneChange, e.Time);
+        if (switching)
+        {
+            EndActive(EncounterOutcome.ZoneChange, e.Time);
+            // Another character is not in the previous character's party or force.
+            Party.Clear();
+        }
         var (p, nameChanged, prevId) = Entities.SetLocal(e);
         if (p.Name.Length > 0) PendingKnownCharacter = new KnownCharacter(p.Name, p.Class, p.ServerId ?? 0);
         if (nameChanged)
@@ -302,6 +311,7 @@ internal sealed class CombatCore
         c.IsLocal = p.IsLocal;
         c.IsEnemy = p.IsEnemy;
         c.IsPartyMember = IsPartyPlayer(p);
+        c.IsForceMember = !c.IsPartyMember && !p.IsLocal && Party.IsForcePeer(p.Id, GroupSince);
         c.ServerId = p.ServerId ?? Party.Get(p.Name)?.ServerId;
     }
 
@@ -322,15 +332,51 @@ internal sealed class CombatCore
     }
 
     /// <summary>A roster member, or (not the local player) an entity the server sends group HP updates for.</summary>
-    public bool IsPartyPlayer(PlayerEntity p) => Party.IsMember(p.Name) || (!p.IsLocal && Party.IsHpPeer(p.Id));
+    public bool IsPartyPlayer(PlayerEntity p) => Party.IsMember(p.Name) || (!p.IsLocal && Party.IsHpPeer(p.Id, GroupSince));
+
+    /// <summary>A member of your party or of your force (never an enemy; its heals, damage taken and deaths count).</summary>
+    public bool IsGroupPlayer(PlayerEntity p) => IsPartyPlayer(p) || (!p.IsLocal && Party.IsForcePeer(p.Id, GroupSince));
+
+    /// <summary>
+    /// How long a group HP update (<c>1B 92</c>, <c>2B 96</c>) keeps a player in your party or force. The updates come
+    /// while members take damage or heal, so out of combat they pause for minutes ([real] Gartua: 1-4 of 19 force members
+    /// per minute between bosses); a player whose updates stopped longer ago has left the group (force broken up).
+    /// </summary>
+    public static readonly TimeSpan GroupMemberWindow = TimeSpan.FromMinutes(10);
+
+    /// <summary>Group HP updates since this time make a member: from 10 minutes before the current fight started (nobody
+    /// drops out mid-fight), else before the latest event.</summary>
+    public DateTime GroupSince
+    {
+        get
+        {
+            DateTime reference = LastEventTime ?? DateTime.MinValue;
+            if (Current is { Finalized: false } enc && enc.StartUtc < reference) reference = enc.StartUtc;
+            return reference.Ticks > GroupMemberWindow.Ticks ? reference - GroupMemberWindow : DateTime.MinValue;
+        }
+    }
+
+    /// <summary><c>2B 96</c> is sent for your force's other members only. Returns true when the entity (re)joined the force.</summary>
+    private bool NoteForcePeer(uint id, DateTime t)
+    {
+        if (id == 0 || Entities.LocalId == id || !Party.NoteForcePeer(id, t, GroupSince)) return false;
+        ReleaseFromEnemies(id);
+        return true;
+    }
 
     /// <summary><c>1B 92</c> is sent for your group's other members only: party evidence without a roster. Returns true
-    /// when the entity is new to the group.</summary>
-    private bool NotePartyHpPeer(uint id)
+    /// when the entity (re)joined the group.</summary>
+    private bool NotePartyHpPeer(uint id, DateTime t) =>
+        id != 0 && Entities.LocalId != id && Party.NoteHpPeer(id, t, GroupSince);
+
+    /// <summary>A force member is never an enemy, even when an earlier hit (charm, boss mechanic) flagged them before their
+    /// first <c>2B 96</c>: their PvP state in the running fight goes too. (Not for <c>1B 92</c>: whether it is ever sent
+    /// for an enemy player is unverified, no capture has PvP.)</summary>
+    private void ReleaseFromEnemies(uint id)
     {
-        if (id == 0 || Entities.LocalId == id || Party.IsHpPeer(id)) return false;
-        Party.NoteHpPeer(id);
-        return Party.IsHpPeer(id);
+        if (Entities.Get(id) is not PlayerEntity { IsEnemy: true } p) return;
+        p.IsEnemy = false;
+        DiscardPvpState(id);
     }
 
     /// <summary>
@@ -779,7 +825,7 @@ internal sealed class CombatCore
         var enc = Current;
         if (enc is { Finalized: false })
         {
-            if (enc.Combatants.TryGetValue(p.Id, out var c) || p.IsLocal || IsPartyPlayer(p))
+            if (enc.Combatants.TryGetValue(p.Id, out var c) || p.IsLocal || IsGroupPlayer(p))
             {
                 c ??= enc.GetCombatant(p.Id);
                 if (!c.Dead)
@@ -814,6 +860,8 @@ internal sealed class CombatCore
     private void OnMapLoad(MapLoadEvent e)
     {
         if (MapId == e.MapId) return; // same map = in-map teleport
+        // The fight keeps the map it was fought on (a finished fight is still shown after the zone change).
+        if (Current is { Finalized: false, MapId: null } fought) fought.MapId = EffectiveMapId;
         MapId = e.MapId;
         EndActive(EncounterOutcome.ZoneChange, e.Time);
         ClearZoneState();
@@ -1128,6 +1176,8 @@ internal sealed class CombatCore
     private bool LooksLikeSkillEntity(uint id, CharacterClass cls, uint scalar, DateTime t)
     {
         if (scalar != 0 && Summons.AnyPlayerWithScalar(scalar, t, id, cls)) return true;
+        // In a force the other parties' players are there too, so a bound roster does not mean "nobody else".
+        if (Party.HasForcePeers(GroupSince)) return false;
         if (MapId is not uint map || !GameData.IsInstanceMap(map) || !Party.HasRoster) return false;
         foreach (var m in Party.Members)
             if (Entities.FindPlayerByName(m.Name) == null) return false;
@@ -1259,8 +1309,10 @@ internal sealed class CombatCore
         var enc = Current;
         bool core = IsCoreActor(hit.Actor);
         // Training dummies stand in towns where strangers hit them all day: only your own (or your party's) hits start or
-        // keep a dummy fight, also before the local player is known (otherwise everyone counts as core).
-        if (dummy && !bossLike) core = IsLocalOrPartyActor(hit.Actor);
+        // keep a dummy fight, also before the local player is known (otherwise everyone counts as core). Most scarecrows
+        // are also flagged as bosses in the game data: they follow the same rule, so a stranger's unresolved spirit (the
+        // unknown-summons bucket) never starts a dummy fight on the scarecrow next to yours.
+        if (dummy) core = IsLocalOrPartyActor(hit.Actor);
         // A bystander may still engage a real boss (world/field bosses): those encounters end with the boss.
         bool bystanderBoss = bossLike && !dummy && !TrainingArmed;
         // Boss fights only: a hit on a trash mob never starts an encounter (a training run still counts everything).
@@ -1440,7 +1492,7 @@ internal sealed class CombatCore
     {
         var enc = Current;
         if (enc is not { Ended: false }) return;
-        if (!(target.IsLocal || IsPartyPlayer(target) || enc.Combatants.ContainsKey(target.Id))) return;
+        if (!(target.IsLocal || IsGroupPlayer(target) || enc.Combatants.ContainsKey(target.Id))) return;
         hit.Kind = HitKind.Incoming;
         hit.Flags |= HitFlags.Incoming;
         if (Entities.Get(hit.Source) is NpcEntity { NpcCode: not 0 } src) enc.SourceNpcCodes[hit.Source] = src.NpcCode;
@@ -1456,7 +1508,7 @@ internal sealed class CombatCore
         if (src.Credited == CombatEngine.UnknownSummonsEntityId) return;
         if (amount <= 0 || amount > MaxAmount) return;
         var healer = Entities.Get(src.Credited) as PlayerEntity;
-        bool relevant = healer is { IsLocal: true } || (healer != null && IsPartyPlayer(healer))
+        bool relevant = healer is { IsLocal: true } || (healer != null && IsGroupPlayer(healer))
                         || enc.Combatants.ContainsKey(src.Credited) || enc.Combatants.ContainsKey(targetId);
         if (!relevant) return;
         var hit = new Hit
@@ -1516,7 +1568,7 @@ internal sealed class CombatCore
         bool outgoing = a == local.Id;
         bool incoming = b == local.Id;
         var enemy = outgoing ? victim : Entities.Get(a) as PlayerEntity;
-        if (enemy == null || !(outgoing || incoming) || enemy.IsLocal || IsPartyPlayer(enemy)
+        if (enemy == null || !(outgoing || incoming) || enemy.IsLocal || IsGroupPlayer(enemy)
             || !(enemy.IsEnemy || CanTurnEnemy(hit, src, enemy, local)))
         {
             // Not PvP. Friendly fire from a mechanic (charm, bomb credited to a player) is still damage taken.
@@ -1686,6 +1738,9 @@ internal sealed class CombatCore
         enc.Ended = true;
         enc.Outcome = outcome;
         enc.EndedAt = t;
+        // The group as it was (a finished fight stays on display after the zone change that clears the live state).
+        enc.ForceOthersAtEnd = Party.ActiveForcePeerCount(GroupSince);
+        enc.PartyOthersAtEnd = Party.IsKnown(GroupSince) ? Party.OtherPartyMemberCount(GroupSince) : 0;
         if (enc.Kind == EncounterKind.Training) Mode = MeterMode.BossOnly; // ending training restores Boss-only
         if (outcome == EncounterOutcome.Kill) enc.FinalizeAt = t + KillGrace;
         else Finalize(enc);
@@ -1717,6 +1772,10 @@ internal sealed class CombatCore
         if (enc.Kind == EncounterKind.Pvp)
             foreach (var pv in enc.Pvp.Values) total += pv.DamageTaken;
         if (total <= 0) return false;
+        // A dummy fight is yours (or your group's): strangers' damage on a scarecrow next to yours is never a fight.
+        if (enc.Kind == EncounterKind.Dummy && !enc.Combatants.Values.Any(c =>
+                !c.IsEnemy && (c.IsLocal || c.IsPartyMember || c.IsForceMember) && c.Scoped.Damage > 0))
+            return false;
         double d = enc.DurationSeconds;
         return enc.Kind switch
         {

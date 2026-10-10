@@ -56,6 +56,14 @@ public sealed class OverlayView : UserControl
     private readonly TextBlock _toastBody = Ui.Text("", ThemeKeys.AccentText, 11);
     private readonly Grid _columnHeader = new() { Height = 15, Margin = new Thickness(0, 3, 0, 0) };
     private readonly Grid _rowsHost = new() { Margin = new Thickness(4, 2, 4, 2), ClipToBounds = true };
+    /// <summary>Bars only: one slim line above the bars saying what is ranked ("Field boss · Force 20 · partial").</summary>
+    private readonly Grid _barsCaption = new()
+    {
+        Margin = new Thickness(4, 2, 4, 0), Height = 15, HorizontalAlignment = HorizontalAlignment.Left, Visibility = Visibility.Collapsed,
+        IsHitTestVisible = false,
+    };
+    private readonly Border _barsCaptionTrack = new();
+    private readonly TextBlock _barsCaptionText = Ui.Text("", ThemeKeys.TextMuted, 9.5, FontWeights.SemiBold);
     private readonly StackPanel _statePanel = new() { Margin = new Thickness(14, 10, 14, 12), Visibility = Visibility.Collapsed };
     private readonly System.Windows.Shapes.Path _stateIcon = new() { Width = 22, Height = 22, Stretch = Stretch.Uniform, HorizontalAlignment = HorizontalAlignment.Left };
     private readonly TextBlock _stateTitle = Ui.Text("", ThemeKeys.Text, 13, FontWeights.SemiBold);
@@ -272,6 +280,15 @@ public sealed class OverlayView : UserControl
         var body = new StackPanel();
         _columnHeader.Margin = new Thickness(4, 3, 4, 0);
         body.Children.Add(_columnHeader);
+        _barsCaptionTrack.SetResourceReference(Border.BackgroundProperty, ThemeKeys.WindowBackground);
+        _barsCaptionTrack.SetResourceReference(Border.CornerRadiusProperty, ThemeKeys.BarCornerRadius);
+        _barsCaptionText.Margin = new Thickness(6, 0, 6, 0);
+        _barsCaptionText.VerticalAlignment = VerticalAlignment.Center;
+        _barsCaptionText.HorizontalAlignment = HorizontalAlignment.Left;
+        _barsCaptionText.TextTrimming = TextTrimming.CharacterEllipsis;
+        _barsCaption.Children.Add(_barsCaptionTrack);
+        _barsCaption.Children.Add(_barsCaptionText);
+        body.Children.Add(_barsCaption);
         body.Children.Add(_rowsHost);
         body.Children.Add(_statePanel);
         BuildStatePanel();
@@ -468,13 +485,17 @@ public sealed class OverlayView : UserControl
         _header.Cursor = options.Locked ? Cursors.Arrow : Cursors.SizeAll;
         _collapseButton.Visibility = options.ShrinkWhenIdle ? Visibility.Visible : Visibility.Collapsed;
         _sizeChip.Content = options.RowSize switch { RowSize.Normal => "N", RowSize.Compact => "C", _ => "M" };
-        // Lit (accent text) while only party members are shown, dimmed while everyone hitting the same enemies is listed.
+        // The chip names who is ranked in a fight (SOLO / PARTY 5 / FORCE 20 / ALL). It toggles "Only my group" for
+        // instances: lit (accent text) while that is on, dimmed while instances rank everyone there.
+        bool fight = snapshot.State is MeterState.InCombat or MeterState.Ended;
         _partyChip.Visibility = pvp ? Visibility.Collapsed : Visibility.Visible;
+        _partyChip.Content = fight ? ScopeChipText(snapshot) : "PARTY";
         _partyChip.SetResourceReference(ForegroundProperty, options.PartyOnly ? ThemeKeys.Accent : ThemeKeys.TextMuted);
         _partyChip.Opacity = options.PartyOnly ? 1.0 : 0.75;
-        _partyChip.ToolTip = options.PartyOnly
-            ? "Showing party members only (you + party roster; solo = just you). Click to show everyone (Ctrl+Alt+P)"
-            : "Showing everyone hitting the same enemies. Click to show party members only (Ctrl+Alt+P)";
+        _partyChip.ToolTip = (fight ? ScopeTooltip(snapshot) : "Who is ranked: just you when solo, else your party, or your force (several parties joined).")
+                             + (options.PartyOnly
+            ? "\n\n\"Only my group\" is on: inside instances too, only you and your party or force are ranked. Click to turn it off (Ctrl+Alt+P)"
+            : "\n\nOutside instances only your group is ranked anyway. Click to also limit instances to your group (Ctrl+Alt+P)");
         _modeChip.Content = snapshot.Mode switch { MeterMode.AllTargets => "ALL", MeterMode.Pvp => "PVP", _ => "BOSS" };
         _viewChip.Content = pvp
             ? options.PvpSort == PvpSort.Threat ? "THREAT" : "DMG"
@@ -499,6 +520,13 @@ public sealed class OverlayView : UserControl
         bool hasRows = pvp ? UpdatePvpRows(snapshot, options) : UpdatePlayerRows(snapshot, status, options);
         _hasRows = hasRows;
         ApplyChrome();
+        string caption = options.BarsOnly && hasRows && !pvp ? BarsCaption(snapshot) : "";
+        _barsCaption.Visibility = caption.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        if (caption.Length > 0)
+        {
+            _barsCaptionText.Text = caption;
+            _barsCaptionTrack.Opacity = options.BackgroundOpacity;
+        }
         bool showState = !hasRows && !options.BarsOnly;
         _rowsHost.Visibility = hasRows ? Visibility.Visible : Visibility.Collapsed;
         _columnHeader.Visibility = hasRows && !pvp && options.ShowColumnHeader && options.RowSize != RowSize.Micro ? Visibility.Visible : Visibility.Collapsed;
@@ -561,8 +589,11 @@ public sealed class OverlayView : UserControl
                 : $"Damage taken {Fmt.Exact(target.DamageTaken)}";
             _emblem.FillBrush = hpBrush;
             _emblem.Fraction = frac;
+            // Map and target index first (they must fit next to the toolbar), the kind of fight after them; the scope and
+            // group size are on the chip.
             subtitle = s.MapName ?? KindLabel(s);
             if (s.Targets.Count > 1) subtitle += $" · {IndexOf(s.Targets, target) + 1}/{s.Targets.Count}";
+            if (ContextLabel(s.Context) is { Length: > 0 } kind && s.MapName is not null) subtitle += " · " + kind;
             UpdateBossBars(s, target);
         }
         else
@@ -593,8 +624,10 @@ public sealed class OverlayView : UserControl
         if (live && !pvp && s.PartialView)
         {
             // Open world: the server sends only your own direct hits. Not a decoding problem, so no HP-check warning.
-            _partialBadge.ToolTip = (s.PartialViewText ?? "Partial view: only your/party damage is visible") +
-                                    ".\n% = damage / boss max HP. Players seen only through DoT ticks or heals are grouped as \"Others\".";
+            _partialBadge.ToolTip = (s.PartialViewText ?? "Partial view: only part of the damage is visible") +
+                                    ".\nAt open-world bosses the server sends every player only their own direct hits: your party and force show " +
+                                    "just their DoT ticks and heals (marked DoT), so their damage cannot be ranked against yours. Only your own " +
+                                    "numbers are complete there.\n% = damage / boss max HP. Other players are grouped as \"Others\".";
             _partialBadge.Visibility = Visibility.Visible;
         }
         else if (live && !pvp && s.HpCheckRatio is { } ratio && Math.Abs(ratio - 1) > 0.03)
@@ -709,6 +742,59 @@ public sealed class OverlayView : UserControl
         for (int i = 0; i < list.Count; i++) if (list[i].EntityId == t.EntityId) return i;
         return 0;
     }
+
+    /// <summary>"Field boss · Force 20", "Dungeon boss · Party 5", "Training dummy · Solo", "PvP" (empty when unknown).</summary>
+    internal static string ContextText(MeterSnapshot s)
+    {
+        string context = ContextLabel(s.Context);
+        string scope = s.Scope switch
+        {
+            GroupScope.Force => s.GroupSize > 1 ? $"Force {s.GroupSize}" : "Force",
+            GroupScope.Party => s.GroupSize > 1 ? $"Party {s.GroupSize}" : "Party",
+            GroupScope.Solo => "Solo",
+            _ => "",
+        };
+        return string.Join(" · ", new[] { context, scope }.Where(x => x.Length > 0));
+    }
+
+    /// <summary>"Field boss", "Dungeon boss", "PvP", … (empty when unknown).</summary>
+    internal static string ContextLabel(FightContext context) => context switch
+    {
+        FightContext.FieldBoss => "Field boss",
+        FightContext.DungeonBoss => "Dungeon boss",
+        FightContext.Dungeon => "Dungeon",
+        FightContext.OpenWorld => "Open world",
+        FightContext.Boss => "Boss",
+        FightContext.TrainingDummy => "Training dummy",
+        FightContext.Training => "Training",
+        FightContext.Pvp => "PvP",
+        _ => "",
+    };
+
+    /// <summary>Bars only: the caption above the bars (context, scope and a partial-view hint).</summary>
+    internal static string BarsCaption(MeterSnapshot s)
+    {
+        if (s.State is not (MeterState.InCombat or MeterState.Ended)) return "";
+        string text = ContextText(s);
+        if (text.Length == 0) return "";
+        return s.PartialView ? text + " · your hits only" : text;
+    }
+
+    private static string ScopeChipText(MeterSnapshot s) => s.Scope switch
+    {
+        GroupScope.Force => s.GroupSize > 1 ? $"FORCE {s.GroupSize}" : "FORCE",
+        GroupScope.Party => s.GroupSize > 1 ? $"PARTY {s.GroupSize}" : "PARTY",
+        GroupScope.Solo => "SOLO",
+        _ => "ALL",
+    };
+
+    private static string ScopeTooltip(MeterSnapshot s) => s.Scope switch
+    {
+        GroupScope.Force => $"Ranking your force ({(s.GroupSize > 1 ? s.GroupSize + " players, " : "")}your party and the other parties joined with it).",
+        GroupScope.Party => $"Ranking your party{(s.GroupSize > 1 ? $" ({s.GroupSize} players)" : "")}.",
+        GroupScope.Solo => "Ranking only you (no party or force).",
+        _ => "Ranking everyone hitting the same enemies (inside an instance only your group is there).",
+    };
 
     private static string KindLabel(MeterSnapshot s) => s.EncounterKind switch
     {
@@ -831,7 +917,7 @@ public sealed class OverlayView : UserControl
             case MeterView.Taken:
             {
                 double total = src.Sum(r => (double)r.DamageTaken);
-                filtered = src.Where(r => r.DamageTaken > 0).OrderByDescending(r => r.DamageTaken);
+                filtered = src.Where(r => r.DamageTaken > 0 || r.IsLocal).OrderByDescending(r => r.DamageTaken);
                 primary = r => r.DamageTaken;
                 secondary = r => r.DamageTaken / elapsed;
                 pct = r => total > 0 ? r.DamageTaken / total : null;
@@ -841,7 +927,7 @@ public sealed class OverlayView : UserControl
             case MeterView.Heal:
             {
                 double total = src.Sum(r => (double)r.Healing);
-                filtered = src.Where(r => r.Healing > 0).OrderByDescending(r => r.Healing);
+                filtered = src.Where(r => r.Healing > 0 || r.IsLocal).OrderByDescending(r => r.Healing);
                 primary = r => r.Healing;
                 secondary = r => r.Healing / elapsed;
                 pct = r => total > 0 ? r.Healing / total : null;
@@ -857,19 +943,27 @@ public sealed class OverlayView : UserControl
                 break;
         }
         var list = filtered.ToList();
-        if (s.PartialView && o.View is not (MeterView.Taken or MeterView.Heal))
+        bool damageView = o.View is not (MeterView.Taken or MeterView.Heal);
+        if (s.PartialView && damageView)
         {
             // Partial view: you and your party first, then other players with direct hits, the "Others" row last; the
             // percentage is always the share of the boss's max HP (a share of the visible damage means nothing here).
-            list = list.OrderBy(r => r.AggregateCount > 0 ? 2 : r.IsLocal || r.IsPartyMember ? 0 : 1).ToList();
+            list = list.OrderBy(r => r.AggregateCount > 0 ? 2 : r.IsLocal || r.IsPartyMember || r.IsForceMember ? 0 : 1).ToList();
             pct = r => r.Contribution;
         }
+        // Top N only. Outside the top N your own row takes the last slot with your real rank, so you always compare
+        // yourself against the top N − 1.
         int max = Math.Max(1, o.MaxRows);
+        int liftedRank = 0;
         if (list.Count > max)
         {
             var local = list.FindIndex(r => r.IsLocal);
             var top = list.Take(max).ToList();
-            if (local >= max) top[max - 1] = list[local]; // your own row never disappears
+            if (local >= max)
+            {
+                top[max - 1] = list[local];
+                liftedRank = local + 1;
+            }
             list = top;
         }
         double topValue = list.Count > 0 ? list.Max(primary) : 0;
@@ -878,7 +972,10 @@ public sealed class OverlayView : UserControl
         {
             var r = list[i];
             double bar = o.BarMode == BarMode.ShareOfParty && !s.PartialView ? share(r) : topValue > 0 ? primary(r) / topValue : 0;
-            result.Add(new RowDisplay(r, i + 1, primary(r), secondary(r), pct(r), bar));
+            bool lifted = liftedRank > 0 && i == list.Count - 1;
+            // Partial view: a group member seen only through DoT ticks (their direct hits are never sent to you).
+            bool dotOnly = s.PartialView && damageView && !r.IsLocal && r.AggregateCount == 0 && r.Hits == 0 && r.Damage > 0;
+            result.Add(new RowDisplay(r, lifted ? liftedRank : i + 1, primary(r), secondary(r), pct(r), bar, lifted, dotOnly));
         }
         return result;
     }

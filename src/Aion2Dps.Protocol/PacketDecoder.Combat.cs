@@ -142,6 +142,17 @@ public sealed partial class PacketDecoder
         return true;
     }
 
+    /// <summary><c>2B 96</c> force member HP/MP (§8.12b): the <c>1B 92</c> layout, for every other member of your force.</summary>
+    private bool DecodeForceHpUpdate(ReadOnlySpan<byte> body)
+    {
+        var r = new SpanReader(body);
+        if (!r.TryReadVarUInt(out uint entity) || !r.TryReadVarUInt(out uint hp) || !r.TryReadVarUInt(out uint max))
+            return Fail("truncated");
+        if (entity == 0 || entity > MaxEntityId) return Fail("entity out of range");
+        Emit(new ForceMemberHpEvent { Time = _time, BundleDepth = _depth, Entity = entity, Hp = hp, HpMax = max });
+        return true;
+    }
+
     /// <summary><c>42 36</c> death (§8.9): entity, varint (0), flag.</summary>
     private bool DecodeDeath(ReadOnlySpan<byte> body)
     {

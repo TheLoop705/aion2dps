@@ -408,11 +408,12 @@ public static class Program
                             $" · pkts {Printer.N(s.PacketsSeen)} bytes {Printer.N(s.BytesDelivered)} gaps {s.GapCount} · frames {Printer.N(d.Frames)} events {Printer.N(d.EventsEmitted)} errors {Printer.N(d.DecodeErrors)}";
             Console.WriteLine(status);
             string meter = $"         {snap.State} · {snap.StatusText}" + (snap.Target is { } t ? $" · {t.Name} {(t.HpFraction is double f ? Printer.Pct(f) : "")}" : "") +
-                           (snap.State is MeterState.InCombat or MeterState.Ended ? $" · {Printer.Duration(snap.Elapsed.TotalSeconds)} · party {Printer.Abbrev(snap.PartyDps)} DPS" : "") +
+                           (snap.State is MeterState.InCombat or MeterState.Ended ? $" · {Printer.Duration(snap.Elapsed.TotalSeconds)} · party {Printer.Abbrev(snap.PartyDps)} DPS" +
+                                                                                    $" · {snap.Context} · {snap.Scope}{(snap.GroupSize > 0 ? $" {snap.GroupSize}" : "")}" : "") +
                            (snap.PingMs is double ping ? $" · ping {ping:0} ms" : "");
             Console.WriteLine(meter);
             foreach (var row in snap.Rows.Take(8))
-                Console.WriteLine($"           {row.Rank,2}. {(row.IsLocal ? "*" : " ")}{row.Name,-16} {Printer.Abbrev(row.Dps),9} DPS {Printer.N(row.Damage),14} {Printer.Pct(row.DamageShare),7}");
+                Console.WriteLine($"           {row.Rank,2}. {(row.IsLocal ? "*" : row.IsPartyMember ? "+" : row.IsForceMember ? "~" : " ")}{row.Name,-16} {Printer.Abbrev(row.Dps),9} DPS {Printer.N(row.Damage),14} {Printer.Pct(row.DamageShare),7}");
         }
 
         capture.Stop();

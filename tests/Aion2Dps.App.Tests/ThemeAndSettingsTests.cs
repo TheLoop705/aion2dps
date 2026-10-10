@@ -245,6 +245,30 @@ public class SettingsTests
     }
 
     [Fact]
+    public void Version_1_files_move_from_the_old_10_row_default_to_the_top_5()
+    {
+        var path = TempFile();
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, """
+            { "Version": 1, "Overlay": { "MaxRows": 10 } }
+            """);
+        var s = SettingsStore.LoadFrom(path);
+        Assert.Equal(5, s.Overlay.MaxRows);
+        Assert.Equal(AppSettings.CurrentVersion, s.Version);
+
+        // A value the user picked (not the old default) stays, and a current file is never migrated again.
+        File.WriteAllText(path, """
+            { "Version": 1, "Overlay": { "MaxRows": 8 } }
+            """);
+        Assert.Equal(8, SettingsStore.LoadFrom(path).Overlay.MaxRows);
+        File.WriteAllText(path, """
+            { "Version": 2, "Overlay": { "MaxRows": 10 } }
+            """);
+        Assert.Equal(10, SettingsStore.LoadFrom(path).Overlay.MaxRows);
+        Assert.Equal(5, new AppSettings().Overlay.MaxRows);
+    }
+
+    [Fact]
     public void Store_save_and_load()
     {
         var path = TempFile();

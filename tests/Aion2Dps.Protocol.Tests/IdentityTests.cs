@@ -250,6 +250,14 @@ public class SmallRecordTests
         Assert.Equal(3_600_000, hp.Hp);
         Assert.Equal(6_800_000, hp.HpMax);
 
+        // [real] 2B 96 = HP/MP of another member of your force, the 1B 92 layout (frame from a field boss in a force).
+        var force = Run.Single<ForceMemberHpEvent>("2B96 9A7D 8C6A 8E7B 310E0000 310E0000 0000000000000000 C0120000 F0490200 01");
+        Assert.Equal(16026u, force.Entity);
+        Assert.Equal(13_580, force.Hp);
+        Assert.Equal(15_758, force.HpMax);
+        Assert.Equal(Opcodes.ForceHpUpdate, OpcodeTable.Default.ForceHpUpdate);
+        Assert.False(Run.Payload("2B96 9A7D 8C6A").Events.Any()); // truncated: counted as a decode error, no event
+
         long qpc = 16_777_216_000 + 123_456;
         var ping = Run.Single<PingEvent>("0336 0000" + Convert.ToHexString(BitConverter.GetBytes(qpc)));
         Assert.Equal(qpc, ping.ClientSentMs);

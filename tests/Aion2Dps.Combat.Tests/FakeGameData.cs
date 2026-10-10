@@ -10,6 +10,8 @@ internal sealed class FakeGameData : IGameData
     public const uint TrashCode = 2100001;
     public const uint AddCode = 2100002;
     public const uint DummyCode = 2400032;
+    /// <summary>A scarecrow flagged as a boss in the game data (like most real "Training Scarecrow" codes).</summary>
+    public const uint BossDummyCode = 2400035;
     public const uint HealSkill = 17010000;
     public const uint RecuperationSkill = 18050000;
     /// <summary>Open-world field boss (place 2 of block 2400 on <see cref="OpenWorldMap"/>).</summary>
@@ -34,6 +36,7 @@ internal sealed class FakeGameData : IGameData
         [TrashCode] = new NpcInfo(TrashCode, "Cave Rat", IsBoss: false, IsDummy: false, DungeonId: null),
         [AddCode] = new NpcInfo(AddCode, "Harcon Minion", IsBoss: false, IsDummy: false, DungeonId: 600021),
         [DummyCode] = new NpcInfo(DummyCode, "Training Scarecrow", IsBoss: false, IsDummy: true, DungeonId: null),
+        [BossDummyCode] = new NpcInfo(BossDummyCode, "Melee Training Scarecrow", IsBoss: true, IsDummy: true, DungeonId: null),
         [FieldBossCode1] = new NpcInfo(FieldBossCode1, "Melted Danar", IsBoss: true, IsDummy: false, DungeonId: null),
         [FieldBossCode] = new NpcInfo(FieldBossCode, "Special Operations Leader Linx", IsBoss: true, IsDummy: false, DungeonId: null),
     };

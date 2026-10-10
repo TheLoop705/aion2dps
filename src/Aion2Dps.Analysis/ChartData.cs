@@ -95,8 +95,8 @@ public static class ChartData
         record.MapId is { } m && gameData.IsOpenWorldMap(m);
 
     /// <summary>
-    /// Partial view (<see cref="EncounterRecord.PartialView"/>): you and your party first, then other players with direct
-    /// hits; players seen only through DoT ticks or heals are returned separately (<paramref name="folded"/>).
+    /// Partial view (<see cref="EncounterRecord.PartialView"/>): you and your party or force first, then other players with
+    /// direct hits; other players seen only through DoT ticks or heals are returned separately (<paramref name="folded"/>).
     /// Otherwise the friendly list unchanged.
     /// </summary>
     public static List<CombatantRecord> VisibleFriendly(EncounterRecord record, out List<CombatantRecord> folded)
@@ -104,9 +104,11 @@ public static class ChartData
         var all = Friendly(record).ToList();
         folded = new List<CombatantRecord>();
         if (!record.PartialView) return all;
-        folded = all.Where(c => c.Kind == CombatantKind.Player && !c.IsLocal && !c.IsPartyMember && c.Quality.Hits == 0).ToList();
+        folded = all.Where(c => c.Kind == CombatantKind.Player && !IsGroup(c) && c.Quality.Hits == 0).ToList();
         var hidden = folded.ToHashSet();
-        return all.Where(c => !hidden.Contains(c)).OrderBy(c => c.IsLocal || c.IsPartyMember ? 0 : 1).ThenByDescending(c => c.Damage).ToList();
+        return all.Where(c => !hidden.Contains(c)).OrderBy(c => IsGroup(c) ? 0 : 1).ThenByDescending(c => c.Damage).ToList();
+
+        static bool IsGroup(CombatantRecord c) => c.IsLocal || c.IsPartyMember || c.IsForceMember;
     }
 
     /// <summary>Boss display name (NPC table) — "Silver Blade Rotan + Black Smoke Murute" for a multi-boss fight, in

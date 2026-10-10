@@ -46,6 +46,7 @@ public sealed class SettingsStore
             if (!File.Exists(path)) return new AppSettings();
             var json = File.ReadAllText(path);
             var settings = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions) ?? new AppSettings();
+            Migrate(settings);
             Normalize(settings);
             return settings;
         }
@@ -113,6 +114,17 @@ public sealed class SettingsStore
         }, Dispatcher.CurrentDispatcher);
         _debounce.Stop();
         _debounce.Start();
+    }
+
+    /// <summary>Moves a file written by an older version to today's defaults where the user never chose a value.</summary>
+    public static void Migrate(AppSettings s)
+    {
+        if (s.Version < 2)
+        {
+            // Version 1 listed 10 rows by default; the meter now shows the top 5 (you pinned last when outside them).
+            if (s.Overlay is { MaxRows: 10 } o) o.MaxRows = OverlaySettings.DefaultMaxRows;
+        }
+        if (s.Version < AppSettings.CurrentVersion) s.Version = AppSettings.CurrentVersion; // never downgrade a newer file
     }
 
     /// <summary>Clamps values that would make the UI unusable (e.g. a hand-edited file).</summary>

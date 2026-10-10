@@ -20,7 +20,8 @@ public enum PvpSort { Threat, Damage }
 /// <summary>All persisted user settings (%APPDATA%/Aion2Dps/settings.json). Plain POCO so System.Text.Json round-trips it.</summary>
 public sealed class AppSettings
 {
-    public const int CurrentVersion = 1;
+    /// <summary>2: the overlay lists the top 5 rows by default (was 10; files still on the old default move to 5).</summary>
+    public const int CurrentVersion = 2;
 
     public int Version { get; set; } = CurrentVersion;
     public OverlaySettings Overlay { get; set; } = new();
@@ -57,7 +58,13 @@ public sealed class OverlaySettings
     public BarMode BarMode { get; set; } = BarMode.RelativeToTop;
     public MeterMode DefaultMode { get; set; } = MeterMode.BossOnly;
     public PvpSort PvpSort { get; set; } = PvpSort.Threat;
-    public int MaxRows { get; set; } = 10;
+    /// <summary>
+    /// How many rows the overlay lists (the top N of the ranking). When you are not in the top N, the last row is yours,
+    /// with your real rank, so you always compare yourself against the top N − 1.
+    /// </summary>
+    public int MaxRows { get; set; } = DefaultMaxRows;
+
+    public const int DefaultMaxRows = 5;
 
     // Column visibility
     public bool ShowTotal { get; set; } = true;

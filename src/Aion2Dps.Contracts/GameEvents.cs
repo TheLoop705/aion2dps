@@ -194,6 +194,18 @@ public sealed record HpUpdateEvent : GameEvent
     public long HpMax { get; init; }
 }
 
+/// <summary>
+/// <c>2B 96</c> HP/MP of a member of your <b>force</b> (§8.12b): the same layout as <c>1B 92</c>. [real] Sent for every
+/// other member of the force, your own party included (19 of 19 at two open-world field bosses), never for NPCs or
+/// strangers. The <c>96</c> opcode family is the force, the <c>92</c> family your own party.
+/// </summary>
+public sealed record ForceMemberHpEvent : GameEvent
+{
+    public uint Entity { get; init; }
+    public long Hp { get; init; }
+    public long HpMax { get; init; }
+}
+
 /// <summary><c>2A 38</c>/<c>2B 38</c> buff applied (§8.13).</summary>
 public sealed record BuffAppliedEvent : GameEvent
 {

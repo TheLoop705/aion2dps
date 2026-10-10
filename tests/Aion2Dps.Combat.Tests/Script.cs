@@ -118,6 +118,14 @@ internal sealed class Script
             }).ToList(),
         });
 
+    /// <summary><c>2B 96</c>: HP of a member of your force (several parties joined).</summary>
+    public void ForceHp(double t, uint id, long hp = 20_000, long max = 20_000) =>
+        Send(new ForceMemberHpEvent { Time = At(t), Entity = id, Hp = hp, HpMax = max });
+
+    /// <summary><c>1B 92</c>: HP of a member of your own party.</summary>
+    public void PartyHp(double t, uint id, long hp = 20_000, long max = 20_000) =>
+        Send(new HpUpdateEvent { Time = At(t), Entity = id, Hp = hp, HpMax = max });
+
     public MeterSnapshot Snap(double t) => Engine.GetSnapshot(At(t));
 
     public void Tick(double t) => Engine.Tick(At(t));

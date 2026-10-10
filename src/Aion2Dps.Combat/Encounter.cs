@@ -32,6 +32,10 @@ internal sealed class Encounter
 
     public uint? MapId;
 
+    /// <summary>Other members of your force / party when the fight ended (its group size after the zone change).</summary>
+    public int ForceOthersAtEnd;
+    public int PartyOthersAtEnd;
+
     /// <summary>Bosses (or dummies) of a Boss/Dummy encounter in engagement order. Several = a multi-boss fight.</summary>
     public readonly List<BossState> Bosses = new();
     public readonly Dictionary<uint, BossState> BossById = new();

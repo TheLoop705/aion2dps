@@ -42,8 +42,11 @@ public static class PreviewData
             TotalDamage = 2_428_533,
             HpCheckRatio = 0.054,
             PartialView = true,
-            PartialViewText = "Partial view: only your/party damage is visible (5.4 % of the boss HP lost)",
+            PartialViewText = "Partial view: only part of the damage is visible (5.4 % of the boss HP lost)",
             MapName = "Altgard",
+            Context = FightContext.FieldBoss,
+            Scope = GroupScope.Party,
+            GroupSize = 5,
             Target = s.Target is { } t ? t with { Name = "Special Operations Leader Linx", MaxHp = max, Hp = max / 3, HpFraction = 1 / 3.0 } : null,
             Bosses = [],
         };

@@ -11,7 +11,7 @@ public class OpcodeTableTests
         Assert.Equal(Opcodes.Damage, t.Damage);
         Assert.Equal(Opcodes.Spawn, t.Spawn);
         Assert.Equal(Opcodes.FieldBossList, t.FieldBossList);
-        Assert.Equal(23, t.ToDictionary().Count);
+        Assert.Equal(24, t.ToDictionary().Count);
         Assert.Equal(OpcodeTable.Keys.Count, t.ToDictionary().Count);
         Assert.True(t.IsKnown(Opcodes.Damage));
         Assert.True(t.IsKnown(Opcodes.Bundle));

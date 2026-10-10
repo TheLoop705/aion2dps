@@ -10,7 +10,7 @@ public sealed record OverlayViewOptions
     public BarMode BarMode { get; init; } = BarMode.RelativeToTop;
     public BarStyle BarStyle { get; init; } = BarStyle.Gradient;
     public PvpSort PvpSort { get; init; } = PvpSort.Threat;
-    public int MaxRows { get; init; } = 10;
+    public int MaxRows { get; init; } = OverlaySettings.DefaultMaxRows;
     public bool ShowTotal { get; init; } = true;
     public bool ShowContribution { get; init; } = true;
     public bool ShowCritRate { get; init; }

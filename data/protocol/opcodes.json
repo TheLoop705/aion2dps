@@ -24,5 +24,6 @@
   "partyScope": "06 38",
   "battleToggle": "21 8D",
   "fieldBossList": "01 91",
+  "forceHpUpdate": "2B 96",
   "legacyHeartbeat": "06 00"
 }

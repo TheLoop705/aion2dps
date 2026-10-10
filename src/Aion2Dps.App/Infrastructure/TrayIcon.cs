@@ -28,7 +28,7 @@ public sealed class TrayIcon : IDisposable
         var menu = new Forms.ContextMenuStrip();
         _overlayItem = new Forms.ToolStripMenuItem("Show overlay", null, (_, _) => actions.ToggleOverlay());
         _lockItem = new Forms.ToolStripMenuItem("Lock + click-through", null, (_, _) => actions.ToggleLock()) { ShortcutKeyDisplayString = "Ctrl+Alt+L" };
-        _partyItem = new Forms.ToolStripMenuItem("Party members only", null, (_, _) => actions.TogglePartyOnly?.Invoke()) { ShortcutKeyDisplayString = "Ctrl+Alt+P", Enabled = actions.TogglePartyOnly is not null };
+        _partyItem = new Forms.ToolStripMenuItem("Only my group (instances too)", null, (_, _) => actions.TogglePartyOnly?.Invoke()) { ShortcutKeyDisplayString = "Ctrl+Alt+P", Enabled = actions.TogglePartyOnly is not null };
         var training = new Forms.ToolStripMenuItem("Training run");
         foreach (var (label, secs) in new[] { ("30 seconds", 30), ("1 minute", 60), ("2 minutes", 120), ("3 minutes", 180), ("5 minutes", 300) })
             training.DropDownItems.Add(label, null, (_, _) => actions.StartTraining(TimeSpan.FromSeconds(secs)));

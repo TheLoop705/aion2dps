@@ -32,7 +32,7 @@ public sealed class GlobalHotkeys : IDisposable
         new("copy", "Ctrl+Alt+C", ModifierKeys.Control | ModifierKeys.Alt, Key.C, "Copy the damage summary (chat line)"),
         new("overlay", "Ctrl+Alt+O", ModifierKeys.Control | ModifierKeys.Alt, Key.O, "Show / hide the overlay"),
         new("lock", "Ctrl+Alt+L", ModifierKeys.Control | ModifierKeys.Alt, Key.L, "Lock overlay + click-through on/off"),
-        new("party", "Ctrl+Alt+P", ModifierKeys.Control | ModifierKeys.Alt, Key.P, "Party members only on/off"),
+        new("party", "Ctrl+Alt+P", ModifierKeys.Control | ModifierKeys.Alt, Key.P, "Only my group in instances too on/off"),
     ];
 
     public bool Register(HotkeyBinding binding, Action action)

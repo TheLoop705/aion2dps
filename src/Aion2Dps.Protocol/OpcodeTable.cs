@@ -17,11 +17,11 @@ public sealed class OpcodeTable
     [
         "heartbeat", "damage", "dotTick", "entityStats", "spawn", "selfInfo", "playerInfo", "kill", "death", "mapLoad",
         "teleport", "partyRoster", "otherPartyRoster", "hpUpdate", "buffApplied", "buffApplied2", "buffRemoved", "cast",
-        "ping", "globalIdLink", "partyScope", "battleToggle", "fieldBossList",
+        "ping", "globalIdLink", "partyScope", "battleToggle", "fieldBossList", "forceHpUpdate",
     ];
 
     /// <summary>
-    /// Opcodes observed on the Global client (an EU traffic census, PROTOCOL.md §4.4/§7, 333 entries). Used only to
+    /// Opcodes observed on the Global client (an EU traffic census, PROTOCOL.md §4.4/§7, 333 entries, plus the force family). Used only to
     /// judge resync candidates ("this looks like a real frame"), never for decoding. Includes the Draupnir transition
     /// opcodes observed in October 2026. Extend it through the optional
     /// <c>"syncOpcodes"</c> array in opcodes.json.
@@ -52,6 +52,8 @@ public sealed class OpcodeTable
         0x7C56, 0x7D56, 0x7DE2, 0x7E8D, 0x7EE2, 0x8256, 0x82E2, 0x8356, 0x838D, 0x8456, 0x8A56, 0x8C8D, 0x8CE2, 0x8DE2,
         0x8E56, 0x918D, 0x928D, 0x938D, 0x93E2, 0x95E2, 0x96E2, 0xA5FF, 0xA6FF, 0xA856, 0xA9FF, 0xAB56, 0xAC56, 0xACFF,
         0xAD56, 0xADFF, 0xAF8A, 0xB08A, 0xB18A, 0xB656, 0xB88A, 0xFFFF,
+        // [real] Force (several parties joined) and party roster family, seen at field bosses in a force (October 2026).
+        0x0A96, 0x0D92, 0x0D96, 0x1B96, 0x1E96, 0x2192, 0x2296, 0x2496, 0x2B96, 0x2C96, 0x2D96,
     ];
 
     private static readonly ushort[] DefaultValues =
@@ -60,6 +62,7 @@ public sealed class OpcodeTable
         Opcodes.PlayerInfo, Opcodes.Kill, Opcodes.Death, Opcodes.MapLoad, Opcodes.Teleport, Opcodes.PartyRoster,
         Opcodes.OtherPartyRoster, Opcodes.HpUpdate, Opcodes.BuffApplied, Opcodes.BuffApplied2, Opcodes.BuffRemoved,
         Opcodes.Cast, Opcodes.Ping, Opcodes.GlobalIdLink, Opcodes.PartyScope, Opcodes.BattleToggle, Opcodes.FieldBossList,
+        Opcodes.ForceHpUpdate,
     ];
 
     private readonly ushort[] _values = (ushort[])DefaultValues.Clone();
@@ -88,6 +91,7 @@ public sealed class OpcodeTable
     public ushort PartyScope => _values[20];
     public ushort BattleToggle => _values[21];
     public ushort FieldBossList => _values[22];
+    public ushort ForceHpUpdate => _values[23];
 
     /// <summary>The bundle opcode is fixed (<c>FF FF</c>, §5).</summary>
     public ushort Bundle => Opcodes.Bundle;

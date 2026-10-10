@@ -6,7 +6,11 @@ using Aion2Dps.App.Settings;
 namespace Aion2Dps.App.Overlay;
 
 /// <summary>What one row shows for the current view (computed by <see cref="OverlayView"/>).</summary>
-internal readonly record struct RowDisplay(PlayerRow Row, int Rank, double Primary, double Secondary, double? Pct, double Bar);
+/// <param name="Rank">Place in the ranking (the real one for a <paramref name="Lifted"/> row).</param>
+/// <param name="Lifted">Your own row, ranked below the row limit, shown in the last slot instead of that slot's player.</param>
+/// <param name="DotOnly">Partial view: only this player's DoT ticks are visible (their direct hits are not sent to you).</param>
+internal readonly record struct RowDisplay(PlayerRow Row, int Rank, double Primary, double Secondary, double? Pct, double Bar, bool Lifted = false,
+    bool DotOnly = false);
 
 /// <summary>
 /// One party row: bar fill behind, rank, class emblem, name (+ "YOU"), optional crit %/max hit, primary and secondary
@@ -20,6 +24,8 @@ internal sealed class PlayerRowView : Grid
     private readonly ScaleTransform _barScale = new(0, 1);
     private readonly Border _localStripe = new() { Width = 2, HorizontalAlignment = HorizontalAlignment.Left, Visibility = Visibility.Collapsed };
     private readonly Border _pinOutline = new() { BorderThickness = new Thickness(1), Visibility = Visibility.Collapsed, IsHitTestVisible = false };
+    /// <summary>Thin line above your own row when it was lifted from below the row limit (ranks are skipped there).</summary>
+    private readonly Border _gapMark = new() { Height = 1, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(6, 0, 6, 0), Opacity = 0.5, Visibility = Visibility.Collapsed, IsHitTestVisible = false };
     private readonly Grid _content = new();
     private readonly TextBlock _rank = Ui.Text("", ThemeKeys.TextMuted, mono: true);
     private readonly ClassEmblem _emblem = new(15);
@@ -28,6 +34,7 @@ internal sealed class PlayerRowView : Grid
     private readonly Border _you = Ui.Pill("YOU", ThemeKeys.Accent, ThemeKeys.AccentText, 8);
     private readonly TextBlock _dead = Ui.Icon("", ThemeKeys.Negative, 9);
     private readonly TextBlock _crit = Ui.Text("", ThemeKeys.Crit, mono: true);
+    private readonly TextBlock _dotOnly = Ui.Text("DoT", ThemeKeys.TextMuted, 9, FontWeights.SemiBold);
     private readonly TextBlock _max = Ui.Text("", ThemeKeys.TextMuted, mono: true);
     private readonly TextBlock _gearScore = Ui.Text("", ThemeKeys.TextMuted, mono: true);
     private readonly TextBlock _primary = Ui.Text("", ThemeKeys.Text, weight: FontWeights.SemiBold, mono: true);
@@ -52,10 +59,15 @@ internal sealed class PlayerRowView : Grid
         _track.SetResourceReference(Border.CornerRadiusProperty, ThemeKeys.BarCornerRadius);
         _localStripe.SetResourceReference(Border.BackgroundProperty, ThemeKeys.Accent);
         _pinOutline.SetResourceReference(Border.BorderBrushProperty, ThemeKeys.Accent);
+        _gapMark.SetResourceReference(Border.BackgroundProperty, ThemeKeys.TextMuted);
         _bar.SetResourceReference(Border.CornerRadiusProperty, ThemeKeys.BarCornerRadius);
         _you.Margin = new Thickness(5, 0, 0, 0);
         _dead.Margin = new Thickness(4, 0, 0, 0);
         _dead.ToolTip = "Dead";
+        _dotOnly.Margin = new Thickness(5, 0, 0, 0);
+        _dotOnly.VerticalAlignment = VerticalAlignment.Center;
+        _dotOnly.Opacity = 0.85;
+        _dotOnly.ToolTip = "Only this player's DoT ticks are visible: at open-world bosses the server sends each player only their own direct hits.";
         foreach (var t in new[] { _crit, _max, _gearScore, _primary, _secondary, _pct, _rank })
             t.TextAlignment = TextAlignment.Right;
         _rank.TextAlignment = TextAlignment.Center;
@@ -66,6 +78,7 @@ internal sealed class PlayerRowView : Grid
         Children.Add(_localStripe);
         Children.Add(_content);
         Children.Add(_pinOutline);
+        Children.Add(_gapMark);
 
         MouseEnter += (_, _) => _hover.Opacity = 0.55;
         MouseLeave += (_, _) => _hover.Opacity = 0;
@@ -171,11 +184,12 @@ internal sealed class PlayerRowView : Grid
         else Col(4, null);
 
         // The name trims while the badges stay right after it.
-        foreach (var el in new FrameworkElement[] { _name, _dead, _you })
+        foreach (var el in new FrameworkElement[] { _name, _dead, _dotOnly, _you })
             if (el.Parent is Panel old) old.Children.Remove(el);
         var nameHost = new TrimPanel { VerticalAlignment = VerticalAlignment.Center };
         nameHost.Children.Add(_name);
         nameHost.Children.Add(_dead);
+        nameHost.Children.Add(_dotOnly);
         if (!micro) nameHost.Children.Add(_you);
         Col(-1, nameHost);
 
@@ -201,16 +215,21 @@ internal sealed class PlayerRowView : Grid
             _strip.SetResourceReference(Border.BackgroundProperty, ThemeKeys.ClassBrush(r.Class));
             _bar.SetResourceReference(Border.BackgroundProperty, ThemeKeys.ClassBrush(r.Class));
         }
-        Set(_rank, d.Rank.ToString(CultureInfo.InvariantCulture));
+        Set(_rank, RankText(d.Rank));
+        _rank.ToolTip = d.Lifted ? $"Your rank: {d.Rank.ToString(CultureInfo.InvariantCulture)}" : null;
+        _gapMark.Visibility = d.Lifted ? Visibility.Visible : Visibility.Collapsed;
         // The local player inferred mid-session has no name yet ("You"): show the class next to the YOU badge instead.
         string name = r.Name.Length == 0 ? "Unknown"
             : r.IsLocal && r.Name == "You" && r.Class != CharacterClass.Unknown && _options?.RowSize != RowSize.Micro ? r.Class.ToString()
             : r.Name;
+        if (_options?.RowSize == RowSize.Micro && r.IsLocal) name = "▸ " + r.Name;
+        // Without a rank column (bars only) a lifted row still says where you really are.
+        if (d.Lifted && _options is { ShowRank: false }) name = $"#{RankText(d.Rank)} {name}";
         Set(_name, name);
-        if (_options?.RowSize == RowSize.Micro && r.IsLocal) Set(_name, "▸ " + r.Name);
         _you.Visibility = r.IsLocal && _options?.RowSize != RowSize.Micro ? Visibility.Visible : Visibility.Collapsed;
         _localStripe.Visibility = r.IsLocal ? Visibility.Visible : Visibility.Collapsed;
         _dead.Visibility = r.IsDead ? Visibility.Visible : Visibility.Collapsed;
+        _dotOnly.Visibility = d.DotOnly ? Visibility.Visible : Visibility.Collapsed;
         _name.Opacity = r.IsDead ? 0.6 : 1;
         Set(_crit, r.Hits > 0 ? Fmt.Percent(r.CritRate) : Fmt.Dash);
         Set(_max, r.MaxHit > 0 ? Fmt.Abbrev(r.MaxHit) : Fmt.Dash);
@@ -238,6 +257,8 @@ internal sealed class PlayerRowView : Grid
         }
     }
 
+    private static string RankText(int rank) => rank >= 100 ? "99+" : rank.ToString(CultureInfo.InvariantCulture);
+
     private static void Set(TextBlock tb, string text)
     {
         if (!string.Equals(tb.Text, text, StringComparison.Ordinal)) tb.Text = text;
@@ -251,8 +272,14 @@ internal sealed class PlayerRowView : Grid
         var em = new ClassEmblem(16) { Class = r.Class, Margin = new Thickness(0, 0, 6, 0) };
         head.Children.Add(em);
         head.Children.Add(Ui.Text(r.Name, ThemeKeys.Text, 13, FontWeights.SemiBold));
-        head.Children.Add(Ui.Text($"  {ClassInfo.ShortName(r.Class)}{(r.IsLocal ? " · you" : r.IsPartyMember ? " · party" : "")}", ThemeKeys.TextMuted, 11.5));
+        head.Children.Add(Ui.Text($"  {ClassInfo.ShortName(r.Class)}{(r.IsLocal ? " · you" : r.IsPartyMember ? " · party" : r.IsForceMember ? " · force" : "")}", ThemeKeys.TextMuted, 11.5));
         sp.Children.Add(head);
+        if (_display.Lifted)
+        {
+            var rank = Ui.Text($"Rank {_display.Rank.ToString(CultureInfo.InvariantCulture)}: outside the rows shown, so your row takes the last slot", ThemeKeys.TextMuted, 11);
+            rank.Margin = new Thickness(0, 0, 0, 6);
+            sp.Children.Add(rank);
+        }
         var lines = new List<(string, string)>
         {
             ("Gear score", r.GearScore is { } gs ? Fmt.Exact((long)gs) : Fmt.Dash),

@@ -289,7 +289,7 @@ public sealed class BreakdownView : UserControl
                     ? multiBoss ? "Share of the bosses' combined max HP this player removed (damage to every boss of the fight)" : "Share of the boss's max HP this player removed"
                     : "Boss HP unknown: share of party damage"),
             r.PartialView
-                ? Ui.Tile("Share", Fmt.Dash, "partial view", "Partial view: only your/party damage is visible, so a share of the visible damage means nothing")
+                ? Ui.Tile("Share", Fmt.Dash, "partial view", "Partial view: only part of the damage is visible, so a share of the visible damage means nothing")
                 : Ui.Tile("Share", Fmt.Percent(c.DamageShare), "of party damage", "Share of all friendly damage"),
             Ui.Tile("Max hit", c.Quality.MaxHit > 0 ? Fmt.Number(c.Quality.MaxHit) : Fmt.Dash, maxHitSkill.Length > 0 ? maxHitSkill : null,
                 c.Quality.MaxHit > 0 ? Fmt.Exact(c.Quality.MaxHit) + (maxHitSkill.Length > 0 ? " · " + maxHitSkill : "") : "No direct hits", ThemeKeys.Crit),

@@ -106,7 +106,7 @@ public class OpenWorldBossTests
         s.Hit(1, Script.Me, Script.Boss, 100_000);
         var early = s.Snap(1);
         Assert.True(early.PartialView);
-        Assert.Contains("only your/party damage", early.PartialViewText);
+        Assert.Contains("only part of the damage", early.PartialViewText);
         Assert.True(s.Record().PartialView);
         Assert.Contains("open world", s.Record().PartialViewReason);
 

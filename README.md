@@ -11,9 +11,12 @@ you use the Character page.
 
 ## Features
 
-* **Overlay**: borderless, click-through-capable, never takes focus. Boss name, HP bar and timer, ranked rows with
+* **Overlay**: borderless, click-through-capable, never takes focus. Boss name, HP bar and timer, the top 5 ranked rows
+  (your own row stays as the 5th, with your real rank, when you are further down) with
   DPS / total / contribution (optional gear score, crit %, max hit), DPS / TOTAL / TAKEN / HEAL views, boss-only / all-targets /
-  PvP modes, target cycling, training stopwatch (30 s–5 min), copy-to-chat summary, KILL / WIPE badges, an HP-check
+  PvP modes, the fight type (field boss, dungeon boss, PvP, training dummy) and who is ranked: just you when solo, your
+  party, or your whole force (several parties joined for world and field bosses), target cycling, training stopwatch
+  (30 s–5 min), copy-to-chat summary, KILL / WIPE badges, an HP-check
   warning when decoded damage does not explain the boss's HP loss, and clear states for "Npcap missing",
   "waiting for game", "detecting" and "waiting for combat".
 * **Breakdown** (click a row): DPS timeline, rotation ribbon, per-skill table (hits, casts, crit, min/avg/max, DoT),
@@ -66,6 +69,12 @@ environment variable first, e.g. `$env:AION2DPS_SKIP_NPCAP = 1` or `$env:AION2DP
 also removes the start-with-Windows entry when it points into the install folder.
 
 You can also download the release ZIP and extract it anywhere; then install Npcap yourself (see Requirements).
+
+Version 0.4.0 makes the DPS window group-aware: solo it ranks just you, in a party your party, and in a force (up to four
+parties joined for a world or field boss) the whole force, never the strangers around you. It shows the top 5, your
+own row stays as the 5th with your real rank, and it names the fight (field boss, dungeon boss, PvP, training dummy).
+At open-world bosses the game sends every player only their own hits, so party and force members show their DoT ticks
+and heals only (marked DoT); inside dungeons everyone's damage is complete.
 
 Version 0.3.3 lets you add a timer straight from the Timers page: a name, "spawns in 28 min" and an optional respawn
 (Killed restarts it, or it repeats on its own), for bosses the game does not list such as Abyss field bosses. Since
