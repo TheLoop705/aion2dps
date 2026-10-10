@@ -51,6 +51,8 @@ public sealed class TimerData
     public IReadOnlyDictionary<string, string> ServerTimeZones { get; init; } = new Dictionary<string, string>();
     /// <summary>(map, place) → respawn interval after a kill.</summary>
     public IReadOnlyDictionary<(uint Map, int Place), TimeSpan> RespawnIntervals { get; init; } = new Dictionary<(uint, int), TimeSpan>();
+    /// <summary>Field-boss NPC code → respawn after a kill (<c>bossRespawnMinutesByNpc</c>): bosses on maps the list cannot be matched on.</summary>
+    public IReadOnlyDictionary<uint, TimeSpan> RespawnByNpc { get; init; } = new Dictionary<uint, TimeSpan>();
     /// <summary>Field-boss NPC code → priority (<c>bossPriorities</c>): the bosses worth farming (starred by default).</summary>
     public IReadOnlyDictionary<uint, TimerPriority> BossPriorities { get; init; } = new Dictionary<uint, TimerPriority>();
 
@@ -104,7 +106,17 @@ public sealed class TimerData
                     && ParsePriority(p.Value.GetString()) is TimerPriority pr and not TimerPriority.None)
                     priorities[code] = pr;
 
-        return new TimerData { Events = events, ServerTimeZones = zones, RespawnIntervals = respawn, BossPriorities = priorities };
+        var byNpc = new Dictionary<uint, TimeSpan>();
+        if (root.TryGetProperty("bossRespawnMinutesByNpc", out var bn) && bn.ValueKind == JsonValueKind.Object)
+            foreach (var p in bn.EnumerateObject())
+                if (uint.TryParse(p.Name, NumberStyles.None, CultureInfo.InvariantCulture, out uint code)
+                    && p.Value.ValueKind == JsonValueKind.Number && p.Value.TryGetInt32(out int min) && min > 0)
+                    byNpc[code] = TimeSpan.FromMinutes(min);
+
+        return new TimerData
+        {
+            Events = events, ServerTimeZones = zones, RespawnIntervals = respawn, BossPriorities = priorities, RespawnByNpc = byNpc,
+        };
     }
 
     private static ScheduledEvent? ParseEvent(JsonElement e)

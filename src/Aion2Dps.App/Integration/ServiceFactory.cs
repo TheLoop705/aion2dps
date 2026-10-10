@@ -164,6 +164,12 @@ public static class ServiceFactory
         var gameData = gameDataDirectory is null ? GameDataStore.LoadDefault() : new GameDataStore(gameDataDirectory);
         var engine = new CombatEngine(gameData, options ?? new EngineOptions());
         var fieldBosses = new FieldBossTimerBook(gameData, TimerData.Load(Path.Combine(gameData.DataDirectory, TimerData.FileName)));
+        // Your boss kills update the respawn timers at once (and teach exact intervals once the game's list follows).
+        engine.EncounterCompleted += record =>
+        {
+            try { fieldBosses.OnEncounter(record); }
+            catch (Exception ex) { AppLog.Warn("Timers", $"Kill timer update failed: {ex.Message}"); }
+        };
         var pipeline = new MultiFlowProtocolPipeline(new TeeSink(engine, fieldBosses), OpcodeTable.LoadOrDefault(), onDiscontinuity: (_, reason) =>
         {
             switch (reason)

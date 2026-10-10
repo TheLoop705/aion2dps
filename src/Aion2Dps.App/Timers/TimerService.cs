@@ -168,7 +168,7 @@ public sealed class TimerService
         var rows = new List<TimerRow>();
         foreach (var t in _book.Snapshot())
         {
-            string group = _gameData.GetMapName(t.MapId) ?? $"Map {t.MapId}";
+            string group = t.FromKillOnly ? "Your kills" : _gameData.GetMapName(t.MapId) ?? $"Map {t.MapId}";
             var st = t.StatusAt(nowUtc);
             string status = st switch
             {
@@ -179,6 +179,7 @@ public sealed class TimerService
             };
             string? detail = t.Interval is TimeSpan i ? $"respawn {FormatInterval(i)}{(t.IntervalLearned ? "" : " (est.)")}" : null;
             if (st == FieldBossStatus.Up && t.TimeUtc is DateTime since) detail = Join(detail, "up since " + LocalClock(since));
+            if (!t.Alive && t.KilledUtc is DateTime killed && (t.TimeUtc is null || t.TimeUtc > killed)) detail = Join(detail, "you killed it " + LocalClock(killed));
             rows.Add(new TimerRow(BossKey(t), group, t.Name, status, st == FieldBossStatus.Respawning ? t.RespawnUtc : null,
                 st is FieldBossStatus.Up or FieldBossStatus.ProbablyUp, IsStarred(t), detail, t.Interval, t.Priority));
         }

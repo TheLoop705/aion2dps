@@ -226,6 +226,96 @@ public class TimersTests
         Assert.True(book.Snapshot().Single().Alive);
     }
 
+    // ───────────── your kills ─────────────
+
+    [Fact]
+    public void Your_kill_starts_the_respawn_timer_and_the_list_teaches_the_exact_interval()
+    {
+        // Real Gartua kill (captures 2026-10-09): killed 20:58:47, the game later announced 08:58:51.
+        var book = new FieldBossTimerBook(new FakeGameData(), Data);
+        var t0 = Utc(10, 9, 20, 50);
+        book.OnList(List(t0, Slot(2, true, Utc(10, 9, 18))));
+        var killed = Utc(10, 9, 20, 58, 47);
+
+        Assert.True(book.OnKill(FakeGameData.FieldBossCode, Map, killed));
+        var linx = book.Snapshot().Single(t => t.Place == 2);
+        Assert.False(linx.Alive);
+        Assert.Equal(killed, linx.KilledUtc);
+        Assert.Equal(killed.AddMinutes(30), linx.RespawnUtc);              // bundled default for Altgard place 2
+        Assert.False(linx.IntervalLearned);
+
+        // A list sent before the server registered the death still says alive: ignored.
+        book.OnList(List(killed.AddSeconds(2), Slot(2, true, Utc(10, 9, 18))));
+        Assert.False(book.Snapshot().Single(t => t.Place == 2).Alive);
+
+        // The game's own respawn time wins and teaches the interval from the exact kill time.
+        book.OnList(List(killed.AddSeconds(6), Slot(2, false, killed.AddHours(3).AddSeconds(4))));
+        linx = book.Snapshot().Single(t => t.Place == 2);
+        Assert.Equal(killed.AddHours(3).AddSeconds(4), linx.RespawnUtc);
+        Assert.Equal(TimeSpan.FromHours(3), linx.Interval);
+        Assert.True(linx.IntervalLearned);
+
+        // The next kill uses the learned interval right away.
+        var again = killed.AddHours(3).AddMinutes(20);
+        book.OnList(List(again.AddMinutes(-5), Slot(2, true, killed.AddHours(3))));
+        Assert.True(book.OnKill(FakeGameData.FieldBossCode, Map, again));
+        Assert.Equal(again.AddHours(3), book.Snapshot().Single(t => t.Place == 2).RespawnUtc);
+    }
+
+    [Fact]
+    public void An_older_kill_or_an_already_announced_respawn_is_not_overwritten()
+    {
+        var book = new FieldBossTimerBook(new FakeGameData(), Data);
+        var killed = Utc(10, 9, 21);
+        book.OnList(List(killed.AddSeconds(3), Slot(2, false, killed.AddHours(3))));
+        // The list was first: keep the game's time, just remember the kill.
+        Assert.False(book.OnKill(FakeGameData.FieldBossCode, Map, killed));
+        Assert.Equal(killed.AddHours(3), book.Snapshot().Single().RespawnUtc);
+        Assert.Equal(killed, book.Snapshot().Single().KilledUtc);
+        Assert.False(book.OnKill(FakeGameData.FieldBossCode, Map, killed.AddMinutes(-30)));
+    }
+
+    [Fact]
+    public void A_priority_boss_without_a_list_slot_gets_a_kill_only_timer()
+    {
+        var book = new FieldBossTimerBook(new FakeGameData(), Data);
+        var killed = Utc(10, 9, 19, 30);
+        Assert.True(book.OnKill(2101074, 1010, killed));                  // Eternal Gartua (Elyos), no list slot known
+        var gartua = Assert.Single(book.Snapshot());
+        Assert.True(gartua.FromKillOnly);
+        Assert.Equal(0, gartua.Place);
+        Assert.Equal(2101074u, gartua.NpcCode);
+        Assert.Equal(TimerPriority.Top, gartua.Priority);
+        Assert.Equal(killed.AddHours(12), gartua.RespawnUtc);
+
+        // Survives a restart.
+        var copy = new FieldBossTimerBook(new FakeGameData(), Data);
+        copy.LoadJson(book.ToJson(), killed.AddHours(1));
+        Assert.Equal(book.Snapshot(), copy.Snapshot());
+
+        // Any other boss without a slot, interval or priority is left alone (dungeon and trash bosses).
+        Assert.False(book.OnKill(2_999_999, 1010, killed));
+        Assert.Single(book.Snapshot());
+    }
+
+    [Fact]
+    public void Encounter_kills_update_timers_in_the_open_world_only()
+    {
+        var book = new FieldBossTimerBook(new FakeGameData(), Data);
+        var start = Utc(10, 9, 20, 58);
+        EncounterRecord Record(uint map) => new()
+        {
+            MapId = map, StartUtc = start, EndUtc = start.AddSeconds(40), Outcome = EncounterOutcome.Kill,
+            BossNpcCode = FakeGameData.FieldBossCode,
+            Bosses = [new BossResult { NpcCode = FakeGameData.FieldBossCode, Killed = true, KillTimeSeconds = 34, IsPrimary = true }],
+        };
+        Assert.False(book.OnEncounter(Record(600021)));                   // dungeon
+        Assert.Empty(book.Snapshot());
+        book.OnList(List(start, Slot(2, true, null)));
+        Assert.True(book.OnEncounter(Record(Map)));
+        Assert.Equal(start.AddSeconds(34), book.Snapshot().Single().KilledUtc);
+    }
+
     [Theory]
     [InlineData(29.9, 30)]
     [InlineData(719.95, 720)]
