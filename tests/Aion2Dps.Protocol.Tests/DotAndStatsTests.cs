@@ -216,6 +216,18 @@ public class EntityStatsTests
         Assert.Equal(hp, e.Stats64[0]);
     }
 
+    [Theory] // real open-world boss frames: the high 4 bytes are not part of the HP
+    [InlineData("008DC69B0402010070CBAA02D900F010", 44_747_632L)]
+    [InlineData("008DC69B04020100F8980E03D100FC08", 51_288_312L)]
+    [InlineData("008DC69B04020100EF636D0200000000", 40_723_439L)]
+    public void Boss_hp_ignores_high_dword_noise(string payload, long hp)
+    {
+        var e = Run.Single<EntityStatsEvent>(payload);
+        Assert.Equal(69062u, e.Entity);
+        Assert.Equal(hp, e.CurrentHp);
+        Assert.Equal(hp, e.Stats64[0]);
+    }
+
     [Fact]
     public void Player_frame_mixes_4_byte_stats_and_hp()
     {

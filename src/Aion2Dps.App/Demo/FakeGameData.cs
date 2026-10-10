@@ -33,7 +33,18 @@ public sealed class FakeGameData : IGameData
         [SecondBossNpc] = ("Veyra, the Hollow Queen", true, false),
         [2_490_011] = ("Gloomfang Matriarch", true, false),
         [2_490_012] = ("Ironbound Colossus", true, false),
+        // Demo field bosses of Verdant Reach (block 2491, see DemoTimers)
+        [2_491_001] = ("Mossback Grazer", true, false),
+        [2_491_002] = ("Thornwing Harrier", true, false),
+        [2_491_003] = ("Captain Orrevan", true, false),
+        [2_491_004] = ("Bloomrot Behemoth", true, false),
+        [2_491_005] = ("Stormcaller Ysmir", true, false),
+        [2_491_006] = ("The Verdant Tyrant", true, false),
     };
+
+    /// <summary>Open-world map of the demo field bosses and their NPC-code block.</summary>
+    public const uint FieldBossMap = 400_010;
+    public const uint FieldBossBlock = 2_491;
 
     private static readonly Dictionary<uint, string> Maps = new()
     {
@@ -96,6 +107,11 @@ public sealed class FakeGameData : IGameData
     public string? GetMapName(uint mapId) => Maps.TryGetValue(mapId, out var m) ? Localize(m) : null;
 
     public bool IsInstanceMap(uint mapId) => mapId is >= 600_000 and <= 699_999;
+
+    public uint? GetFieldBossBlock(uint mapId) => mapId == FieldBossMap ? FieldBossBlock : null;
+
+    public uint? GetFieldBossNpcCode(uint block, int place) =>
+        block == FieldBossBlock && Npcs.ContainsKey(block * 1000 + (uint)place) ? block * 1000 + (uint)place : null;
 
     public string? GetServerName(ushort serverId) => serverId switch
     {

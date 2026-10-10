@@ -96,6 +96,7 @@ public class GearScoreOverlayTests
     public void Gear_score_preference_survives_restart_and_projects_to_overlay_options()
     {
         var settings = new AppSettings();
+        settings.Overlay.BarsOnly = false; // the bars-only overlay shows name + DPS only (checked below)
         Assert.False(settings.Overlay.ShowGearScore);
         Assert.False(OverlayViewOptions.From(settings, "test").ShowGearScore);
         settings.Overlay.ShowGearScore = true;
@@ -105,6 +106,8 @@ public class GearScoreOverlayTests
         var restored = SettingsStore.LoadFrom(path);
         Assert.True(restored.Overlay.ShowGearScore);
         Assert.True(OverlayViewOptions.From(restored, "test").ShowGearScore);
+        restored.Overlay.BarsOnly = true;
+        Assert.False(OverlayViewOptions.From(restored, "test").ShowGearScore);
     }
 
     private static Grid RowContent(PlayerRowView row) => Assert.Single(row.Children.OfType<Grid>());

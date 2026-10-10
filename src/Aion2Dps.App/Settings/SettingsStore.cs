@@ -121,6 +121,10 @@ public sealed class SettingsStore
         s.Overlay ??= new OverlaySettings();
         s.Appearance ??= new AppearanceSettings();
         s.General ??= new GeneralSettings();
+        s.Timers ??= new TimerSettings();
+        s.Timers.Stars ??= new Dictionary<string, bool>();
+        s.Timers.AlertMinutesBefore = Math.Clamp(s.Timers.AlertMinutesBefore, 0, 60);
+        if (string.IsNullOrWhiteSpace(s.Timers.ServerRegion)) s.Timers.ServerRegion = "EU";
         var o = s.Overlay;
         o.Width = double.IsFinite(o.Width) ? Math.Clamp(o.Width, 300, 1000) : 380;
         o.BackgroundOpacity = double.IsFinite(o.BackgroundOpacity) ? Math.Clamp(o.BackgroundOpacity, 0.15, 1) : 0.92;

@@ -31,6 +31,12 @@ public sealed class EngineOptions
     public long BossHpThreshold { get; set; } = 5_000_000;
     /// <summary>Show only the local player + party roster members (when a roster is known). False = everyone hitting the same targets.</summary>
     public bool PartyOnly { get; set; } = false;
+    /// <summary>
+    /// Automatic row scope (the app's meter): in the open world, while in a party only you + the party are shown and solo
+    /// everyone who hits the boss; inside an instance everyone (only your group is there: a Force ranks all its parties);
+    /// on a training dummy only you (+ party). <see cref="PartyOnly"/>, when also set, still applies when solo.
+    /// </summary>
+    public bool AutoPartyScope { get; set; } = false;
     /// <summary>Hide an ended encounter's overlay totals after this delay from its end time, once finalized.
     /// Zero (default), negative and non-finite values keep the final display. Encounter records remain available.</summary>
     public double EndedDisplaySeconds { get; set; } = 0;

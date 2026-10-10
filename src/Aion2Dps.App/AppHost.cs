@@ -1,3 +1,4 @@
+using Aion2Dps.App.Timers;
 using System.Collections.Concurrent;
 using Aion2Dps.App.Dashboard;
 using Aion2Dps.App.Formatting;
@@ -28,6 +29,7 @@ public sealed class AppHost : IDisposable
     private OverlayController _overlay = null!;
     private DashboardWindow? _dashboard;
     private TrayIcon? _tray;
+    private TimerService _timers = null!;
     private GlobalHotkeys? _hotkeys;
     private DispatcherTimer? _tickTimer;
     private AutostartRegistration? _autostart;
@@ -56,6 +58,9 @@ public sealed class AppHost : IDisposable
         ThemeManager.ApplyToApplication(_settings.Current.Appearance);
 
         _services = CreateServices();
+        _timers = new TimerService(_services.FieldBosses, _services.GameData, () => _settings.Current.Timers,
+            _options.Mode == LaunchMode.Live && !_services.IsDemo ? Path.Combine(AppPaths.DataDirectory, TimerService.BookFileName) : null);
+        _timers.Load(_services.Now());
         ApplyServiceSettings();
         _services.Engine.Mode = _settings.Current.Overlay.DefaultMode;
         _services.Engine.EncounterCompleted += OnEncounterCompleted;
@@ -74,6 +79,9 @@ public sealed class AppHost : IDisposable
 
         _overlay = new OverlayController(_services, _settings, OpenDashboard);
         _overlay.StateChanged += UpdateTray;
+        _overlay.NextTimer = now => _timers.NextStarred(now) is { AtUtc: DateTime at } next
+            ? next.Status == "Open" ? $"{next.Name} open · {TimerService.FormatLeft(at - now)}" : $"{next.Name} in {TimerService.FormatLeft(at - now)}"
+            : null;
         _overlay.TrainingFinished += OnTrainingFinished;
         _overlay.UserVisibilityChanged += visible => { if (visible) _gamePolicy.OnUserShowed(); else _gamePolicy.OnUserHid(); };
         // With "only while AION 2 is running" the overlay starts hidden; the watcher's first check shows it when the game runs.
@@ -104,6 +112,7 @@ public sealed class AppHost : IDisposable
         {
             try { _services.Engine.Tick(_services.Now()); }
             catch (Exception ex) { AppLog.Error("App", "Engine tick failed", ex); }
+            TickTimers();
         };
         _tickTimer.Start();
 
@@ -228,9 +237,12 @@ public sealed class AppHost : IDisposable
         var opt = _services.Engine.Options;
         opt.IdleTimeoutSeconds = g.IdleTimeoutSeconds;
         opt.BossIdleTimeoutSeconds = g.BossIdleTimeoutSeconds;
-        opt.EndedDisplaySeconds = g.EndedDisplaySeconds;
+        // A finished fight is never cleared from the meter (the overlay only shrinks it to the slim bar after
+        // EndedDisplaySeconds); the next fight replaces it.
+        opt.EndedDisplaySeconds = 0;
         opt.LivePlayerClock = g.LivePlayerClock;
         opt.PartyOnly = g.PartyOnly;
+        opt.AutoPartyScope = true;
         opt.SaveTrashFights = g.SaveTrashFights;
         opt.BossFightsOnly = g.BossFightsOnly;
         try { _services.GameData.Language = g.Language; } catch (Exception ex) { AppLog.Warn("App", $"Language change failed: {ex.Message}"); }
@@ -283,6 +295,29 @@ public sealed class AppHost : IDisposable
         }
     }
 
+    // ───────────────────────── Timers ─────────────────────────
+
+    private DateTime _timersSavedAt;
+
+    /// <summary>Tray alerts for starred timers and a throttled save of the field-boss book (1×/s from the tick timer).</summary>
+    private void TickTimers()
+    {
+        try
+        {
+            var now = _services.Now();
+            foreach (var alert in _timers.CollectAlerts(now)) _tray?.ShowBalloon(alert.Title, alert.Text);
+            if ((DateTime.UtcNow - _timersSavedAt).TotalSeconds >= 30)
+            {
+                _timersSavedAt = DateTime.UtcNow;
+                _timers.SaveIfChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("App", "Timer tick failed", ex);
+        }
+    }
+
     public void OpenDashboard(string? page) => OpenDashboard(page, activate: true);
 
     public void OpenDashboard(string? page, bool activate)
@@ -294,6 +329,7 @@ public sealed class AppHost : IDisposable
                 Services = _services,
                 Settings = _settings,
                 Log = _log,
+                Timers = _timers,
                 Hotkeys = () => _hotkeys?.Bindings ?? GlobalHotkeys.Defaults(),
                 ApplyServiceSettings = ApplyServiceSettings,
                 RestartCapture = RestartCapture,
@@ -381,6 +417,7 @@ public sealed class AppHost : IDisposable
         try
         {
             _tickTimer?.Stop();
+            try { _timers?.SaveIfChanged(); } catch (Exception ex) { AppLog.Warn("App", $"Timer save failed: {ex.Message}"); }
             _gameWatcher?.Dispose();
             _settings?.Save();
             _hotkeys?.Dispose();

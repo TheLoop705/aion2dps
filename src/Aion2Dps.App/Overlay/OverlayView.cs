@@ -68,6 +68,9 @@ public sealed class OverlayView : UserControl
     private readonly Grid _adjustBar = new() { Visibility = Visibility.Collapsed, Margin = new Thickness(8, 0, 2, 3) };
     private readonly Slider _opacity = new() { Minimum = 0.15, Maximum = 1, Width = 120, SmallChange = 0.05, LargeChange = 0.1 };
     private readonly TextBlock _version = Ui.Text("", ThemeKeys.TextMuted, 10);
+    private readonly Border _footerDivider = new() { Height = 1, Margin = new Thickness(6, 0, 6, 0) };
+    private readonly DockPanel _footerLine = new() { Margin = new Thickness(8, 4, 8, 5), LastChildFill = true };
+    private bool _hasRows;
     private readonly DispatcherTimer _toastTimer;
 
     // ── State ──
@@ -163,10 +166,48 @@ public sealed class OverlayView : UserControl
     {
         if (compact == IsCompact) return;
         IsCompact = compact;
-        _dock.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
-        _compactBar.Visibility = compact ? Visibility.Visible : Visibility.Collapsed;
-        _root.HorizontalAlignment = compact ? HorizontalAlignment.Left : HorizontalAlignment.Stretch;
+        ApplyChrome();
         if (compact) AdjustBarVisible = false;
+    }
+
+    /// <summary>The bars-only look is active: the full overlay is just the rows (no header/footer/box).</summary>
+    public bool BarsOnlyActive => _options.BarsOnly && !IsCompact;
+
+    /// <summary>The rows' host (in bars-only mode the window drags the overlay by it; a click opens the breakdown).</summary>
+    public FrameworkElement RowsHost => _rowsHost;
+
+    /// <summary>
+    /// Shows the full meter, the compact bar or (bars only) just the rows. Bars only without rows to show falls back to
+    /// the compact bar, so the overlay never turns into an invisible, unclickable window.
+    /// </summary>
+    private void ApplyChrome()
+    {
+        bool bars = _options.BarsOnly && !IsCompact;
+        bool showBar = IsCompact || (bars && !_hasRows);
+        _dock.Visibility = showBar ? Visibility.Collapsed : Visibility.Visible;
+        _compactBar.Visibility = showBar ? Visibility.Visible : Visibility.Collapsed;
+        _root.HorizontalAlignment = showBar ? HorizontalAlignment.Left : HorizontalAlignment.Stretch;
+        var chrome = bars ? Visibility.Collapsed : Visibility.Visible;
+        _header.Visibility = chrome;
+        _footerDivider.Visibility = chrome;
+        _footerLine.Visibility = chrome;
+        // Bars only: no window box behind the rows (each row draws its own track); the bar keeps the background.
+        var box = bars && !showBar ? Visibility.Hidden : Visibility.Visible;
+        _bg.Visibility = box;
+        _frame.Visibility = box;
+    }
+
+    /// <summary>Bars only: a click on the rows host at <paramref name="p"/> (window drags capture the mouse there).</summary>
+    public void ClickRowAt(Point p, bool ctrl)
+    {
+        foreach (var v in _rowViews.Values)
+        {
+            if (p.Y >= v.Y && p.Y < v.Y + v.ActualHeight)
+            {
+                RowClicked?.Invoke(v.Row, ctrl);
+                return;
+            }
+        }
     }
 
     /// <summary>Element that starts a window drag (the header band).</summary>
@@ -335,11 +376,11 @@ public sealed class OverlayView : UserControl
     private UIElement BuildFooter()
     {
         var sp = new StackPanel();
-        var divider = new Border { Height = 1, Margin = new Thickness(6, 0, 6, 0) };
+        var divider = _footerDivider;
         divider.Ref(Border.BackgroundProperty, AppThemeKeys.Divider);
         sp.Children.Add(divider);
 
-        var line = new DockPanel { Margin = new Thickness(8, 4, 8, 5), LastChildFill = true };
+        var line = _footerLine;
         var left = new StackPanel { Orientation = Orientation.Horizontal };
         _dot.Margin = new Thickness(0, 1, 6, 0);
         left.Children.Add(_dot);
@@ -456,7 +497,9 @@ public sealed class OverlayView : UserControl
         }
 
         bool hasRows = pvp ? UpdatePvpRows(snapshot, options) : UpdatePlayerRows(snapshot, status, options);
-        bool showState = !hasRows;
+        _hasRows = hasRows;
+        ApplyChrome();
+        bool showState = !hasRows && !options.BarsOnly;
         _rowsHost.Visibility = hasRows ? Visibility.Visible : Visibility.Collapsed;
         _columnHeader.Visibility = hasRows && !pvp && options.ShowColumnHeader && options.RowSize != RowSize.Micro ? Visibility.Visible : Visibility.Collapsed;
         if (_columnHeader.Visibility == Visibility.Visible) UpdateColumnHeader(options);

@@ -117,6 +117,8 @@ internal sealed class CombatantState
     public long DamageTaken;
     public int Deaths;
     public bool Dead;
+    /// <summary>Every death in this encounter: when and (from the kill record) which attack of which entity.</summary>
+    public readonly List<(DateTime Time, uint KillerSkill, uint Killer)> DeathLog = new();
 
     public void ResetLive()
     {

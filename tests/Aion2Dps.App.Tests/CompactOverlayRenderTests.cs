@@ -4,6 +4,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Aion2Dps.App.Dashboard;
 using Aion2Dps.App.Demo;
+using Aion2Dps.App.Formatting;
 using Aion2Dps.App.Integration;
 using Aion2Dps.App.Overlay;
 using Aion2Dps.App.Rendering;
@@ -209,8 +210,12 @@ public class CompactOverlayRenderTests
         Assert.Equal("Meter reset", flash.Status);
         Assert.True(flash.IsFlash);
 
-        var ended = CompactBarModel.Build(PreviewData.EndedKill(), PreviewData.Status());
-        Assert.StartsWith("Kill · ", ended.Status);
+        // A finished fight stays on the bar: boss name, result and your DPS in that fight.
+        var endedSnap = PreviewData.EndedKill();
+        var ended = CompactBarModel.Build(endedSnap, PreviewData.Status());
+        Assert.StartsWith(endedSnap.Target!.Name + " · Kill · ", ended.Status);
+        Assert.Equal("YOU", ended.HintLabel);
+        Assert.Equal(Fmt.Abbrev(endedSnap.Rows.First(r => r.IsLocal).Dps), ended.Hint);
 
         var blankZone = CompactBarModel.Build(PreviewData.WaitingForCombat() with { MapName = "  " }, PreviewData.Status());
         Assert.Null(blankZone.Zone);

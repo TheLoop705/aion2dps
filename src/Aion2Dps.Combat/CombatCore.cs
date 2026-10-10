@@ -757,7 +757,7 @@ internal sealed class CombatCore
                 MarkNpcDead(n, e.Time);
                 break;
             case PlayerEntity p:
-                OnPlayerDeath(p, e.Time, IsLocalSide(e.Killer, e.KillerName, e.Time));
+                OnPlayerDeath(p, e.Time, IsLocalSide(e.Killer, e.KillerName, e.Time), SkillIds.Normalize(e.SkillRaw), e.Killer);
                 break;
         }
     }
@@ -771,7 +771,10 @@ internal sealed class CombatCore
         return Entities.Get(killer) is SummonEntity s && Summons.ResolveRoot(s, t) is { Kind: RootKind.Player } r && r.Id == local.Id;
     }
 
-    private void OnPlayerDeath(PlayerEntity p, DateTime t, bool killedByLocal)
+    /// <summary>How far apart a player's death record and kill record may be to describe the same death.</summary>
+    private static readonly TimeSpan DeathKillPairing = TimeSpan.FromSeconds(2);
+
+    private void OnPlayerDeath(PlayerEntity p, DateTime t, bool killedByLocal, uint killerSkill = 0, uint killer = 0)
     {
         var enc = Current;
         if (enc is { Finalized: false })
@@ -783,6 +786,12 @@ internal sealed class CombatCore
                 {
                     c.Dead = true;
                     c.Deaths++;
+                    c.DeathLog.Add((t, killerSkill, killer));
+                }
+                else if (killerSkill != 0 && c.DeathLog.Count > 0 && c.DeathLog[^1] is { KillerSkill: 0 } last && t - last.Time <= DeathKillPairing)
+                {
+                    // The death record (42 36) came first; the kill record names the attack.
+                    c.DeathLog[^1] = (last.Time, killerSkill, killer);
                 }
             }
             if (enc.Pvp.TryGetValue(p.Id, out var pv) && !pv.Killed)
@@ -1231,6 +1240,14 @@ internal sealed class CombatCore
         return Entities.Get(actorId) is PlayerEntity p && IsPartyPlayer(p);
     }
 
+    /// <summary>True for the (known) local player and party members (not the unknown-summons bucket: anyone's summons).</summary>
+    private bool IsLocalOrPartyActor(uint actorId)
+    {
+        if (Entities.LocalId is not uint me) return false;
+        if (actorId == me) return true;
+        return Entities.Get(actorId) is PlayerEntity p && IsPartyPlayer(p);
+    }
+
     private static bool TrashTooLong(Encounter enc) =>
         enc.Kind == EncounterKind.Trash && (enc.Hits.Count > MaxTrashHits || enc.LastActivity - enc.CreatedUtc > MaxTrashDuration);
 
@@ -1241,6 +1258,9 @@ internal sealed class CombatCore
         bool dummy = tn != null && IsDummy(tn);
         var enc = Current;
         bool core = IsCoreActor(hit.Actor);
+        // Training dummies stand in towns where strangers hit them all day: only your own (or your party's) hits start or
+        // keep a dummy fight, also before the local player is known (otherwise everyone counts as core).
+        if (dummy && !bossLike) core = IsLocalOrPartyActor(hit.Actor);
         // A bystander may still engage a real boss (world/field bosses): those encounters end with the boss.
         bool bystanderBoss = bossLike && !dummy && !TrainingArmed;
         // Boss fights only: a hit on a trash mob never starts an encounter (a training run still counts everything).

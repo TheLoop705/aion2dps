@@ -73,13 +73,13 @@ public sealed class SettingsPage : DashboardPage
         meter.Children.Add(Ui.Field("Default mode", Ui.Combo(new[] { (MeterMode.BossOnly, "Boss only"), (MeterMode.AllTargets, "All targets") }, o.DefaultMode,
             v => { o.DefaultMode = v; context.Services.Engine.Mode = v; Save(); }, 200)));
         meter.Children.Add(Ui.Field("Rows shown", SliderWithLabel(1, 24, o.MaxRows, 1, v => $"{v:0}", v => { o.MaxRows = (int)v; Save(); })));
-        meter.Children.Add(Ui.Field("Clear finished fights after", SliderWithLabel(0, 120, g.EndedDisplaySeconds, 5,
-            v => v <= 0 ? "Keep until next fight" : $"{v:0} s", v => { g.EndedDisplaySeconds = v; Save(); }),
-            "Clears the live counter after combat ends. Finished fights stay in History. Set to 0 to keep results until the next fight."));
-        meter.Children.Add(Ui.Check("Party members only: you + your party roster (solo: just you). Also on the overlay's PARTY chip and Ctrl+Alt+P", g.PartyOnly, v => { g.PartyOnly = v; Save(); }));
+        meter.Children.Add(Ui.Field("Shrink a finished fight to the slim bar after", SliderWithLabel(0, 120, g.EndedDisplaySeconds, 5,
+            v => v <= 0 ? $"{Overlay.OverlayPresentationPolicy.DefaultLingerSeconds:0} s" : $"{v:0} s", v => { g.EndedDisplaySeconds = v; Save(); }),
+            "A finished fight is never cleared: it stays until the next fight starts. After this delay the overlay shrinks to the slim bar; click the bar to see the result again."));
+        meter.Children.Add(Ui.Check("Only me when solo (in a party the meter always shows just your party)", g.PartyOnly, v => { g.PartyOnly = v; Save(); }));
         meter.Children.Add(Ui.Check("Track boss fights only (ignore trash mobs)", g.BossFightsOnly, v => { g.BossFightsOnly = v; Save(); }));
         var bossOnlyHint = Ui.Text("Trash mobs never start or replace a fight on the meter: it waits for a boss, and a finished boss fight stays up " +
-                                   "for the \"Clear finished fights after\" time unless the next boss is engaged. Training runs, dummies and PvP still count.",
+                                   "until the next boss is engaged. Training runs, dummies and PvP still count.",
             ThemeKeys.TextMuted, 11.5);
         bossOnlyHint.TextWrapping = TextWrapping.Wrap;
         bossOnlyHint.Margin = new Thickness(24, 2, 0, 6);
@@ -96,9 +96,10 @@ public sealed class SettingsPage : DashboardPage
 
         // Overlay
         var overlay = new StackPanel();
+        overlay.Children.Add(Ui.Check("Bars only (no header, footer or box; click a bar for details, drag a bar to move)", o.BarsOnly, v => { o.BarsOnly = v; Save(); }));
         overlay.Children.Add(Ui.Check("Shrink overlay when not in combat", o.ShrinkWhenIdle, v => { o.ShrinkWhenIdle = v; Save(); }));
         var shrinkHint = Ui.Text("Out of combat the overlay becomes a slim status bar. It expands for every fight (also PvP and training runs), " +
-                                 "keeps the result readable for the \"Clear finished fights after\" time (15 s when results are kept), then shrinks again. " +
+                                 "keeps the result readable for the \"Shrink a finished fight\" time, then shrinks to the bar, which keeps the result. " +
                                  "Click the bar to expand it until the next fight.", ThemeKeys.TextMuted, 11.5);
         shrinkHint.TextWrapping = TextWrapping.Wrap;
         shrinkHint.Margin = new Thickness(24, 2, 0, 0);

@@ -104,7 +104,7 @@ public class EndedDisplaySettingsTests
     }
 
     [Fact]
-    public void Settings_slider_applies_and_saves_delay_changes_including_keep_until_next_fight() => Sta.Run(() =>
+    public void Settings_slider_applies_and_saves_shrink_delay_changes_including_the_default() => Sta.Run(() =>
     {
         string directory = TempDirectory();
         try
@@ -123,7 +123,7 @@ public class EndedDisplaySettingsTests
             var page = new SettingsPage(context);
             var root = OffscreenRenderer.Themed(page, ThemeCatalog.Obsidian);
             OffscreenRenderer.Render(root, 1000);
-            var title = Assert.Single(Descendants<TextBlock>(page), text => text.Text == "Clear finished fights after");
+            var title = Assert.Single(Descendants<TextBlock>(page), text => text.Text == "Shrink a finished fight to the slim bar after");
             var field = Assert.IsType<StackPanel>(title.Parent);
             var slider = Assert.Single(Descendants<Slider>(field));
             Assert.Equal(0, slider.Minimum);
@@ -141,7 +141,7 @@ public class EndedDisplaySettingsTests
             slider.Value = 0;
             Assert.Equal(0, store.Current.General.EndedDisplaySeconds);
             Assert.Equal(new[] { 30d, 0d }, appliedDelays);
-            Assert.Contains(Descendants<TextBlock>(field), text => text.Text == "Keep until next fight");
+            Assert.Contains(Descendants<TextBlock>(field), text => text.Text == "15 s");
             Assert.Equal(0, SettingsStore.LoadFrom(path).General.EndedDisplaySeconds);
         }
         finally { Directory.Delete(directory, true); }

@@ -48,11 +48,11 @@ public readonly record struct OverlayPresentationInput
 /// </summary>
 public static class OverlayPresentationPolicy
 {
-    /// <summary>Linger used when finished fights are kept until the next one ("Clear finished fights after" = 0).</summary>
+    /// <summary>Linger used when finished fights are kept until the next one ("Shrink a finished fight after" = 0).</summary>
     public const double DefaultLingerSeconds = 15;
 
     /// <summary>
-    /// The expanded linger after a fight: the "Clear finished fights after" delay when set, otherwise
+    /// The expanded linger after a fight: the "Shrink a finished fight after" delay when set, otherwise
     /// <see cref="DefaultLingerSeconds"/> (the result then stays reachable by expanding the compact bar).
     /// </summary>
     public static double ResolveLinger(double endedDisplaySeconds) =>

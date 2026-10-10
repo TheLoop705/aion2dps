@@ -14,6 +14,7 @@ internal readonly record struct RowDisplay(PlayerRow Row, int Rank, double Prima
 /// </summary>
 internal sealed class PlayerRowView : Grid
 {
+    private readonly Border _track = new() { IsHitTestVisible = false, Visibility = Visibility.Collapsed, Margin = new Thickness(0, 1, 0, 1) };
     private readonly Border _hover = new() { Opacity = 0, IsHitTestVisible = false };
     private readonly Border _bar = new() { HorizontalAlignment = HorizontalAlignment.Stretch, IsHitTestVisible = false, RenderTransformOrigin = new Point(0, 0.5) };
     private readonly ScaleTransform _barScale = new(0, 1);
@@ -47,6 +48,8 @@ internal sealed class PlayerRowView : Grid
         Cursor = Cursors.Hand;
         _bar.RenderTransform = _barScale;
         _hover.SetResourceReference(Border.BackgroundProperty, ThemeKeys.SurfaceAlt);
+        _track.SetResourceReference(Border.BackgroundProperty, ThemeKeys.WindowBackground);
+        _track.SetResourceReference(Border.CornerRadiusProperty, ThemeKeys.BarCornerRadius);
         _localStripe.SetResourceReference(Border.BackgroundProperty, ThemeKeys.Accent);
         _pinOutline.SetResourceReference(Border.BorderBrushProperty, ThemeKeys.Accent);
         _bar.SetResourceReference(Border.CornerRadiusProperty, ThemeKeys.BarCornerRadius);
@@ -57,6 +60,7 @@ internal sealed class PlayerRowView : Grid
             t.TextAlignment = TextAlignment.Right;
         _rank.TextAlignment = TextAlignment.Center;
 
+        Children.Add(_track);
         Children.Add(_hover);
         Children.Add(_bar);
         Children.Add(_localStripe);
@@ -93,13 +97,17 @@ internal sealed class PlayerRowView : Grid
     {
         if (_options is { } o && o.RowSize == options.RowSize && o.BarStyle == options.BarStyle && o.ShowCritRate == options.ShowCritRate
             && o.ShowMaxHit == options.ShowMaxHit && o.ShowGearScore == options.ShowGearScore && o.ShowTotal == options.ShowTotal && o.ShowContribution == options.ShowContribution
-            && o.ShowRank == options.ShowRank && o.ShowClassEmblem == options.ShowClassEmblem && o.View == options.View)
+            && o.ShowRank == options.ShowRank && o.ShowClassEmblem == options.ShowClassEmblem && o.View == options.View
+            && o.BarsOnly == options.BarsOnly)
         {
             _options = options;
+            _track.Opacity = options.BackgroundOpacity;
             return;
         }
         _options = options;
         var m = RowMetrics.For(options.RowSize);
+        // Bars only: no window box behind the rows, so every row carries its own translucent track.
+        _track.Visibility = options.BarsOnly ? Visibility.Visible : Visibility.Collapsed;
         bool micro = options.RowSize == RowSize.Micro;
         Height = m.Height;
 
@@ -178,6 +186,7 @@ internal sealed class PlayerRowView : Grid
         Col(numW, _primary);
         if (!micro && options.ShowTotal) Col(numW, _secondary);
         if (options.ShowContribution) Col(micro ? 40 : 46, _pct);
+        _track.Opacity = options.BackgroundOpacity;
         _barTarget = -1;
     }
 
