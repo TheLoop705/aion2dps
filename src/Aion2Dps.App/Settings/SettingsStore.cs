@@ -133,6 +133,8 @@ public sealed class SettingsStore
         }
         s.Timers.AlertMinutesBefore = Math.Clamp(s.Timers.AlertMinutesBefore, 0, 60);
         s.Timers.UpcomingMinutes = Math.Clamp(s.Timers.UpcomingMinutes, 10, 360);
+        if (s.Timers.WindowLeft is { } tl && !double.IsFinite(tl)) s.Timers.WindowLeft = null;
+        if (s.Timers.WindowTop is { } tt && !double.IsFinite(tt)) s.Timers.WindowTop = null;
         if (string.IsNullOrWhiteSpace(s.Timers.ServerRegion)) s.Timers.ServerRegion = "EU";
         var o = s.Overlay;
         o.Width = double.IsFinite(o.Width) ? Math.Clamp(o.Width, 300, 1000) : 380;

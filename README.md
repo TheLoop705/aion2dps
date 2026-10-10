@@ -25,7 +25,7 @@ you use the Character page.
 * **Timers**: Spacetime Rift countdown (entry window and running hour), Artifact Siege, siege bosses, hourly events and
   daily / weekly resets on the server clock (EU = Europe/Berlin, selectable), plus field-boss respawn timers read live
   from the game's own field-boss list: exact respawn times, respawn intervals learned from kills, kept across restarts.
-  Star timers for tray alerts (1–15 min before, and when a boss is up); the idle overlay shows the next starred timer.
+  Star timers for tray alerts (1–15 min before, and when a boss is up); a separate timers window next to the overlay lists everything due within the next hour.
 * **Trends**: best / median / last DPS and fastest kill per boss, with a per-fight DPS chart.
 * **Character**: your character as detected from login data, plus lookup of any character's gear, stats and
   daevanion boards through the official AION 2 site (Global, Korea, Taiwan).
@@ -67,9 +67,9 @@ also removes the start-with-Windows entry when it points into the install folder
 
 You can also download the release ZIP and extract it anywhere; then install Npcap yourself (see Requirements).
 
-Version 0.3.1 adds timers: Spacetime Rift, sieges and resets on the server clock, live field-boss respawns from the
-game (also updated by your own kills), your own timers and countdowns, and an upcoming-timers list on the idle
-overlay. The installer uses the latest published GitHub release.
+Version 0.3.2 adds timers: Spacetime Rift, sieges and resets on the server clock, live field-boss respawns from the
+game (also updated by your own kills), your own timers and countdowns, and a timers window that stays up next to the
+DPS overlay. The installer uses the latest published GitHub release.
 
 ## Requirements
 

@@ -239,9 +239,8 @@ public class TimersPageTests
     }
 
     [Fact]
-    public void Idle_bar_lists_upcoming_timers() => Sta.Run(() =>
+    public void Timers_window_lists_upcoming_timers_and_the_dps_bar_does_not() => Sta.Run(() =>
     {
-        var snap = MeterSnapshot.Empty with { State = MeterState.WaitingForCombat };
         UpcomingTimer[] upcoming =
         [
             new("Spacetime Rift", "open · 7m 12s", true, true),
@@ -249,23 +248,35 @@ public class TimersPageTests
             new("Immortal Gartua", "21m 05s", false, true),
             new("Dimensional Invasion", "39m 48s", false, false),
             new("A", "40m", false, false), new("B", "41m", false, false), new("C", "42m", false, false),
+            new("D", "43m", false, false), new("E", "44m", false, false),
         ];
-        var model = CompactBarModel.Build(snap, new OverlayStatus { Upcoming = upcoming });
-        Assert.Equal("Waiting for combat", model.Status);
-        Assert.Equal(CompactBarModel.MaxUpcoming, model.Upcoming.Count);
-        Assert.Equal(1, model.MoreUpcoming);
-        Assert.Equal(model, CompactBarModel.Build(snap, new OverlayStatus { Upcoming = upcoming.ToList() }));
-        Assert.Empty(CompactBarModel.Build(snap, new OverlayStatus()).Upcoming);
-
-        var bar = new CompactBarView();
-        bar.Update(model, RowSize.Compact);
-        var host = new Border { Child = bar, Padding = new Thickness(0) };
-        host.Ref(Border.BackgroundProperty, ThemeKeys.WindowBackground);
-        SaveForReview(OffscreenRenderer.Render(OffscreenRenderer.Themed(host, ThemeCatalog.Obsidian), 300), "idle-bar-upcoming.png");
-        var texts = Descendants<TextBlock>(bar).Select(t => t.Text).ToList();
+        var view = new TimerOverlayView { BackgroundOpacity = 0.92 };
+        view.Update(upcoming, 60);
+        var host = new Border { Child = view, Width = TimerOverlayWindow.DefaultWidth };
+        SaveForReview(OffscreenRenderer.Render(OffscreenRenderer.Themed(host, ThemeCatalog.Obsidian), TimerOverlayWindow.DefaultWidth), "timers-window.png");
+        var texts = view.LineTexts.ToList();
         Assert.Contains("open · 7m 12s", texts);
         Assert.Contains("Immortal Gartua", texts);
-        Assert.Contains(texts, t => t.StartsWith("+1 more", StringComparison.Ordinal));
+        Assert.DoesNotContain("E", texts);
+        Assert.Contains("+1 more", texts);
+
+        view.Update([], 60);
+        Assert.Equal(["Nothing due"], view.LineTexts.ToList());
+
+        // The DPS overlay's slim bar is back to status only.
+        var snap = MeterSnapshot.Empty with { State = MeterState.WaitingForCombat };
+        Assert.Equal("Waiting for combat", CompactBarModel.Build(snap, new OverlayStatus()).Status);
+
+        // The window remembers its own place; a bad saved position falls back next to the overlay.
+        var wa = SystemParameters.WorkArea;
+        var placed = new TimerOverlayWindow(new TimerSettings { WindowLeft = wa.Left + 50, WindowTop = wa.Top + 60 }, new OverlaySettings());
+        Assert.Equal((wa.Left + 50, wa.Top + 60), (placed.Left, placed.Top));
+        var fallback = new TimerOverlayWindow(new TimerSettings { WindowLeft = -99999, WindowTop = 5 }, new OverlaySettings { Left = wa.Left + 600, Top = wa.Top + 100 });
+        Assert.Equal(wa.Left + 600 - TimerOverlayWindow.DefaultWidth - 12, fallback.Left);
+        Assert.Equal(wa.Top + 100, fallback.Top);
+        fallback.SetLockState(true, true);   // before the window exists: no throw
+        placed.Close();
+        fallback.Close();
     });
 
     private static string? RowName(DependencyObject star)

@@ -39,7 +39,7 @@ public sealed class OverlayController : IDisposable
         services.Capture.StatusChanged += s => _capture = s;
         _timer = new DispatcherTimer(DispatcherPriority.Render) { Interval = TimeSpan.FromMilliseconds(250) };
         _timer.Tick += (_, _) => Refresh();
-        settings.Changed += _ => { if (_window is not null) { ApplyLockState(); Refresh(); } };
+        settings.Changed += _ => { if (_window is not null) { ApplyLockState(); Refresh(); SyncTimerWindow(_services.Now(), force: true); } };
     }
 
     public bool IsVisible => _window?.IsVisible == true;
@@ -126,6 +126,7 @@ public sealed class OverlayController : IDisposable
     private void HideCore(bool persist)
     {
         _window?.Hide();
+        _timerWindow?.Hide();
         _timer.Stop();
         if (persist)
         {
@@ -226,6 +227,7 @@ public sealed class OverlayController : IDisposable
     {
         var o = _settings.Current.Overlay;
         _window?.SetLockState(o.Locked, o.ClickThrough);
+        _timerWindow?.SetLockState(o.Locked, o.ClickThrough);
     }
 
     private void SaveBounds()
@@ -337,20 +339,53 @@ public sealed class OverlayController : IDisposable
         ShowToast(title, message);
     }
 
-    /// <summary>Timers due soon for the slim bar's list (set by the host; null = none).</summary>
+    /// <summary>Timers due soon for the timers window (set by the host; null = no timers window).</summary>
     public Func<DateTime, IReadOnlyList<UpcomingTimer>>? Upcoming { get; set; }
 
-    private IReadOnlyList<UpcomingTimer> _upcoming = [];
+    private TimerOverlayWindow? _timerWindow;
     private DateTime _upcomingAt;
 
-    private IReadOnlyList<UpcomingTimer> UpcomingTimers(DateTime clock)
+    /// <summary>The always-on timers window (null until first shown).</summary>
+    public TimerOverlayWindow? TimerWindow => _timerWindow;
+
+    /// <summary>The timers window is wanted: the overlay is shown, the host feeds timers and the setting is on.</summary>
+    private bool TimerWindowWanted => Upcoming is not null && _settings.Current.Timers.ShowTimerWindow && IsVisible;
+
+    /// <summary>Shows / hides / refreshes the timers window alongside the DPS overlay (1×/s).</summary>
+    private void SyncTimerWindow(DateTime clock, bool force = false)
     {
-        if (Upcoming is null || !_settings.Current.Timers.ShowNextOnOverlay) return [];
-        if ((DateTime.UtcNow - _upcomingAt).TotalSeconds < 1) return _upcoming;
-        _upcomingAt = DateTime.UtcNow;
-        try { _upcoming = Upcoming(clock); }
-        catch (Exception ex) { AppLog.Warn("Overlay", $"Upcoming timers failed: {ex.Message}"); _upcoming = []; }
-        return _upcoming;
+        try
+        {
+            if (!TimerWindowWanted)
+            {
+                _timerWindow?.Hide();
+                return;
+            }
+            if (_timerWindow is null)
+            {
+                _timerWindow = new TimerOverlayWindow(_settings.Current.Timers, _settings.Current.Overlay);
+                _timerWindow.Clicked += () => _openDashboard("Timers");
+                _timerWindow.Moved += () =>
+                {
+                    _settings.Current.Timers.WindowLeft = _timerWindow.Left;
+                    _settings.Current.Timers.WindowTop = _timerWindow.Top;
+                    _settings.NotifyChanged();
+                };
+                _timerWindow.SourceInitialized += (_, _) => ApplyLockState();
+                force = true;
+            }
+            if (force || (DateTime.UtcNow - _upcomingAt).TotalSeconds >= 1)
+            {
+                _upcomingAt = DateTime.UtcNow;
+                _timerWindow.View.BackgroundOpacity = _settings.Current.Overlay.BackgroundOpacity;
+                _timerWindow.View.Update(Upcoming!(clock), _settings.Current.Timers.UpcomingMinutes);
+            }
+            if (!_timerWindow.IsVisible) _timerWindow.Show();
+        }
+        catch (Exception ex)
+        {
+            AppLog.Warn("Overlay", $"Timers window failed: {ex.Message}");
+        }
     }
 
     public void Refresh()
@@ -382,7 +417,6 @@ public sealed class OverlayController : IDisposable
             var status = new OverlayStatus
             {
                 Capture = _capture, TrainingRemaining = remaining, Flash = _flash, PinnedEntityId = _pinned, LastFightDps = _lastFightDps,
-                Upcoming = UpcomingTimers(clock),
             };
             var settings = _settings.Current;
             _window.View.Update(snap, status, OverlayViewOptions.From(settings, AppPaths.Version));
@@ -391,6 +425,7 @@ public sealed class OverlayController : IDisposable
             var presentation = _presentation.Update(snap.State, snap.EncounterId, clock,
                 settings.Overlay.ShrinkWhenIdle, settings.General.EndedDisplaySeconds, _window.View.ToastVisible, interacting);
             _window.SetPresentation(presentation == OverlayPresentation.Compact, settings.Overlay.ShrinkWhenIdle);
+            SyncTimerWindow(clock);
         }
         catch (Exception ex)
         {
@@ -407,5 +442,7 @@ public sealed class OverlayController : IDisposable
         _timer.Stop();
         _window?.Close();
         _window = null;
+        _timerWindow?.Close();
+        _timerWindow = null;
     }
 }

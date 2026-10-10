@@ -78,11 +78,9 @@ public sealed record OverlayStatus
     public uint? PinnedEntityId { get; init; }
     /// <summary>The local player's DPS in the last fight (compact bar hint; null = unknown).</summary>
     public double? LastFightDps { get; init; }
-    /// <summary>Timers due soon, listed under the slim bar (empty = none / turned off).</summary>
-    public IReadOnlyList<UpcomingTimer> Upcoming { get; init; } = [];
 }
 
-/// <summary>One line of the slim bar's upcoming-timers list.</summary>
+/// <summary>One line of the timers window (<see cref="TimerOverlayView"/>).</summary>
 /// <param name="When">"12m 30s", or the time left of a running entry window ("open · 8m 10s").</param>
 /// <param name="Live">An entry window / countdown end is happening now (drawn in the positive colour).</param>
 public sealed record UpcomingTimer(string Name, string When, bool Live, bool Starred);

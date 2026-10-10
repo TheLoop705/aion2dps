@@ -146,10 +146,13 @@ public sealed class TimerSettings
     public Dictionary<string, bool> Stars { get; set; } = new();
     /// <summary>Field-boss list shows starred bosses only.</summary>
     public bool StarredBossesOnly { get; set; }
-    /// <summary>The slim idle bar lists the timers due within <see cref="UpcomingMinutes"/>.</summary>
-    public bool ShowNextOnOverlay { get; set; } = true;
-    /// <summary>How far ahead the slim bar's list looks (minutes).</summary>
+    /// <summary>The timers window (shown with the DPS overlay, in and out of combat) lists the timers due within <see cref="UpcomingMinutes"/>.</summary>
+    public bool ShowTimerWindow { get; set; } = true;
+    /// <summary>How far ahead the timers window looks (minutes).</summary>
     public int UpcomingMinutes { get; set; } = 60;
+    /// <summary>Timers window position (device-independent pixels); null = next to the overlay.</summary>
+    public double? WindowLeft { get; set; }
+    public double? WindowTop { get; set; }
     /// <summary>Your own timers and your changes to the built-in ones (Settings → Timers).</summary>
     public List<TimerEntry> Entries { get; set; } = new();
 }
