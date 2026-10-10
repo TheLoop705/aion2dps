@@ -109,9 +109,15 @@ public sealed class TimerEditor : StackPanel
         row.Children.Add(NameBox(e.Name ?? "", v => { e.Name = v; Save(); }));
         if (e.IsCountdown)
         {
-            row.Children.Add(Label("Countdown"));
-            row.Children.Add(NumberBox(e.CountdownMinutes ?? 60, 1, 60 * 24 * 7, v => { e.CountdownMinutes = v; Save(); }, "Minutes"));
-            row.Children.Add(Label("min · start it on the Timers page"));
+            row.Children.Add(Label(e.Respawn ? "Respawn" : "Countdown"));
+            row.Children.Add(NumberBox(e.CountdownMinutes ?? 60, 1, TimerService.MaxCountdownMinutes, v => { e.CountdownMinutes = v; Save(); }, "Minutes"));
+            row.Children.Add(Label(e.Respawn ? "min · press Killed on the Timers page" : "min · start it on the Timers page"));
+            var repeat = Ui.Check("Repeats on its own", e.AutoRepeat, v => { e.AutoRepeat = v; Save(); },
+                "On a fixed cycle: starts the next round by itself instead of waiting for Killed / Start");
+            repeat.VerticalAlignment = VerticalAlignment.Center;
+            row.Children.Add(Ui.Check("Boss respawn", e.Respawn, v => { e.Respawn = v; if (!v) e.AutoRepeat = false; Save(); Rebuild(); },
+                "Shows \"Up\" when due; Killed restarts the respawn"));
+            if (e.Respawn) row.Children.Add(repeat);
         }
         else
         {

@@ -67,9 +67,10 @@ also removes the start-with-Windows entry when it points into the install folder
 
 You can also download the release ZIP and extract it anywhere; then install Npcap yourself (see Requirements).
 
-Version 0.3.2 adds timers: Spacetime Rift, sieges and resets on the server clock, live field-boss respawns from the
-game (also updated by your own kills), your own timers and countdowns, and a timers window that stays up next to the
-DPS overlay. The installer uses the latest published GitHub release.
+Version 0.3.3 lets you add a timer straight from the Timers page: a name, "spawns in 28 min" and an optional respawn
+(Killed restarts it, or it repeats on its own), for bosses the game does not list such as Abyss field bosses. Since
+0.3.0: Spacetime Rift, sieges and resets on the server clock, live field-boss respawns from the game (also updated by
+your own kills), your own timers and countdowns, and a timers window that stays up next to the DPS overlay. The installer uses the latest published GitHub release.
 
 ## Requirements
 

@@ -115,8 +115,83 @@ public sealed class TimerService
         return true;
     }
 
-    private static DateTime? CountdownEnd(TimerEntry e) =>
-        e.CountdownStartedUtc is DateTime s && e.CountdownMinutes is int m ? DateTime.SpecifyKind(s, DateTimeKind.Utc).AddMinutes(m) : null;
+    /// <summary>Longest countdown / first spawn you can enter (7 days).</summary>
+    public const int MaxCountdownMinutes = 60 * 24 * 7;
+
+    /// <summary>
+    /// Adds a countdown that is due <paramref name="dueInMinutes"/> from now ("Argo spawns in 28 min"). With a
+    /// <paramref name="respawnMinutes"/> it is a boss respawn: when it is due the boss is "Up" and Killed restarts the
+    /// respawn (or, with <paramref name="autoRepeat"/>, it starts again on its own every respawn). Null on bad input.
+    /// </summary>
+    public TimerEntry? AddCountdown(string? name, int dueInMinutes, int respawnMinutes, bool autoRepeat, DateTime nowUtc)
+    {
+        if (dueInMinutes is < 0 or > MaxCountdownMinutes || respawnMinutes is < 0 or > MaxCountdownMinutes) return null;
+        if (respawnMinutes == 0 && dueInMinutes == 0) return null;
+        int length = respawnMinutes > 0 ? respawnMinutes : dueInMinutes;
+        var entry = new TimerEntry
+        {
+            Id = "custom-" + Guid.NewGuid().ToString("N")[..8], Custom = true,
+            Name = string.IsNullOrWhiteSpace(name) ? (respawnMinutes > 0 ? "Boss" : "Countdown") : name.Trim(),
+            CountdownMinutes = length, Respawn = respawnMinutes > 0, AutoRepeat = respawnMinutes > 0 && autoRepeat,
+            // The end is what counts: start it so that it ends in dueInMinutes (in the past or future is fine).
+            CountdownStartedUtc = DateTime.SpecifyKind(nowUtc, DateTimeKind.Utc).AddMinutes(dueInMinutes - length),
+        };
+        _settings().Entries.Add(entry);
+        return entry;
+    }
+
+    /// <summary>
+    /// "28" (minutes), "1:30" / "1h30" / "1h 30m" / "90m" / "2h" → minutes. False for anything else or above
+    /// <see cref="MaxCountdownMinutes"/>.
+    /// </summary>
+    public static bool TryParseDuration(string? text, out int minutes)
+    {
+        minutes = 0;
+        if (string.IsNullOrWhiteSpace(text)) return false;
+        var s = text.Trim().ToLowerInvariant().Replace(" ", "", StringComparison.Ordinal);
+        var m = System.Text.RegularExpressions.Regex.Match(s, @"^(?:(\d{1,3})(?:h|:))?(\d{1,5})?(?:m|min)?$");
+        if (!m.Success || (!m.Groups[1].Success && !m.Groups[2].Success)) return false;
+        if (s.Contains(':', StringComparison.Ordinal) && (!m.Groups[2].Success || m.Groups[2].Value.Length != 2)) return false;
+        int h = m.Groups[1].Success ? int.Parse(m.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture) : 0;
+        int min = m.Groups[2].Success ? int.Parse(m.Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture) : 0;
+        if (m.Groups[1].Success && min >= 60) return false;
+        minutes = h * 60 + min;
+        return minutes <= MaxCountdownMinutes;
+    }
+
+    /// <summary>Deletes one of your countdowns (and its star override).</summary>
+    public bool RemoveCountdown(string key)
+    {
+        var s = _settings();
+        int removed = s.Entries.RemoveAll(x => x.IsCountdown && CountdownKey(x) == key);
+        if (removed > 0) s.Stars.Remove(key);
+        return removed > 0;
+    }
+
+    /// <summary>How long a due countdown stays "Up" / "Done" before an auto-repeating one starts its next round.</summary>
+    private static readonly TimeSpan RepeatGrace = TimeSpan.FromMinutes(2);
+
+    private static DateTime? CountdownEnd(TimerEntry e, DateTime nowUtc)
+    {
+        if (e.CountdownStartedUtc is not DateTime s || e.CountdownMinutes is not int m) return null;
+        var end = DateTime.SpecifyKind(s, DateTimeKind.Utc).AddMinutes(m);
+        var late = nowUtc - end - RepeatGrace;
+        if (e.AutoRepeat && late > TimeSpan.Zero)
+        {
+            var len = TimeSpan.FromMinutes(m);
+            end += TimeSpan.FromTicks((late.Ticks / len.Ticks + 1) * len.Ticks);
+        }
+        return end;
+    }
+
+    private static string CountdownName(TimerEntry c) => string.IsNullOrWhiteSpace(c.Name) ? (c.Respawn ? "Boss" : "Countdown") : c.Name.Trim();
+
+    private static string CountdownDetail(TimerEntry c)
+    {
+        string len = FormatInterval(TimeSpan.FromMinutes(c.CountdownMinutes!.Value));
+        if (!c.Respawn) return $"Countdown {len} · press Start when it begins";
+        return c.AutoRepeat ? $"respawn every {len} · repeats on its own" : $"respawn {len} · press Killed when it dies";
+    }
 
     public bool IsStarred(FieldBossTimer t) =>
         _settings().Stars.TryGetValue(BossKey(t), out bool s) ? s : t.IsImportant;
@@ -152,13 +227,17 @@ public sealed class TimerService
         }
         foreach (var c in Countdowns())
         {
-            string name = string.IsNullOrWhiteSpace(c.Name) ? "Countdown" : c.Name.Trim();
-            string detail = $"Countdown {FormatInterval(TimeSpan.FromMinutes(c.CountdownMinutes!.Value))} · press Start when it begins";
-            var end = CountdownEnd(c);
+            string name = CountdownName(c), detail = CountdownDetail(c);
+            var end = CountdownEnd(c, nowUtc);
+            var interval = c.Respawn ? TimeSpan.FromMinutes(c.CountdownMinutes!.Value) : (TimeSpan?)null;
             if (end is DateTime t && t > nowUtc)
-                rows.Add(new TimerRow(CountdownKey(c), "Events", name, "Counting", t, false, IsStarred(c), detail, IsCountdown: true));
+                rows.Add(new TimerRow(CountdownKey(c), "Events", name, "Counting", t, false, IsStarred(c), detail, interval, IsCountdown: true));
+            else if (end is DateTime due && c.Respawn)
+                rows.Add(new TimerRow(CountdownKey(c), "Events", name, "Up", null, true, IsStarred(c), Join(detail, "up since " + LocalClock(due)),
+                    interval, IsCountdown: true));
             else
-                rows.Add(new TimerRow(CountdownKey(c), "Events", name, end is null ? "Ready" : "Done", null, false, IsStarred(c), detail, IsCountdown: true));
+                rows.Add(new TimerRow(CountdownKey(c), "Events", name, end is null ? "Ready" : "Done", null, false, IsStarred(c), detail, interval,
+                    IsCountdown: true));
         }
         return rows.OrderBy(r => r.Live ? 0 : 1).ThenBy(r => r.AtUtc ?? DateTime.MaxValue).ToList();
     }
@@ -222,13 +301,13 @@ public sealed class TimerService
         }
         foreach (var c in Countdowns())
         {
-            if (!IsStarred(c) || CountdownEnd(c) is not DateTime end) continue;
+            if (!IsStarred(c) || CountdownEnd(c, nowUtc) is not DateTime end) continue;
             var left = end - nowUtc;
-            string name = string.IsNullOrWhiteSpace(c.Name) ? "Countdown" : c.Name.Trim();
+            string name = CountdownName(c);
             if (left > TimeSpan.Zero && left <= lead && _alerted.Add($"{CountdownKey(c)}@{end:O}:soon"))
-                result.Add(new TimerAlert(name, $"Due in {FormatLeft(left)} ({LocalClock(end)})"));
-            else if (left <= TimeSpan.Zero && left > TimeSpan.FromMinutes(-2) && _alerted.Add($"{CountdownKey(c)}@{end:O}:up"))
-                result.Add(new TimerAlert(name, "Countdown finished"));
+                result.Add(new TimerAlert(name, c.Respawn ? $"Spawns in {FormatLeft(left)} ({LocalClock(end)})" : $"Due in {FormatLeft(left)} ({LocalClock(end)})"));
+            else if (left <= TimeSpan.Zero && left > -RepeatGrace && _alerted.Add($"{CountdownKey(c)}@{end:O}:up"))
+                result.Add(new TimerAlert(name, c.Respawn ? "Spawned now" : "Countdown finished"));
         }
         foreach (var t in _book.Snapshot())
         {

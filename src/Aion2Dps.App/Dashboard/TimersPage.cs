@@ -37,6 +37,8 @@ public sealed class TimersPage : DashboardPage
         bar.Children.Add(_clock);
         root.Children.Add(bar);
 
+        root.Children.Add(Ui.Card("Add a timer", BuildQuickAdd(),
+            "A boss or event the game does not list (e.g. an Abyss field boss): when it is due, and its respawn if it comes back."));
         root.Children.Add(Ui.Card("Events", _events));
         var bossBody = new StackPanel();
         var bossBar = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8) };
@@ -50,6 +52,78 @@ public sealed class TimersPage : DashboardPage
             "Respawn times come from the game's field-boss list (every few seconds while you play) and are kept across restarts. " +
             "Priority bosses (Gartua first, then Dartan, Kashapa, Lagta and Lawa) and the scheduled Abyss bosses are starred by default."));
         Content = root;
+    }
+
+    private static readonly (int Minutes, string Label)[] RespawnChoices =
+    [
+        (0, "No respawn (one-off)"), (30, "Respawns 30 min"), (60, "Respawns 1 h"), (90, "Respawns 1 h 30"), (120, "Respawns 2 h"),
+        (180, "Respawns 3 h"), (240, "Respawns 4 h"), (360, "Respawns 6 h"), (480, "Respawns 8 h"), (720, "Respawns 12 h"), (1440, "Respawns 24 h"),
+    ];
+
+    /// <summary>Name · "spawns in" · respawn · repeat · Add. Adds a countdown due from now (Settings → Timers edits it).</summary>
+    private FrameworkElement BuildQuickAdd()
+    {
+        var name = new TextBox { Width = 220, MaxLength = 60, VerticalContentAlignment = VerticalAlignment.Center, ToolTip = "Boss or event name" };
+        var dueIn = new TextBox { Width = 70, VerticalContentAlignment = VerticalAlignment.Center, ToolTip = "Minutes (28) or hours:minutes (1:30, 2h)" };
+        int respawn = 0;
+        var repeat = Ui.Check("Repeats on its own", false, _ => { }, "On a fixed cycle: starts the next respawn by itself instead of waiting for Killed");
+        repeat.IsEnabled = false;
+        repeat.VerticalAlignment = VerticalAlignment.Center;
+        var respawnBox = Ui.Combo(RespawnChoices, 0, v => { respawn = v; repeat.IsEnabled = v > 0; }, 170);
+        var error = Ui.Text("", ThemeKeys.Negative, 11.5);
+        error.VerticalAlignment = VerticalAlignment.Center;
+        dueIn.TextChanged += (_, _) =>
+        {
+            bool ok = dueIn.Text.Length == 0 || TimerService.TryParseDuration(dueIn.Text, out _);
+            dueIn.Ref(Control.BorderBrushProperty, ok ? ThemeKeys.Border : ThemeKeys.Negative);
+        };
+        dueIn.Ref(Control.BorderBrushProperty, ThemeKeys.Border);
+
+        void Add()
+        {
+            var svc = Context.Timers;
+            if (svc is null) return;
+            if (!TimerService.TryParseDuration(dueIn.Text, out int minutes))
+            {
+                error.Text = "Enter when it spawns: minutes (28) or h:mm (1:30).";
+                return;
+            }
+            if (svc.AddCountdown(name.Text, minutes, respawn, repeat.IsChecked == true, Context.Services.Now()) is null)
+            {
+                error.Text = "Enter a time above 0.";
+                return;
+            }
+            error.Text = "";
+            name.Text = "";
+            dueIn.Text = "";
+            Save();
+            _eventLayout = "";
+            Refresh();
+        }
+        dueIn.KeyDown += (_, e) => { if (e.Key == System.Windows.Input.Key.Enter) Add(); };
+        name.KeyDown += (_, e) => { if (e.Key == System.Windows.Input.Key.Enter) Add(); };
+
+        var row = new WrapPanel();
+        row.Children.Add(name);
+        row.Children.Add(Label("spawns in"));
+        row.Children.Add(dueIn);
+        row.Children.Add(Label("min"));
+        respawnBox.Margin = new Thickness(6, 0, 10, 0);
+        row.Children.Add(respawnBox);
+        row.Children.Add(repeat);
+        var add = Ui.Button("Add", Add, accent: true, icon: "");
+        add.Margin = new Thickness(12, 0, 10, 0);
+        row.Children.Add(add);
+        row.Children.Add(error);
+        return row;
+
+        static TextBlock Label(string text)
+        {
+            var t = Ui.Text(text, ThemeKeys.TextMuted, 12);
+            t.VerticalAlignment = VerticalAlignment.Center;
+            t.Margin = new Thickness(8, 0, 6, 0);
+            return t;
+        }
     }
 
     public override string Key => "Timers";
@@ -153,6 +227,15 @@ public sealed class TimersPage : DashboardPage
         Refresh();
     }
 
+    private void DeleteCountdown(string key)
+    {
+        var svc = Context.Timers;
+        if (svc is null || !svc.RemoveCountdown(key)) return;
+        Save();
+        _eventLayout = "";
+        Refresh();
+    }
+
     /// <summary>One timer line: star · name (+ detail) · status pill · countdown · local clock.</summary>
     private sealed class RowView
     {
@@ -164,6 +247,7 @@ public sealed class TimersPage : DashboardPage
         private readonly TextBlock _at = Ui.Text("", ThemeKeys.TextMuted, 11.5);
         private readonly Border _badge = Ui.Pill("", ThemeKeys.Warning, ThemeKeys.AccentText, 9);
         private readonly Button _countdown;
+        private readonly Button _delete;
         private bool _counting;
 
         public RowView(TimersPage page, string key)
@@ -172,6 +256,9 @@ public sealed class TimersPage : DashboardPage
             _countdown = Ui.Chip("Start", "Start the countdown now", () => page.ToggleCountdown(key, _counting));
             _countdown.Margin = new Thickness(10, 0, 0, 0);
             _countdown.Visibility = Visibility.Collapsed;
+            _delete = Ui.IconButton(Ui.IconClose, "Delete this timer", () => page.DeleteCountdown(key), 10);
+            _delete.Margin = new Thickness(4, 0, 0, 0);
+            _delete.Visibility = Visibility.Collapsed;
             var g = new Grid { Margin = new Thickness(0, 2, 0, 2) };
             g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(30) });
             g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -185,6 +272,7 @@ public sealed class TimersPage : DashboardPage
             _badge.Margin = new Thickness(8, 1, 0, 0);
             title.Children.Add(_badge);
             title.Children.Add(_countdown);
+            title.Children.Add(_delete);
             text.Children.Add(title);
             text.Children.Add(_detail);
             Grid.SetColumn(text, 1);
@@ -212,7 +300,12 @@ public sealed class TimersPage : DashboardPage
             _name.Text = r.Name;
             _counting = r.Status == "Counting";
             _countdown.Visibility = r.IsCountdown ? Visibility.Visible : Visibility.Collapsed;
-            _countdown.Content = _counting ? "Stop" : r.Status == "Done" ? "Restart" : "Start";
+            _delete.Visibility = _countdown.Visibility;
+            bool respawn = r.IsCountdown && r.Interval is not null;
+            _countdown.Content = _counting ? "Stop" : respawn && r.Status == "Up" ? "Killed" : r.Status == "Done" ? "Restart" : "Start";
+            _countdown.ToolTip = _counting ? "Stop the countdown" : respawn
+                ? $"It died now: count its {TimerService.FormatInterval(r.Interval!.Value)} respawn from now"
+                : "Start the countdown now";
             _badge.Visibility = r.Priority == TimerPriority.None ? Visibility.Collapsed : Visibility.Visible;
             ((TextBlock)_badge.Child).Text = r.Priority switch { TimerPriority.Top => "TOP PRIORITY", TimerPriority.High => "HIGH", _ => "MEDIUM" };
             _badge.SetResourceReference(Border.BackgroundProperty, r.Priority switch

@@ -145,6 +145,108 @@ public class TimersPageTests
         finally { Directory.Delete(directory, true); }
     });
 
+    [Theory]
+    [InlineData("28", 28)]
+    [InlineData(" 90 min", 90)]
+    [InlineData("1:30", 90)]
+    [InlineData("2h", 120)]
+    [InlineData("1h 5m", 65)]
+    [InlineData("45m", 45)]
+    [InlineData("0", 0)]
+    public void Durations_parse(string text, int minutes)
+    {
+        Assert.True(TimerService.TryParseDuration(text, out int m));
+        Assert.Equal(minutes, m);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("abc")]
+    [InlineData("1:5")]
+    [InlineData("1h75")]
+    [InlineData("-5")]
+    [InlineData("99999")]
+    public void Bad_durations_are_rejected(string text) => Assert.False(TimerService.TryParseDuration(text, out _));
+
+    [Fact]
+    public void Added_boss_spawns_in_given_minutes_then_respawns_after_a_kill()
+    {
+        using var services = ServiceFactory.CreateDemo();
+        var settings = new TimerSettings { AlertMinutesBefore = 5 };
+        var timers = Service(services, settings);
+        var now = new DateTime(2026, 10, 10, 18, 0, 0, DateTimeKind.Utc);
+
+        // One-off: "spawns in 28 min".
+        var once = timers.AddCountdown("Event X", 28, 0, false, now)!;
+        var row = timers.EventRows(now).Single(r => r.Name == "Event X");
+        Assert.Equal(("Counting", now.AddMinutes(28)), (row.Status, row.AtUtc));
+        Assert.Equal("Done", timers.EventRows(now.AddMinutes(29)).Single(r => r.Name == "Event X").Status);
+
+        // Boss with a 2 h respawn, first spawn in 28 min: Up when due, Killed restarts the 2 h.
+        var argo = timers.AddCountdown("Argo, the Spirit King", 28, 120, false, now)!;
+        Assert.True(argo.Respawn);
+        row = timers.EventRows(now).Single(r => r.Name == "Argo, the Spirit King");
+        Assert.Equal(("Counting", now.AddMinutes(28)), (row.Status, row.AtUtc));
+        Assert.True(row.Starred);
+        Assert.Contains(timers.Upcoming(now, TimeSpan.FromHours(1)), r => r.Key == row.Key);
+        Assert.Contains(timers.CollectAlerts(now.AddMinutes(24)), a => a.Title == "Argo, the Spirit King" && a.Text.StartsWith("Spawns in 4m", StringComparison.Ordinal));
+        Assert.Contains(timers.CollectAlerts(now.AddMinutes(28).AddSeconds(5)), a => a.Title == "Argo, the Spirit King" && a.Text == "Spawned now");
+        var up = timers.EventRows(now.AddMinutes(40)).Single(r => r.Name == "Argo, the Spirit King");
+        Assert.Equal("Up", up.Status);
+        Assert.True(up.Live);
+        Assert.True(timers.StartCountdown(up.Key, now.AddMinutes(45)));    // Killed
+        Assert.Equal(now.AddMinutes(165), timers.EventRows(now.AddMinutes(50)).Single(r => r.Name == "Argo, the Spirit King").AtUtc);
+
+        // Fixed cycle: after a short "Up" it counts down the next round on its own.
+        timers.AddCountdown("Cycle boss", 10, 60, true, now);
+        Assert.Equal("Up", timers.EventRows(now.AddMinutes(11)).Single(r => r.Name == "Cycle boss").Status);
+        var next = timers.EventRows(now.AddMinutes(13)).Single(r => r.Name == "Cycle boss");
+        Assert.Equal(("Counting", now.AddMinutes(70)), (next.Status, next.AtUtc));
+        Assert.Equal(now.AddMinutes(250), timers.EventRows(now.AddMinutes(200)).Single(r => r.Name == "Cycle boss").AtUtc);
+
+        // A first spawn further out than the respawn works too; bad input adds nothing.
+        timers.AddCountdown("Late", 300, 30, false, now);
+        Assert.Equal(now.AddMinutes(300), timers.EventRows(now).Single(r => r.Name == "Late").AtUtc);
+        Assert.Null(timers.AddCountdown("Zero", 0, 0, false, now));
+        Assert.Null(timers.AddCountdown("Neg", -1, 0, false, now));
+
+        Assert.True(timers.RemoveCountdown(TimerService.CountdownKey(once)));
+        Assert.DoesNotContain(timers.EventRows(now), r => r.Name == "Event X");
+    }
+
+    [Fact]
+    public void Timers_page_quick_add_creates_a_boss_timer() => Sta.Run(() =>
+    {
+        string directory = TempDirectory();
+        try
+        {
+            var store = new SettingsStore(Path.Combine(directory, "settings.json"));
+            using var services = ServiceFactory.CreateDemo();
+            var timers = Service(services, store.Current.Timers);
+            var page = new TimersPage(new DashboardContext { Settings = store, Services = services, Timers = timers });
+            page.Refresh();
+            var host = OffscreenRenderer.Themed(page, ThemeCatalog.Obsidian);
+            OffscreenRenderer.Render(host, 1000);   // builds the visual tree
+
+            var boxes = Descendants<TextBox>(page).ToList();
+            boxes.Single(b => b.ToolTip as string == "Boss or event name").Text = "Argo, the Spirit King";
+            boxes.Single(b => (b.ToolTip as string)?.StartsWith("Minutes", StringComparison.Ordinal) == true).Text = "28";
+            Descendants<ComboBox>(page).Single(c => c.Items.Count == 11).SelectedIndex = 4;   // Respawns 2 h
+            Click(Descendants<Button>(page).Single(b => ButtonText(b) == "Add"));
+            SaveForReview(OffscreenRenderer.Render(host, 1000), "timers-page-added.png");
+
+            var entry = store.Current.Timers.Entries.Single(e => e.IsCountdown);
+            Assert.Equal(("Argo, the Spirit King", 120, true), (entry.Name, entry.CountdownMinutes, entry.Respawn));
+            var texts = Descendants<TextBlock>(page).Select(t => t.Text).ToList();
+            Assert.Contains("Argo, the Spirit King", texts);
+            Assert.Contains(texts, t => t.StartsWith("27m", StringComparison.Ordinal) || t.StartsWith("28m", StringComparison.Ordinal));
+
+            Click(Descendants<Button>(page).Single(b => b.ToolTip as string == "Delete this timer" && b.Visibility == Visibility.Visible));
+            Assert.DoesNotContain(store.Current.Timers.Entries, e => e.IsCountdown);
+        }
+        finally { Directory.Delete(directory, true); }
+    });
+
     private static void Click(Button b) => b.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
 
     private static string? ButtonText(Button b) => b.Content as string

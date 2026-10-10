@@ -178,6 +178,10 @@ public sealed class TimerEntry
     /// <summary>Countdown length; set = this entry is a countdown (started from the Timers page), not a schedule.</summary>
     public int? CountdownMinutes { get; set; }
     public DateTime? CountdownStartedUtc { get; set; }
+    /// <summary>A boss respawn: when due the boss is "Up", and Killed restarts the <see cref="CountdownMinutes"/> respawn.</summary>
+    public bool Respawn { get; set; }
+    /// <summary>Starts the next round on its own every <see cref="CountdownMinutes"/> (a boss on a fixed cycle).</summary>
+    public bool AutoRepeat { get; set; }
 
     [JsonIgnore]
     public bool IsCountdown => Custom && CountdownMinutes is > 0;
